@@ -9,8 +9,8 @@ class Jugador extends Model
     protected $table = 'jugadores';
 
     protected $fillable = [
-        'nombre', 'apellidos', 'posicion', 'fecha_nacimiento', 'lugar_nacimiento',
-        'nacionalidad', 'seleccion', 'altura', 'pie', 'foto_url',
-        'fecha_fin_contrato', 'club_anterior', 'id_externo_api',
+        'nombre', 'apellidos', 'nombre_camiseta', 'posicion', 'posicion_detallada',
+        'fecha_nacimiento', 'lugar_nacimiento', 'nacionalidad', 'seleccion',
+        'altura', 'pie', 'foto_url', 'fecha_fin_contrato', 'club_anterior', 'id_externo_api',
     ];
 }

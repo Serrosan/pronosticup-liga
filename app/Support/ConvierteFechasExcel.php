@@ -60,4 +60,22 @@ trait ConvierteFechasExcel
 
         return $numero;
     }
+
+    protected function fechaHoraExcel($valor): ?string
+    {
+        if (empty($valor)) {
+            return null;
+        }
+
+        if ($valor instanceof \DateTimeInterface) {
+            return $valor->format('Y-m-d H:i:s');
+        }
+
+        if (is_numeric($valor)) {
+            return \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($valor)->format('Y-m-d H:i:s');
+        }
+
+        // Texto tipo "2026-08-15T17:30:00Z" (formato ISO de football-data.org)
+        return \Carbon\Carbon::parse($valor)->format('Y-m-d H:i:s');
+    }
 }

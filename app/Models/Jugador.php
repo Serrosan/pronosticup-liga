@@ -13,4 +13,9 @@ class Jugador extends Model
         'fecha_nacimiento', 'lugar_nacimiento', 'nacionalidad', 'seleccion',
         'altura', 'pie', 'foto_url', 'fecha_fin_contrato', 'club_anterior', 'id_externo_api',
     ];
+    
+    protected function casts(): array
+    {
+        return ['fecha_nacimiento' => 'date'];
+    }
 }

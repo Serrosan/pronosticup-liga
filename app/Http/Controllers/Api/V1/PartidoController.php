@@ -10,12 +10,12 @@ use Illuminate\Http\Request;
 
 class PartidoController extends Controller
 {
-    public function porJornada(Request $request, Liga $liga, int $jornada)
+    public function porJornada(Request $request, int $jornada)
     {
-        $esMiembro = $liga->usuarios()->where('id_usuario', $request->user()->id)->exists();
+        $liga = $request->user()->ligaActiva;
 
-        if (! $esMiembro) {
-            return response()->json(['message' => 'No perteneces a esta liga.'], 403);
+        if (! $liga) {
+            return response()->json(['message' => 'No tienes ninguna liga activa.'], 409);
         }
 
         $partidos = CalendarioPartido::where('id_temporada', $liga->id_temporada)

@@ -13,7 +13,10 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->statefulApi();
+        $middleware->alias(['admin' => \App\Http\Middleware\EnsureIsAdmin::class]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, $request) {
+            return response()->json(['message' => 'No autenticado.'], 401);
+        });
     })->create();

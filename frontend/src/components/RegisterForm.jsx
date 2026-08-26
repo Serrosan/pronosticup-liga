@@ -1,12 +1,14 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import client from '../api/client'
 
 function RegisterForm() {
+  const [searchParams] = useSearchParams()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [passwordConfirmation, setPasswordConfirmation] = useState('')
+  const [codigoLiga, setCodigoLiga] = useState(searchParams.get('codigo') ?? '')
   const [errores, setErrores] = useState({})
   const [enviando, setEnviando] = useState(false)
   const [exito, setExito] = useState(false)
@@ -23,6 +25,7 @@ function RegisterForm() {
         email,
         password,
         password_confirmation: passwordConfirmation,
+        codigo_liga: codigoLiga || null,
       })
       setExito(true)
     } catch (err) {
@@ -112,6 +115,18 @@ function RegisterForm() {
           onChange={(e) => setPasswordConfirmation(e.target.value)}
           className="w-full font-body bg-borde/10 text-texto placeholder:text-borde/60 rounded border border-borde/40 px-3 py-2.5 focus:outline-none focus:border-acento focus:ring-1 focus:ring-acento"
         />
+      </div>
+
+      <div>
+        <label className="font-body text-xs font-medium text-borde block mb-1">Código de liga (opcional)</label>
+        <input
+          type="text"
+          placeholder="Ej. HLFHCA"
+          value={codigoLiga}
+          onChange={(e) => setCodigoLiga(e.target.value.toUpperCase())}
+          className="w-full font-body bg-borde/10 text-texto placeholder:text-borde/60 rounded border border-borde/40 px-3 py-2.5 focus:outline-none focus:border-acento focus:ring-1 focus:ring-acento tracking-widest"
+        />
+        <p className="font-body text-xs text-borde mt-1">Pide el código al administrador de tu liga</p>
       </div>
 
       <button

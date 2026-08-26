@@ -4,12 +4,12 @@ import client from '../api/client'
 import MatchCard from '../components/MatchCard'
 
 function MatchdayPage() {
-  const { idLiga, jornada } = useParams()
+  const { jornada } = useParams()
 
   const { data: partidos, isLoading, error } = useQuery({
-    queryKey: ['partidos', idLiga, jornada],
+    queryKey: ['partidos', jornada],
     queryFn: async () => {
-      const respuesta = await client.get(`/api/v1/ligas/${idLiga}/jornadas/${jornada}/partidos`)
+      const respuesta = await client.get(`/api/v1/jornadas/${jornada}/partidos`)
       return respuesta.data.data
     },
   })
@@ -22,7 +22,7 @@ function MatchdayPage() {
       <h2 className="font-display text-xl text-texto px-4 pt-4">Jornada {jornada}</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 p-4 max-w-6xl mx-auto">
         {partidos.map((partido) => (
-          <MatchCard key={partido.id} partido={{ ...partido, jornada }} idLiga={idLiga} />
+          <MatchCard key={partido.id} partido={{ ...partido, jornada }} />
         ))}
       </div>
     </div>

@@ -1,10 +1,18 @@
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
 import client from '../api/client'
 
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
   const [usuario, setUsuario] = useState(null)
+  const [cargando, setCargando] = useState(true)
+
+  useEffect(() => {
+    client.get('/api/v1/me')
+      .then((respuesta) => setUsuario(respuesta.data.data))
+      .catch(() => setUsuario(null))
+      .finally(() => setCargando(false))
+  }, [])
 
   async function login(email, password) {
     await client.get('/sanctum/csrf-cookie')
@@ -18,7 +26,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ usuario, login, logout }}>
+    <AuthContext.Provider value={{ usuario, login, logout, cargando }}>
       {children}
     </AuthContext.Provider>
   )

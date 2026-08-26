@@ -2,14 +2,14 @@ import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import client from '../api/client'
 
-function MatchCard({ partido, idLiga }) {
+function MatchCard({ partido }) {
   const [golesLocal, setGolesLocal] = useState('')
   const [golesVisitante, setGolesVisitante] = useState('')
   const queryClient = useQueryClient()
 
   const mutacion = useMutation({
     mutationFn: async ({ resultado1x2, golesLocal, golesVisitante }) => {
-      const respuesta = await client.post(`/api/v1/ligas/${idLiga}/pronosticos`, {
+      const respuesta = await client.post('/api/v1/pronosticos', {
         id_partido: partido.id,
         resultado_1x2: resultado1x2,
         goles_local_predicho: Number(golesLocal),
@@ -18,7 +18,7 @@ function MatchCard({ partido, idLiga }) {
       return respuesta.data.data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['partidos', idLiga, partido.jornada] })
+      queryClient.invalidateQueries({ queryKey: ['partidos', partido.jornada] })
     },
   })
 

@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
+use App\Models\Liga;
 
 class AuthController extends Controller
 {
@@ -19,6 +20,7 @@ class AuthController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'confirmed', Password::defaults()],
+            'codigo_liga' => ['nullable', 'string'],
         ]);
 
         $user = User::create([
@@ -26,6 +28,14 @@ class AuthController extends Controller
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
         ]);
+
+        if (! empty($validated['codigo_liga'])) {
+            $liga = Liga::where('codigo_acceso', strtoupper($validated['codigo_liga']))->first();
+
+            if ($liga) {
+                $liga->usuarios()->attach($user->id, ['rol' => 'Miembro']);
+            }
+        }
 
         event(new Registered($user));
         Auth::login($user);
@@ -62,7 +72,7 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        Auth::logout();
+        Auth::guard('web')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 

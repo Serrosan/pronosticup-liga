@@ -4,9 +4,9 @@ import RegisterForm from '../components/RegisterForm'
 import AuthLayout from '../components/AuthLayout'
 
 function RegisterPage() {
-  const { usuario } = useAuth()
-
-  if (usuario) return <Navigate to="/ligas/1/jornadas/1" replace />
+  const { usuario, cargando } = useAuth()
+  if (cargando) return null
+  if (usuario) return <Navigate to="/" replace />
 
   return (
     <AuthLayout>

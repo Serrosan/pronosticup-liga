@@ -19,11 +19,29 @@ Route::prefix('v1')->group(function () {
     Route::post('/ligas', [App\Http\Controllers\Api\V1\LigaController::class, 'store']);
     Route::post('/ligas/unirse', [App\Http\Controllers\Api\V1\LigaController::class, 'join']);
     Route::get('/ligas/{liga}', [App\Http\Controllers\Api\V1\LigaController::class, 'show']);
-    Route::get('/ligas/{liga}/jornadas/{jornada}/partidos', [PartidoController::class, 'porJornada']);
-    Route::post('/ligas/{liga}/pronosticos', [PronosticoController::class, 'store']);
-    Route::get('/ligas/{liga}/jornadas/{jornada}/pronosticos', [PronosticoController::class, 'misPronosticos']);
-    Route::post('/ligas/{liga}/jornadas/{jornada}/cerrar', [JornadaController::class, 'cerrar']);
-    Route::get('/ligas/{liga}/clasificacion', [ClasificacionController::class, 'index']);
+    Route::get('/jornadas/{jornada}/partidos', [PartidoController::class, 'porJornada']);
+    Route::post('/pronosticos', [PronosticoController::class, 'store']);
+    Route::get('/jornadas/{jornada}/pronosticos', [PronosticoController::class, 'misPronosticos']);
+    Route::get('/clasificacion', [\App\Http\Controllers\Api\V1\ClasificacionController::class, 'index']);
+    Route::get('/dashboard', [\App\Http\Controllers\Api\V1\DashboardController::class, 'index']);
+    Route::post('/jornadas/{jornada}/cerrar', [\App\Http\Controllers\Api\V1\JornadaController::class, 'cerrar']);
+    Route::patch('/liga-activa', [\App\Http\Controllers\Api\V1\LigaActivaController::class, 'set']);
+
+    Route::middleware('admin')->prefix('admin')->group(function () {
+        Route::apiResource('equipos', \App\Http\Controllers\Api\V1\Admin\EquipoAdminController::class)->except('show');
+        Route::apiResource('jugadores', \App\Http\Controllers\Api\V1\Admin\JugadorAdminController::class)->except('show');
+        Route::apiResource('estadios', \App\Http\Controllers\Api\V1\Admin\EstadioAdminController::class)->except('show');
+        Route::apiResource('arbitros', \App\Http\Controllers\Api\V1\Admin\ArbitroAdminController::class)->except('show');
+        Route::apiResource('trofeos', \App\Http\Controllers\Api\V1\Admin\TrofeoAdminController::class)->except('show');
+        Route::get('/usuarios', [\App\Http\Controllers\Api\V1\Admin\UsuarioAdminController::class, 'index']);
+        Route::patch('/usuarios/{user}/rol', [\App\Http\Controllers\Api\V1\Admin\UsuarioAdminController::class, 'actualizarRol']);
+        Route::get('/ligas', [\App\Http\Controllers\Api\V1\Admin\LigaAdminController::class, 'index']);
+        Route::delete('/ligas/{liga}', [\App\Http\Controllers\Api\V1\Admin\LigaAdminController::class, 'destroy']);
+        Route::get('/ligas/{liga}/dashboard', [\App\Http\Controllers\Api\V1\DashboardController::class, 'index']);
+        Route::post('/usuarios', [\App\Http\Controllers\Api\V1\Admin\UsuarioAdminController::class, 'store']);
+        Route::put('/usuarios/{user}', [\App\Http\Controllers\Api\V1\Admin\UsuarioAdminController::class, 'update']);
+        Route::post('/usuarios/{user}/activar', [\App\Http\Controllers\Api\V1\Admin\UsuarioAdminController::class, 'activar']);
+    });
     });
 
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);

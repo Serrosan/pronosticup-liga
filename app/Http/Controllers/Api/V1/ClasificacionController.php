@@ -10,12 +10,12 @@ use Illuminate\Http\Request;
 
 class ClasificacionController extends Controller
 {
-    public function index(Request $request, Liga $liga)
+    public function index(Request $request)
     {
-        $esMiembro = $liga->usuarios()->where('id_usuario', $request->user()->id)->exists();
+        $liga = $request->user()->ligaActiva;
 
-        if (! $esMiembro) {
-            return response()->json(['message' => 'No perteneces a esta liga.'], 403);
+        if (! $liga) {
+            return response()->json(['message' => 'No tienes ninguna liga activa.'], 409);
         }
 
         $clasificacion = EventoPuntos::where('id_liga', $liga->id)

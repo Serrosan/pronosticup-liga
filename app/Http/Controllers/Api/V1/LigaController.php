@@ -26,7 +26,7 @@ class LigaController extends Controller
             'tipo' => ['required', Rule::in(['Normal', 'ConExtras'])],
         ]);
 
-        $temporada = Temporada::latest('id')->first();
+        $temporada = Temporada::orderBy('id')->first();
 
         $liga = Liga::create([
             'nombre' => $validated['nombre'],
@@ -37,6 +37,7 @@ class LigaController extends Controller
         ]);
 
         $liga->usuarios()->attach($request->user()->id, ['rol' => 'Admin']);
+        $request->user()->update(['liga_activa_id' => $liga->id]);
 
         return (new LigaResource($liga->load('temporada')))
             ->response()
@@ -62,6 +63,7 @@ class LigaController extends Controller
         }
 
         $liga->usuarios()->attach($request->user()->id, ['rol' => 'Miembro']);
+        $request->user()->update(['liga_activa_id' => $liga->id]);
 
         return new LigaResource($liga->load('temporada'));
     }

@@ -17,6 +17,10 @@ class UserResource extends JsonResource
             'avatar_url' => $this->avatar_url,
             'activado' => ! is_null($this->activado_en),
             'es_superadmin' => $this->es_superadmin,
+            'liga_activa' => $this->ligaActiva ? [
+                'id' => $this->ligaActiva->id,
+                'nombre' => $this->ligaActiva->nombre,
+            ] : null,
         ];
     }
 }

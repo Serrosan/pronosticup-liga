@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\CalendarioPartido;
 use App\Models\CierreJornada;
 use App\Models\EventoPuntos;
-use App\Models\Liga;
 use App\Models\Pronostico;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -17,8 +16,14 @@ class JornadaController extends Controller
     private const PUNTOS_1X2 = 1;
     private const PUNTOS_FALLO = 0;
 
-    public function cerrar(Request $request, Liga $liga, int $jornada)
+    public function cerrar(Request $request, int $jornada)
     {
+        $liga = $request->user()->ligaActiva;
+
+        if (! $liga) {
+            return response()->json(['message' => 'No tienes ninguna liga activa.'], 409);
+        }
+
         $esAdmin = $liga->usuarios()
             ->where('id_usuario', $request->user()->id)
             ->wherePivot('rol', 'Admin')

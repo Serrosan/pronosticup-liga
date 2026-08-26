@@ -12,12 +12,12 @@ use Illuminate\Validation\Rule;
 
 class PronosticoController extends Controller
 {
-    public function store(Request $request, Liga $liga)
+    public function store(Request $request)
     {
-        $esMiembro = $liga->usuarios()->where('id_usuario', $request->user()->id)->exists();
+        $liga = $request->user()->ligaActiva;
 
-        if (! $esMiembro) {
-            return response()->json(['message' => 'No perteneces a esta liga.'], 403);
+        if (! $liga) {
+            return response()->json(['message' => 'No tienes ninguna liga activa.'], 409);
         }
 
         $validated = $request->validate([
@@ -50,12 +50,12 @@ class PronosticoController extends Controller
         return new PronosticoResource($pronostico);
     }
 
-    public function misPronosticos(Request $request, Liga $liga, int $jornada)
+    public function misPronosticos(Request $request, int $jornada)
     {
-        $esMiembro = $liga->usuarios()->where('id_usuario', $request->user()->id)->exists();
+        $liga = $request->user()->ligaActiva;
 
-        if (! $esMiembro) {
-            return response()->json(['message' => 'No perteneces a esta liga.'], 403);
+        if (! $liga) {
+            return response()->json(['message' => 'No tienes ninguna liga activa.'], 409);
         }
 
         $pronosticos = Pronostico::where('id_usuario', $request->user()->id)

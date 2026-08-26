@@ -73,4 +73,39 @@ class AuthController extends Controller
     {
         return new UserResource($request->user());
     }
+
+    public function forgotPassword(Request $request)
+    {
+        $request->validate(['email' => ['required', 'email']]);
+
+        \Illuminate\Support\Facades\Password::sendResetLink(
+            $request->only('email')
+        );
+
+        return response()->json([
+            'message' => 'Si ese email existe en nuestro sistema, te hemos enviado un enlace para restablecer la contraseña.',
+        ]);
+    }
+
+    public function resetPassword(Request $request)
+    {
+        $validated = $request->validate([
+            'token' => ['required'],
+            'email' => ['required', 'email'],
+            'password' => ['required', 'confirmed', \Illuminate\Validation\Rules\Password::defaults()],
+        ]);
+
+        $status = \Illuminate\Support\Facades\Password::reset(
+            $validated,
+            function ($user, $password) {
+                $user->forceFill(['password' => \Illuminate\Support\Facades\Hash::make($password)])->save();
+            }
+        );
+
+        if ($status !== \Illuminate\Support\Facades\Password::PASSWORD_RESET) {
+            return response()->json(['message' => 'El enlace no es válido o ha caducado.'], 422);
+        }
+
+        return response()->json(['message' => 'Contraseña actualizada correctamente.']);
+    }
 }

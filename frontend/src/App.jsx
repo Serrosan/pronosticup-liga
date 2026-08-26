@@ -4,6 +4,9 @@ import { useTheme } from './context/ThemeContext'
 import LoginPage from './pages/LoginPage'
 import MatchdayPage from './pages/MatchdayPage'
 import StandingsPage from './pages/StandingsPage'
+import RegisterPage from './pages/RegisterPage'
+import ForgotPasswordPage from './pages/ForgotPasswordPage'
+import ResetPasswordPage from './pages/ResetPasswordPage'
 
 function RutaProtegida({ children }) {
   const { usuario } = useAuth()
@@ -66,9 +69,12 @@ function App() {
           <Route path="/ligas/:idLiga/jornadas/:jornada" element={
             <RutaProtegida><Layout><MatchdayPage /></Layout></RutaProtegida>
           } />
+          <Route path="/register" element={<RegisterPage />} />
           <Route path="/ligas/:idLiga/clasificacion" element={
             <RutaProtegida><Layout><StandingsPage /></Layout></RutaProtegida>
           } />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />    
           <Route path="*" element={<Navigate to="/ligas/1/jornadas/1" replace />} />
         </Routes>
       </BrowserRouter>

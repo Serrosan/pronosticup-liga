@@ -1,11 +1,11 @@
 @import "tailwindcss";
 
 @theme {
-  --color-fondo: #ECE7DB;
-  --color-texto: #0E1B2B;
-  --color-acento: #5C8A00;
-  --color-premio: #B8791F;
-  --color-borde: #445066;
+  --color-fondo: #EEF2EF;
+  --color-texto: #101826;
+  --color-acento: #2F9E44;
+  --color-premio: #C97F17;
+  --color-borde: #5B6B7D;
 
   --font-display: "Anton", sans-serif;
   --font-body: "Work Sans", sans-serif;

@@ -26,6 +26,8 @@ Route::prefix('v1')->group(function () {
     Route::get('/ligas/{liga}/clasificacion', [ClasificacionController::class, 'index']);
     });
 
+    Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+    Route::post('/reset-password', [AuthController::class, 'resetPassword']);
     Route::get('/verify-email/{id}/{hash}', function (\Illuminate\Foundation\Auth\EmailVerificationRequest $request) {
     $request->fulfill();
     return response()->json(['message' => 'Email verificado y cuenta activada.']);

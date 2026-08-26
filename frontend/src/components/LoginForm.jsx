@@ -1,14 +1,14 @@
 import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 
-function FormularioLogin() {
+function LoginForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState(null)
   const { login } = useAuth()
 
-  async function manejarEnvio(evento) {
-    evento.preventDefault()
+  async function handleSubmit(event) {
+    event.preventDefault()
     setError(null)
     try {
       await login(email, password)
@@ -20,7 +20,7 @@ function FormularioLogin() {
 
   return (
     <div className="flex items-center justify-center px-4 py-16">
-      <form onSubmit={manejarEnvio} className="w-full max-w-sm flex flex-col gap-3">
+      <form onSubmit={handleSubmit} className="w-full max-w-sm flex flex-col gap-3">
         <h2 className="font-display text-xl text-texto mb-2">Iniciar sesión</h2>
 
         {error && (
@@ -54,4 +54,4 @@ function FormularioLogin() {
   )
 }
 
-export default FormularioLogin
+export default LoginForm

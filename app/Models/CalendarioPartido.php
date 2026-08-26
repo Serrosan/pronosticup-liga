@@ -23,4 +23,12 @@ class CalendarioPartido extends Model
     {
         return $this->belongsTo(Equipo::class, 'id_equipo_visitante');
     }
+
+    protected function casts(): array
+    {
+        return [
+            'horario_estimado' => 'datetime',
+            'horario_oficial' => 'datetime',
+        ];
+    }
 }

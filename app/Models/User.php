@@ -29,4 +29,11 @@ class User extends Authenticatable implements MustVerifyEmailContract
             'es_superadmin' => 'boolean',
         ];
     }
+
+    public function ligas()
+    {
+        return $this->belongsToMany(Liga::class, 'liga_usuario', 'id_usuario', 'id_liga')
+            ->withPivot('rol')
+            ->withTimestamps();
+    }
 }

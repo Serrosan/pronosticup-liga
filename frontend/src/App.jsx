@@ -12,8 +12,13 @@ import MatchdayPage from './pages/MatchdayPage'
 import StandingsPage from './pages/StandingsPage'
 import MyPredictionsPage from './pages/MyPredictionsPage'
 import ProfilePage from './pages/ProfilePage'
+import TeamMatchesPage from './pages/TeamMatchesPage'
+import LaLigaStandingsPage from './pages/LaLigaStandingsPage'
+import UserPointsDetailPage from './pages/UserPointsDetailPage'
 import AdminUsersPage from './pages/AdminUsersPage'
 import AdminLigasPage from './pages/AdminLigasPage'
+import AdminCalendarioPage from './pages/AdminCalendarioPage'
+import AdminEventosPartidoPage from './pages/AdminEventosPartidoPage'
 import AdminEquiposPage from './pages/AdminEquiposPage'
 import AdminJugadoresPage from './pages/AdminJugadoresPage'
 import AdminEstadiosPage from './pages/AdminEstadiosPage'
@@ -21,10 +26,7 @@ import AdminArbitrosPage from './pages/AdminArbitrosPage'
 import AdminTrofeosPage from './pages/AdminTrofeosPage'
 import NavBar from './components/NavBar'
 import AdminLayout from './components/AdminLayout'
-import AdminCalendarioPage from './pages/AdminCalendarioPage'
-import LaLigaStandingsPage from './pages/LaLigaStandingsPage'
-import TeamMatchesPage from './pages/TeamMatchesPage'
-import AdminEventosPartidoPage from './pages/AdminEventosPartidoPage'
+import AdminResourceDetailPage from './pages/AdminResourceDetailPage'
 
 function RutaProtegida() {
   const { usuario, cargando } = useAuth()
@@ -66,20 +68,19 @@ function App() {
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/unirse/:codigo" element={<JoinByLinkPage />} />
 
-          {/* Todo lo que necesita sesión iniciada, comparte NavBar automáticamente */}
           <Route element={<RutaProtegida />}>
             <Route path="/" element={<HomePage />} />
             <Route path="/onboarding" element={<OnboardingPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/jornadas/:jornada" element={<MatchdayPage />} />
-            <Route path="/clasificacion-liga" element={<LaLigaStandingsPage />} />
-            <Route path="/equipos/:idEquipo" element={<TeamMatchesPage />} />
             <Route path="/clasificacion" element={<StandingsPage />} />
+            <Route path="/clasificacion/usuarios/:idUsuario" element={<UserPointsDetailPage />} />
+            <Route path="/clasificacion-liga" element={<LaLigaStandingsPage />} />
             <Route path="/pronosticos" element={<MyPredictionsPage />} />
             <Route path="/perfil" element={<ProfilePage />} />
+            <Route path="/equipos/:idEquipo" element={<TeamMatchesPage />} />
           </Route>
 
-          {/* Todo lo de /admin/*, comparte NavBar + AdminLayout automáticamente */}
           <Route path="/admin" element={<RutaAdmin />}>
             <Route index element={<Navigate to="usuarios" replace />} />
             <Route path="usuarios" element={<AdminUsersPage />} />
@@ -87,6 +88,7 @@ function App() {
             <Route path="calendario" element={<AdminCalendarioPage />} />
             <Route path="eventos-partido" element={<AdminEventosPartidoPage />} />
             <Route path="equipos" element={<AdminEquiposPage />} />
+            <Route path=":resource/detalle/:id" element={<AdminResourceDetailPage />} />
             <Route path="jugadores" element={<AdminJugadoresPage />} />
             <Route path="estadios" element={<AdminEstadiosPage />} />
             <Route path="arbitros" element={<AdminArbitrosPage />} />

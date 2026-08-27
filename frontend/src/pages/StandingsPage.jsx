@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import client from '../api/client'
 import { useAuth } from '../context/AuthContext'
@@ -47,9 +48,11 @@ function StandingsPage() {
             </div>
 
             {clasificacion.map((fila, index) => (
-              <div
+              <Link
                 key={fila.id_usuario}
-                className={`flex items-center gap-2 px-4 py-3 border-b border-borde/10 last:border-0 odd:bg-borde/5 ${
+                to={`/clasificacion/usuarios/${fila.id_usuario}`}
+                state={{ nombre: fila.usuario, avatar_url: fila.avatar_url }}
+                className={`flex items-center gap-2 px-4 py-3 border-b border-borde/10 last:border-0 odd:bg-borde/5 hover:bg-acento/5 transition ${
                   fila.id_usuario === usuario?.id ? 'bg-acento/5' : ''
                 }`}
               >
@@ -69,7 +72,7 @@ function StandingsPage() {
                 <span className="font-marcador text-sm text-red-500 w-8 text-center">{fila.fallos}</span>
                 <span className="font-marcador text-sm text-premio w-8 text-center">{fila.exactos}</span>
                 <span className="font-marcador text-sm font-bold text-texto w-12 text-right">{fila.puntos_totales}</span>
-              </div>
+              </Link>
             ))}
           </div>
         )}

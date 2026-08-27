@@ -9,7 +9,7 @@ class Liga extends Model
     protected $table = 'ligas';
 
     protected $fillable = [
-        'nombre', 'codigo_acceso', 'tipo', 'id_temporada', 'id_usuario_creador',
+        'nombre', 'codigo_acceso', 'id_temporada', 'id_admin', 'logo_url', 'lema',
     ];
 
     public function temporada()

@@ -14,6 +14,11 @@ class ArbitroAdminController extends Controller
         return ArbitroResource::collection(Arbitro::orderBy('nombre')->get());
     }
 
+    public function show(Arbitro $arbitro)
+    {
+        return response()->json(['data' => $arbitro]);
+    }
+
     public function store(Request $request)
     {
         $arbitro = Arbitro::create($this->validado($request));
@@ -40,7 +45,12 @@ class ArbitroAdminController extends Controller
         return $request->validate([
             'nombre' => ['required', 'string', 'max:255'],
             'apellidos' => ['nullable', 'string', 'max:255'],
+            'nacionalidad' => ['nullable', 'string', 'max:255'],
             'comunidad_autonoma' => ['nullable', 'string', 'max:255'],
+            'anio_debut' => ['nullable', 'integer'],
+            'promedio_tarjetas_amarillas' => ['nullable', 'numeric'],
+            'promedio_tarjetas_rojas' => ['nullable', 'numeric'],
+            'imagen' => ['nullable', 'string', 'max:500'],
         ]);
     }
 }

@@ -14,6 +14,11 @@ class EstadioAdminController extends Controller
         return EstadioResource::collection(Estadio::orderBy('nombre')->get());
     }
 
+    public function show(Estadio $estadio)
+    {
+        return response()->json(['data' => $estadio]);
+    }
+
     public function store(Request $request)
     {
         $estadio = Estadio::create($this->validado($request));
@@ -42,6 +47,8 @@ class EstadioAdminController extends Controller
             'ciudad' => ['nullable', 'string', 'max:255'],
             'capacidad' => ['nullable', 'integer'],
             'tamanio_campo' => ['nullable', 'string', 'max:50'],
+            'anio_construccion' => ['nullable', 'integer'],
+            'anio_ult_remodelacion' => ['nullable', 'integer'],
         ]);
     }
 }

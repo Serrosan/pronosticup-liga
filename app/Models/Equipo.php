@@ -7,8 +7,10 @@ use Illuminate\Database\Eloquent\Model;
 class Equipo extends Model
 {
     protected $fillable = [
-        'nombre', 'nombre_corto', 'apodo', 'ciudad', 'id_estadio',
-        'año_fundacion', 'escudo_url', 'color_primario', 'color_secundario', 'id_externo_api',
+        'nombre', 'nombre_corto', 'apodo', 'siglas', 'ciudad', 'id_estadio',
+        'año_fundacion', 'escudo_url', 'color_primario', 'color_secundario',
+        'num_socios', 'num_abonados', 'camiseta_1', 'camiseta_2', 'camiseta_3',
+        'id_externo_api', 'id_equipo_api',
     ];
 
     public function estadio()

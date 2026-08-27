@@ -6,5 +6,5 @@ use Illuminate\Database\Eloquent\Model;
 
 class Trofeo extends Model
 {
-    protected $fillable = ['nombre', 'ambito'];
+    protected $fillable = ['nombre', 'tipo', 'ambito', 'logo', 'imagen'];
 }

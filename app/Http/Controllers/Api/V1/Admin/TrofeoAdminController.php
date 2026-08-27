@@ -14,6 +14,11 @@ class TrofeoAdminController extends Controller
         return TrofeoResource::collection(Trofeo::orderBy('nombre')->get());
     }
 
+    public function show(Trofeo $trofeo)
+    {
+        return response()->json(['data' => $trofeo]);
+    }
+
     public function store(Request $request)
     {
         $trofeo = Trofeo::create($this->validado($request));
@@ -41,6 +46,8 @@ class TrofeoAdminController extends Controller
             'nombre' => ['required', 'string', 'max:255'],
             'tipo' => ['nullable', 'string', 'max:100'],
             'ambito' => ['nullable', 'string', 'max:100'],
+            'logo' => ['nullable', 'string', 'max:500'],
+            'imagen' => ['nullable', 'string', 'max:500'],
         ]);
     }
 }

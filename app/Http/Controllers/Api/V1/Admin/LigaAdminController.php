@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Liga;
+use Illuminate\Http\Request;
 
 class LigaAdminController extends Controller
 {
@@ -21,6 +22,24 @@ class LigaAdminController extends Controller
                 'creador' => $liga->usuarioCreador?->name,
             ]),
         ]);
+    }
+
+    public function show(Liga $liga)
+    {
+        return response()->json(['data' => $liga]);
+    }
+
+    public function update(Request $request, Liga $liga)
+    {
+        $validated = $request->validate([
+            'nombre' => ['sometimes', 'string', 'max:255'],
+            'lema' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'logo_url' => ['sometimes', 'nullable', 'string', 'max:500'],
+        ]);
+
+        $liga->update($validated);
+
+        return response()->json(['data' => $liga]);
     }
 
     public function destroy(Liga $liga)

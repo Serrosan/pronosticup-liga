@@ -13,7 +13,12 @@ class ArbitroResource extends JsonResource
             'id' => $this->id,
             'nombre' => $this->nombre,
             'apellidos' => $this->apellidos,
+            'nacionalidad' => $this->nacionalidad,
             'comunidad_autonoma' => $this->comunidad_autonoma,
+            'anio_debut' => $this->anio_debut,
+            'promedio_tarjetas_amarillas' => $this->promedio_tarjetas_amarillas,
+            'promedio_tarjetas_rojas' => $this->promedio_tarjetas_rojas,
+            'imagen' => $this->imagen,
         ];
     }
 }

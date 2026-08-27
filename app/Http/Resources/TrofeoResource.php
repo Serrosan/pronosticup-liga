@@ -14,6 +14,8 @@ class TrofeoResource extends JsonResource
             'nombre' => $this->nombre,
             'tipo' => $this->tipo,
             'ambito' => $this->ambito,
+            'logo' => $this->logo,
+            'imagen' => $this->imagen,
         ];
     }
 }

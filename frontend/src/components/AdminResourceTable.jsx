@@ -1,10 +1,15 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import client from '../api/client'
+import SelectTema from './SelectTema'
+
+const POR_PAGINA = 25
 
 function AdminResourceTable({ resource, title, columns, fields }) {
   const [editando, setEditando] = useState(null)
   const [busqueda, setBusqueda] = useState('')
+  const [pagina, setPagina] = useState(1)
   const queryClient = useQueryClient()
 
   const { data: items, isLoading, error } = useQuery({
@@ -38,6 +43,11 @@ function AdminResourceTable({ resource, title, columns, fields }) {
     guardar.mutate(datos)
   }
 
+  function handleBusqueda(valor) {
+    setBusqueda(valor)
+    setPagina(1)
+  }
+
   if (isLoading) return <p className="font-body text-texto p-4">Cargando {title}...</p>
   if (error) return <p className="font-body text-red-500 p-4">Error al cargar {title}.</p>
 
@@ -49,6 +59,9 @@ function AdminResourceTable({ resource, title, columns, fields }) {
     return columns.some((col) => normalizar(item[col.key]).includes(termino)) || String(item.id).includes(busqueda)
   })
 
+  const totalPaginas = Math.max(1, Math.ceil(itemsFiltrados.length / POR_PAGINA))
+  const itemsPagina = itemsFiltrados.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA)
+
   return (
     <div>
       <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
@@ -58,7 +71,7 @@ function AdminResourceTable({ resource, title, columns, fields }) {
             type="text"
             placeholder="Buscar..."
             value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
+            onChange={(e) => handleBusqueda(e.target.value)}
             className="font-body text-sm bg-borde/10 text-texto rounded border border-borde/40 px-3 py-1.5 w-48"
           />
           <button
@@ -72,16 +85,21 @@ function AdminResourceTable({ resource, title, columns, fields }) {
 
       {editando && (
         <form onSubmit={handleSubmit} className="bg-borde/10 border border-borde/30 rounded-lg p-4 mb-4">
+          <p className="font-body text-xs text-borde mb-3">Edición rápida — para el resto de campos, usa "Editar detallado" en la fila.</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {fields.map((field) => (
               <div key={field.name}>
                 <label className="font-body text-xs text-borde block mb-1">{field.label}</label>
-                <input
-                  name={field.name}
-                  type={field.type ?? 'text'}
-                  defaultValue={editando[field.name] ?? ''}
-                  className="w-full font-body bg-fondo text-texto rounded border border-borde/40 px-3 py-1.5 focus:outline-none focus:border-acento"
-                />
+                {field.type === 'select' ? (
+                  <SelectTema name={field.name} defaultValue={editando[field.name] ?? ''} options={field.options} className="w-full bg-fondo" />
+                ) : (
+                  <input
+                    name={field.name}
+                    type={field.type ?? 'text'}
+                    defaultValue={editando[field.name] ?? ''}
+                    className="w-full font-body bg-fondo text-texto rounded border border-borde/40 px-3 py-1.5 focus:outline-none focus:border-acento"
+                  />
+                )}
               </div>
             ))}
           </div>
@@ -114,15 +132,18 @@ function AdminResourceTable({ resource, title, columns, fields }) {
             </tr>
           </thead>
           <tbody>
-            {itemsFiltrados.map((item) => (
+            {itemsPagina.map((item) => (
               <tr key={item.id} className="border-b border-borde/10 last:border-0 odd:bg-borde/5">
                 <td className="font-marcador text-xs text-borde px-4 py-2">{item.id}</td>
                 {columns.map((col) => (
                   <td key={col.key} className="font-body text-sm text-texto px-4 py-2">{item[col.key]}</td>
                 ))}
                 <td className="px-4 py-2 text-right whitespace-nowrap">
+                  <Link to={`/admin/${resource}/detalle/${item.id}`} className="font-body text-xs text-premio hover:underline mr-3">
+                    Editar detallado
+                  </Link>
                   <button onClick={() => setEditando(item)} className="font-body text-xs text-acento hover:underline mr-3">
-                    Editar
+                    Edición rápida
                   </button>
                   <button
                     onClick={() => { if (confirm('¿Seguro que quieres eliminarlo?')) eliminar.mutate(item.id) }}
@@ -143,6 +164,26 @@ function AdminResourceTable({ resource, title, columns, fields }) {
           </tbody>
         </table>
       </div>
+
+      {totalPaginas > 1 && (
+        <div className="flex items-center justify-center gap-3 mt-4">
+          <button
+            onClick={() => setPagina((p) => Math.max(1, p - 1))}
+            disabled={pagina === 1}
+            className="font-body text-sm text-texto disabled:opacity-30 disabled:cursor-not-allowed hover:text-acento"
+          >
+            ← Anterior
+          </button>
+          <span className="font-body text-sm text-borde">Página {pagina} de {totalPaginas}</span>
+          <button
+            onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
+            disabled={pagina === totalPaginas}
+            className="font-body text-sm text-texto disabled:opacity-30 disabled:cursor-not-allowed hover:text-acento"
+          >
+            Siguiente →
+          </button>
+        </div>
+      )}
     </div>
   )
 }

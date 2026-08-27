@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import client from '../api/client'
+import { Link } from 'react-router-dom'
 
 function AdminLigasPage() {
   const queryClient = useQueryClient()
@@ -44,12 +45,17 @@ function AdminLigasPage() {
                 <td className="font-body text-sm text-texto px-4 py-2">{liga.total_miembros}</td>
                 <td className="font-body text-sm text-texto px-4 py-2">{liga.creador}</td>
                 <td className="px-4 py-2 text-right">
+                <td className="px-4 py-2 text-right whitespace-nowrap">
+                  <Link to={`/admin/ligas/detalle/${liga.id}`} className="font-body text-xs text-premio hover:underline mr-3">
+                    Editar detallado
+                  </Link>
                   <button
                     onClick={() => { if (confirm('¿Eliminar esta liga?')) eliminar.mutate(liga.id) }}
                     className="font-body text-xs text-red-500 hover:underline"
                   >
                     Eliminar
                   </button>
+                </td>
                 </td>
               </tr>
             ))}

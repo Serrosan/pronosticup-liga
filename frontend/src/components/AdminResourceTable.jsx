@@ -4,6 +4,7 @@ import client from '../api/client'
 
 function AdminResourceTable({ resource, title, columns, fields }) {
   const [editando, setEditando] = useState(null)
+  const [busqueda, setBusqueda] = useState('')
   const queryClient = useQueryClient()
 
   const { data: items, isLoading, error } = useQuery({
@@ -40,16 +41,33 @@ function AdminResourceTable({ resource, title, columns, fields }) {
   if (isLoading) return <p className="font-body text-texto p-4">Cargando {title}...</p>
   if (error) return <p className="font-body text-red-500 p-4">Error al cargar {title}.</p>
 
+  const normalizar = (texto) => String(texto ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+
+  const itemsFiltrados = items.filter((item) => {
+    if (!busqueda) return true
+    const termino = normalizar(busqueda)
+    return columns.some((col) => normalizar(item[col.key]).includes(termino)) || String(item.id).includes(busqueda)
+  })
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
         <h2 className="font-display text-xl text-texto">{title}</h2>
-        <button
-          onClick={() => setEditando({})}
-          className="font-body text-sm font-semibold bg-acento text-fondo rounded px-3 py-1.5 hover:brightness-110"
-        >
-          + Añadir
-        </button>
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            placeholder="Buscar..."
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            className="font-body text-sm bg-borde/10 text-texto rounded border border-borde/40 px-3 py-1.5 w-48"
+          />
+          <button
+            onClick={() => setEditando({})}
+            className="font-body text-sm font-semibold bg-acento text-fondo rounded px-3 py-1.5 hover:brightness-110 whitespace-nowrap"
+          >
+            + Añadir
+          </button>
+        </div>
       </div>
 
       {editando && (
@@ -82,10 +100,13 @@ function AdminResourceTable({ resource, title, columns, fields }) {
         </form>
       )}
 
+      <p className="font-body text-xs text-borde mb-2">{itemsFiltrados.length} de {items.length}</p>
+
       <div className="bg-fondo border border-borde/30 rounded-lg overflow-x-auto">
         <table className="w-full text-left">
           <thead>
             <tr className="border-b border-borde/30">
+              <th className="font-body text-xs text-borde uppercase px-4 py-2 w-16">ID</th>
               {columns.map((col) => (
                 <th key={col.key} className="font-body text-xs text-borde uppercase px-4 py-2">{col.label}</th>
               ))}
@@ -93,8 +114,9 @@ function AdminResourceTable({ resource, title, columns, fields }) {
             </tr>
           </thead>
           <tbody>
-            {items.map((item) => (
-              <tr key={item.id} className="border-b border-borde/10 last:border-0">
+            {itemsFiltrados.map((item) => (
+              <tr key={item.id} className="border-b border-borde/10 last:border-0 odd:bg-borde/5">
+                <td className="font-marcador text-xs text-borde px-4 py-2">{item.id}</td>
                 {columns.map((col) => (
                   <td key={col.key} className="font-body text-sm text-texto px-4 py-2">{item[col.key]}</td>
                 ))}
@@ -111,6 +133,13 @@ function AdminResourceTable({ resource, title, columns, fields }) {
                 </td>
               </tr>
             ))}
+            {itemsFiltrados.length === 0 && (
+              <tr>
+                <td colSpan={columns.length + 2} className="font-body text-sm text-borde text-center px-4 py-6">
+                  Sin resultados para "{busqueda}"
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

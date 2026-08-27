@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\PlantillaTemporada;
 
 class Jugador extends Model
 {
@@ -17,5 +18,10 @@ class Jugador extends Model
     protected function casts(): array
     {
         return ['fecha_nacimiento' => 'date'];
+    }
+
+    public function plantillasTemporada()
+    {
+        return $this->hasMany(PlantillaTemporada::class, 'id_jugador');
     }
 }

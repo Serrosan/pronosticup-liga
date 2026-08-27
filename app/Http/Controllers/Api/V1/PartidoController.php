@@ -24,6 +24,8 @@ class PartidoController extends Controller
             ->orderBy('horario_estimado')
             ->get();
 
-        return PartidoResource::collection($partidos);
+        return PartidoResource::collection($partidos)->additional([
+            'meta' => ['ultima_actualizacion' => $partidos->max('updated_at')?->toIso8601String()],
+        ]);
     }
 }

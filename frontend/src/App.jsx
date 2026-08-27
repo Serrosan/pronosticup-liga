@@ -24,6 +24,7 @@ import AdminLayout from './components/AdminLayout'
 import AdminCalendarioPage from './pages/AdminCalendarioPage'
 import LaLigaStandingsPage from './pages/LaLigaStandingsPage'
 import TeamMatchesPage from './pages/TeamMatchesPage'
+import AdminEventosPartidoPage from './pages/AdminEventosPartidoPage'
 
 function RutaProtegida() {
   const { usuario, cargando } = useAuth()
@@ -81,9 +82,10 @@ function App() {
           {/* Todo lo de /admin/*, comparte NavBar + AdminLayout automáticamente */}
           <Route path="/admin" element={<RutaAdmin />}>
             <Route index element={<Navigate to="usuarios" replace />} />
-            <Route path="calendario" element={<AdminCalendarioPage />} />
             <Route path="usuarios" element={<AdminUsersPage />} />
             <Route path="ligas" element={<AdminLigasPage />} />
+            <Route path="calendario" element={<AdminCalendarioPage />} />
+            <Route path="eventos-partido" element={<AdminEventosPartidoPage />} />
             <Route path="equipos" element={<AdminEquiposPage />} />
             <Route path="jugadores" element={<AdminJugadoresPage />} />
             <Route path="estadios" element={<AdminEstadiosPage />} />

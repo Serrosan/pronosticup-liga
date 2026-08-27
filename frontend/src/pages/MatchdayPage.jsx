@@ -28,14 +28,19 @@ function MatchdayPage() {
   const navigate = useNavigate()
   const numeroJornada = Number(jornada)
 
-  const { data: partidos, error } = useQuery({
+  const { data, error } = useQuery({
     queryKey: ['partidos', jornada],
     queryFn: async () => {
       const respuesta = await client.get(`/api/v1/jornadas/${jornada}/partidos`)
-      return respuesta.data.data
+      return {
+        partidos: respuesta.data.data,
+        ultimaActualizacion: respuesta.data.meta?.ultima_actualizacion,
+      }
     },
     placeholderData: (datosAnteriores) => datosAnteriores,
   })
+
+  const partidos = data?.partidos
 
   function ir(numero) {
     if (numero < 1 || numero > TOTAL_JORNADAS) return
@@ -60,6 +65,11 @@ function MatchdayPage() {
           {grupos.length > 0 && (
             <p className="font-body text-xs font-semibold text-acento">
               {formatearFecha(grupos[0][0])} — {formatearFecha(grupos[grupos.length - 1][0])}
+            </p>
+          )}
+          {data?.ultimaActualizacion && (
+            <p className="font-body text-[10px] text-borde mt-0.5">
+              Actualizado {new Date(data.ultimaActualizacion).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
             </p>
           )}
         </div>

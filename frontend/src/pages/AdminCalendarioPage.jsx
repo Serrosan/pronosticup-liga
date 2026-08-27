@@ -82,6 +82,8 @@ function FilaPartido({ partido }) {
 
 function AdminCalendarioPage() {
   const [jornada, setJornada] = useState(1)
+  const [mensajeCierre, setMensajeCierre] = useState(null)
+  const queryClient = useQueryClient()
 
   const { data: partidos, isLoading, error } = useQuery({
     queryKey: ['admin', 'calendario', jornada],
@@ -91,9 +93,20 @@ function AdminCalendarioPage() {
     },
   })
 
+  const cerrarJornada = useMutation({
+    mutationFn: () => client.post(`/api/v1/jornadas/${jornada}/cerrar`),
+    onSuccess: (respuesta) => {
+      setMensajeCierre({ tipo: 'exito', texto: respuesta.data.message + ` (${respuesta.data.eventos_creados} pronósticos evaluados)` })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'calendario', jornada] })
+    },
+    onError: (err) => {
+      setMensajeCierre({ tipo: 'error', texto: err.response?.data?.message ?? 'Error al cerrar la jornada.' })
+    },
+  })
+
   return (
     <div>
-      <div className="flex items-center gap-3 mb-4">
+      <div className="flex items-center gap-3 mb-4 flex-wrap">
         <h2 className="font-display text-xl text-texto">Calendario</h2>
         <select
           value={jornada}
@@ -104,7 +117,22 @@ function AdminCalendarioPage() {
             <option key={j} value={j}>Jornada {j}</option>
           ))}
         </select>
+        <button
+          onClick={() => { setMensajeCierre(null); cerrarJornada.mutate() }}
+          disabled={cerrarJornada.isPending}
+          className="font-body text-sm font-semibold bg-premio text-fondo rounded px-4 py-1.5 hover:brightness-110 disabled:opacity-50"
+        >
+          {cerrarJornada.isPending ? 'Cerrando...' : '🔒 Cerrar jornada'}
+        </button>
       </div>
+
+      {mensajeCierre && (
+        <p className={`font-body text-sm mb-4 px-3 py-2 rounded ${
+          mensajeCierre.tipo === 'exito' ? 'bg-acento/10 text-acento' : 'bg-red-500/10 text-red-500'
+        }`}>
+          {mensajeCierre.texto}
+        </p>
+      )}
 
       {isLoading && <p className="font-body text-texto p-4">Cargando...</p>}
       {error && <p className="font-body text-red-500 p-4">Error al cargar.</p>}

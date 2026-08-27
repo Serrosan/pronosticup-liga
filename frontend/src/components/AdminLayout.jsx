@@ -9,6 +9,7 @@ const SECCIONES = [
   { to: '/admin/estadios', label: 'Estadios' },
   { to: '/admin/arbitros', label: 'Árbitros' },
   { to: '/admin/trofeos', label: 'Trofeos' },
+  { to: '/admin/eventos-partido', label: 'Eventos' },
 ]
 
 function AdminLayout({ children }) {

@@ -24,9 +24,9 @@ class ClasificacionController extends Controller
             $usuario = User::find($idUsuario);
 
             return [
-                'id_usuario' => $idUsuario,
+                'id_usuario' => (int) $idUsuario,
                 'usuario' => $usuario->nombre_visible ?? $usuario->name,
-                'avatar_url' => $usuario->avatar_url ? url($usuario->avatar_url) : null,
+                'avatar_url' => $usuario->avatar_url,
                 'puntos_totales' => (int) $grupo->sum('puntos'),
                 'aciertos' => $grupo->whereIn('tipo_evento', ['AciertoExacto', 'Acierto1x2'])->count(),
                 'fallos' => $grupo->where('tipo_evento', 'Fallo')->count(),
@@ -34,6 +34,17 @@ class ClasificacionController extends Controller
             ];
         })->sortByDesc('puntos_totales')->values();
 
-        return response()->json(['data' => $filas]);
+        $lider = $filas->first();
+
+        $filasEnriquecidas = $filas->map(function ($fila) use ($lider) {
+            $totalPronosticos = $fila['aciertos'] + $fila['fallos'];
+
+            return array_merge($fila, [
+                'diferencia_lider' => $lider['puntos_totales'] - $fila['puntos_totales'],
+                'porcentaje_acierto' => $totalPronosticos > 0 ? round($fila['aciertos'] / $totalPronosticos * 100) : 0,
+            ]);
+        })->values();
+
+        return response()->json(['data' => $filasEnriquecidas]);
     }
 }

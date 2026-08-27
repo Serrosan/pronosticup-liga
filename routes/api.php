@@ -21,11 +21,17 @@ Route::prefix('v1')->group(function () {
     Route::get('/ligas/{liga}', [App\Http\Controllers\Api\V1\LigaController::class, 'show']);
     Route::get('/jornadas/{jornada}/partidos', [PartidoController::class, 'porJornada']);
     Route::post('/pronosticos', [PronosticoController::class, 'store']);
+    Route::get('/pronosticos', [PronosticoController::class, 'todos']);
     Route::get('/jornadas/{jornada}/pronosticos', [PronosticoController::class, 'misPronosticos']);
     Route::get('/clasificacion', [\App\Http\Controllers\Api\V1\ClasificacionController::class, 'index']);
     Route::get('/dashboard', [\App\Http\Controllers\Api\V1\DashboardController::class, 'index']);
     Route::post('/jornadas/{jornada}/cerrar', [\App\Http\Controllers\Api\V1\JornadaController::class, 'cerrar']);
     Route::patch('/liga-activa', [\App\Http\Controllers\Api\V1\LigaActivaController::class, 'set']);
+    Route::patch('/profile', [\App\Http\Controllers\Api\V1\ProfileController::class, 'update']);
+    Route::post('/profile/password', [\App\Http\Controllers\Api\V1\ProfileController::class, 'updatePassword']);
+    Route::post('/profile/avatar', [\App\Http\Controllers\Api\V1\ProfileController::class, 'uploadAvatar']);
+    Route::get('/clasificacion-liga', [\App\Http\Controllers\Api\V1\LaLigaStandingsController::class, 'index']);
+    Route::get('/equipos/{equipo}/partidos', [\App\Http\Controllers\Api\V1\EquipoPartidosController::class, 'index']);
 
     Route::middleware('admin')->prefix('admin')->group(function () {
         Route::apiResource('equipos', \App\Http\Controllers\Api\V1\Admin\EquipoAdminController::class)->except('show');
@@ -41,6 +47,8 @@ Route::prefix('v1')->group(function () {
         Route::post('/usuarios', [\App\Http\Controllers\Api\V1\Admin\UsuarioAdminController::class, 'store']);
         Route::put('/usuarios/{user}', [\App\Http\Controllers\Api\V1\Admin\UsuarioAdminController::class, 'update']);
         Route::post('/usuarios/{user}/activar', [\App\Http\Controllers\Api\V1\Admin\UsuarioAdminController::class, 'activar']);
+        Route::get('/calendario', [\App\Http\Controllers\Api\V1\Admin\CalendarioAdminController::class, 'index']);
+        Route::put('/calendario/{partido}', [\App\Http\Controllers\Api\V1\Admin\CalendarioAdminController::class, 'update']);
     });
     });
 

@@ -11,12 +11,12 @@ class UserResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'nombre' => $this->name,
-            'email' => $this->email,
+            'nombre' => $this->nombre_visible ?? $this->name,
             'nombre_visible' => $this->nombre_visible,
-            'avatar_url' => $this->avatar_url,
+            'email' => $this->email,
+            'avatar_url' => $this->avatar_url ? url($this->avatar_url) : null,
             'activado' => ! is_null($this->activado_en),
-            'es_superadmin' => $this->es_superadmin,
+            'es_superadmin' => (bool) $this->es_superadmin,
             'liga_activa' => $this->ligaActiva ? [
                 'id' => $this->ligaActiva->id,
                 'nombre' => $this->ligaActiva->nombre,

@@ -25,8 +25,13 @@ export function AuthProvider({ children }) {
     setUsuario(null)
   }
 
+  async function refrescar() {
+    const respuesta = await client.get('/api/v1/me')
+    setUsuario(respuesta.data.data)
+  }
+
   return (
-    <AuthContext.Provider value={{ usuario, login, logout, cargando }}>
+    <AuthContext.Provider value={{ usuario, login, logout, cargando, refrescar }}>
       {children}
     </AuthContext.Provider>
   )

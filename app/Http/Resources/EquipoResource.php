@@ -13,7 +13,11 @@ class EquipoResource extends JsonResource
             'id' => $this->id,
             'nombre' => $this->nombre,
             'nombre_corto' => $this->nombre_corto,
+            'siglas' => $this->siglas,
+            'ciudad' => $this->ciudad,
             'escudo_url' => $this->escudo_url,
+            'color_primario' => $this->color_primario,
+            'color_secundario' => $this->color_secundario,
         ];
     }
 }

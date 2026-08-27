@@ -53,13 +53,21 @@ class DashboardController extends Controller
             ])
             ->values();
 
-        // --- Últimos resultados ---
-        $ultimos = CalendarioPartido::where('id_temporada', $liga->id_temporada)
+        // --- Última jornada completa ya jugada ---
+        $ultimaJornadaJugada = CalendarioPartido::where('id_temporada', $liga->id_temporada)
             ->where('estado', 'Jugado')
-            ->orderByDesc('horario_estimado')
-            ->with(['equipoLocal', 'equipoVisitante'])
-            ->take(5)
-            ->get();
+            ->orderByDesc('jornada')
+            ->value('jornada');
+
+        $ultimos = collect();
+        if ($ultimaJornadaJugada) {
+            $ultimos = CalendarioPartido::where('id_temporada', $liga->id_temporada)
+                ->where('jornada', $ultimaJornadaJugada)
+                ->where('estado', 'Jugado')
+                ->with(['equipoLocal', 'equipoVisitante'])
+                ->orderBy('horario_estimado')
+                ->get();
+        }
 
         $idsUltimos = $ultimos->pluck('id');
 
@@ -111,8 +119,8 @@ class DashboardController extends Controller
                     'numero' => $proximaJornadaNumero,
                     'partidos' => $partidosProximaJornada->map(fn ($p) => [
                         'id' => $p->id,
-                        'equipo_local' => $p->equipoLocal->nombre,
-                        'equipo_visitante' => $p->equipoVisitante->nombre,
+                        'equipo_local' => $p->equipoLocal->nombre_corto ?? $p->equipoLocal->nombre,
+                        'equipo_visitante' => $p->equipoVisitante->nombre_corto ?? $p->equipoVisitante->nombre,
                         'escudo_local' => $p->equipoLocal->escudo_url,
                         'escudo_visitante' => $p->equipoVisitante->escudo_url,
                         'horario_estimado' => $p->horario_estimado?->format('Y-m-d H:i'),
@@ -120,14 +128,15 @@ class DashboardController extends Controller
                     ]),
                 ],
 
+                'ultima_jornada_jugada' => $ultimaJornadaJugada,
                 'ultimos_resultados' => $ultimos->map(function ($p) use ($misPronosticos, $misEventos) {
                     $pronostico = $misPronosticos->get($p->id);
                     $evento = $misEventos->get($p->id);
 
                     return [
                         'id' => $p->id,
-                        'equipo_local' => $p->equipoLocal->nombre,
-                        'equipo_visitante' => $p->equipoVisitante->nombre,
+                        'equipo_local' => $p->equipoLocal->nombre_corto ?? $p->equipoLocal->nombre,
+                        'equipo_visitante' => $p->equipoVisitante->nombre_corto ?? $p->equipoVisitante->nombre,
                         'escudo_local' => $p->equipoLocal->escudo_url,
                         'escudo_visitante' => $p->equipoVisitante->escudo_url,
                         'goles_casa' => $p->goles_casa,

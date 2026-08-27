@@ -26,7 +26,7 @@ function LeagueSwitcher() {
     <div className="relative">
       <button
         onClick={() => setAbierto(!abierto)}
-        className="font-body text-sm text-texto flex items-center gap-1 border border-borde/40 rounded px-3 py-1.5 hover:bg-borde/10"
+        className="font-body text-sm text-texto flex items-center gap-1 border border-borde/40 rounded px-3 py-1.5 hover:bg-borde/10 whitespace-nowrap truncate max-w-[140px]"
       >
         🏆 {usuario?.liga_activa?.nombre ?? 'Sin liga'} ▾
       </button>

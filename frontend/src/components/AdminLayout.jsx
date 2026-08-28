@@ -3,13 +3,14 @@ import { Link, NavLink } from 'react-router-dom'
 const SECCIONES = [
   { to: '/admin/usuarios', label: 'Usuarios' },
   { to: '/admin/ligas', label: 'Ligas' },
-  { to: '/admin/calendario', label: 'Calendario' },
   { to: '/admin/equipos', label: 'Equipos' },
   { to: '/admin/jugadores', label: 'Jugadores' },
   { to: '/admin/estadios', label: 'Estadios' },
   { to: '/admin/arbitros', label: 'Árbitros' },
   { to: '/admin/trofeos', label: 'Trofeos' },
   { to: '/admin/eventos-partido', label: 'Eventos' },
+  { to: '/admin/calendario', label: 'Partidos' },
+  { to: '/admin/eventos-calendario', label: 'Calendario' },
 ]
 
 function AdminLayout({ children }) {

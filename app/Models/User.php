@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Auth\MustVerifyEmail;
 use Illuminate\Contracts\Auth\MustVerifyEmail as MustVerifyEmailContract;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -11,10 +12,10 @@ use App\Models\Liga;
 
 class User extends Authenticatable implements MustVerifyEmailContract
 {
-    use HasApiTokens, MustVerifyEmail, Notifiable;
+    use HasApiTokens, HasFactory, MustVerifyEmail, Notifiable;
 
     protected $fillable = [
-        'name', 'email', 'password', 'nombre_visible', 'avatar_url','liga_activa_id',
+        'name', 'email', 'password', 'nombre_visible', 'avatar_url', 'liga_activa_id', 'es_superadmin',
     ];
 
     protected $hidden = [

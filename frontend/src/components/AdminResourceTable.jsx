@@ -6,10 +6,16 @@ import SelectTema from './SelectTema'
 
 const POR_PAGINA = 25
 
+function valorParaCampo(field, valor) {
+  if (field.type === 'date' && valor) return String(valor).slice(0, 10)
+  return valor ?? ''
+}
+
 function AdminResourceTable({ resource, title, columns, fields }) {
   const [editando, setEditando] = useState(null)
   const [busqueda, setBusqueda] = useState('')
   const [pagina, setPagina] = useState(1)
+  const [errorGuardado, setErrorGuardado] = useState(null)
   const queryClient = useQueryClient()
 
   const { data: items, isLoading, error } = useQuery({
@@ -28,6 +34,15 @@ function AdminResourceTable({ resource, title, columns, fields }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', resource] })
       setEditando(null)
+      setErrorGuardado(null)
+    },
+    onError: (err) => {
+      if (err.response?.status === 422) {
+        const mensajes = Object.values(err.response.data.errors ?? {}).flat()
+        setErrorGuardado(mensajes.join(' · ') || 'Revisa los campos, hay algún dato no válido.')
+      } else {
+        setErrorGuardado(err.response?.data?.message ?? 'Error al guardar.')
+      }
     },
   })
 
@@ -38,6 +53,7 @@ function AdminResourceTable({ resource, title, columns, fields }) {
 
   function handleSubmit(event) {
     event.preventDefault()
+    setErrorGuardado(null)
     const datos = Object.fromEntries(new FormData(event.target).entries())
     if (editando?.id) datos.id = editando.id
     guardar.mutate(datos)
@@ -46,6 +62,11 @@ function AdminResourceTable({ resource, title, columns, fields }) {
   function handleBusqueda(valor) {
     setBusqueda(valor)
     setPagina(1)
+  }
+
+  function abrirEdicion(item) {
+    setErrorGuardado(null)
+    setEditando(item)
   }
 
   if (isLoading) return <p className="font-body text-texto p-4">Cargando {title}...</p>
@@ -75,7 +96,7 @@ function AdminResourceTable({ resource, title, columns, fields }) {
             className="font-body text-sm bg-borde/10 text-texto rounded border border-borde/40 px-3 py-1.5 w-48"
           />
           <button
-            onClick={() => setEditando({})}
+            onClick={() => abrirEdicion({})}
             className="font-body text-sm font-semibold bg-acento text-fondo rounded px-3 py-1.5 hover:brightness-110 whitespace-nowrap"
           >
             + Añadir
@@ -86,17 +107,34 @@ function AdminResourceTable({ resource, title, columns, fields }) {
       {editando && (
         <form onSubmit={handleSubmit} className="bg-borde/10 border border-borde/30 rounded-lg p-4 mb-4">
           <p className="font-body text-xs text-borde mb-3">Edición rápida — para el resto de campos, usa "Editar detallado" en la fila.</p>
+
+          {errorGuardado && (
+            <p className="font-body text-xs text-red-500 bg-red-500/10 rounded px-3 py-2 mb-3">{errorGuardado}</p>
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {fields.map((field) => (
               <div key={field.name}>
                 <label className="font-body text-xs text-borde block mb-1">{field.label}</label>
                 {field.type === 'select' ? (
-                  <SelectTema name={field.name} defaultValue={editando[field.name] ?? ''} options={field.options} className="w-full bg-fondo" />
+                  <SelectTema
+                    name={field.name}
+                    defaultValue={valorParaCampo(field, editando[field.name])}
+                    options={field.options}
+                    className="w-full bg-fondo"
+                  />
+                ) : field.type === 'color' ? (
+                  <input
+                    type="color"
+                    name={field.name}
+                    defaultValue={editando[field.name] || '#FFB238'}
+                    className="w-10 h-9 rounded border border-borde/40 shrink-0"
+                  />
                 ) : (
                   <input
                     name={field.name}
                     type={field.type ?? 'text'}
-                    defaultValue={editando[field.name] ?? ''}
+                    defaultValue={valorParaCampo(field, editando[field.name])}
                     className="w-full font-body bg-fondo text-texto rounded border border-borde/40 px-3 py-1.5 focus:outline-none focus:border-acento"
                   />
                 )}
@@ -109,9 +147,9 @@ function AdminResourceTable({ resource, title, columns, fields }) {
               disabled={guardar.isPending}
               className="font-body text-sm font-semibold bg-acento text-fondo rounded px-3 py-1.5 hover:brightness-110 disabled:opacity-50"
             >
-              Guardar
+              {guardar.isPending ? 'Guardando...' : 'Guardar'}
             </button>
-            <button type="button" onClick={() => setEditando(null)} className="font-body text-sm text-borde hover:text-texto">
+            <button type="button" onClick={() => { setEditando(null); setErrorGuardado(null) }} className="font-body text-sm text-borde hover:text-texto">
               Cancelar
             </button>
           </div>
@@ -142,7 +180,7 @@ function AdminResourceTable({ resource, title, columns, fields }) {
                   <Link to={`/admin/${resource}/detalle/${item.id}`} className="font-body text-xs text-premio hover:underline mr-3">
                     Editar detallado
                   </Link>
-                  <button onClick={() => setEditando(item)} className="font-body text-xs text-acento hover:underline mr-3">
+                  <button onClick={() => abrirEdicion(item)} className="font-body text-xs text-acento hover:underline mr-3">
                     Edición rápida
                   </button>
                   <button

@@ -27,6 +27,8 @@ import AdminTrofeosPage from './pages/AdminTrofeosPage'
 import NavBar from './components/NavBar'
 import AdminLayout from './components/AdminLayout'
 import AdminResourceDetailPage from './pages/AdminResourceDetailPage'
+import CalendarPage from './pages/CalendarPage'
+import AdminEventosCalendarioPage from './pages/AdminEventosCalendarioPage'
 
 function RutaProtegida() {
   const { usuario, cargando } = useAuth()
@@ -77,6 +79,7 @@ function App() {
             <Route path="/clasificacion/usuarios/:idUsuario" element={<UserPointsDetailPage />} />
             <Route path="/clasificacion-liga" element={<LaLigaStandingsPage />} />
             <Route path="/pronosticos" element={<MyPredictionsPage />} />
+            <Route path="/calendario" element={<CalendarPage />} />
             <Route path="/perfil" element={<ProfilePage />} />
             <Route path="/equipos/:idEquipo" element={<TeamMatchesPage />} />
           </Route>
@@ -93,6 +96,7 @@ function App() {
             <Route path="estadios" element={<AdminEstadiosPage />} />
             <Route path="arbitros" element={<AdminArbitrosPage />} />
             <Route path="trofeos" element={<AdminTrofeosPage />} />
+            <Route path="eventos-calendario" element={<AdminEventosCalendarioPage />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

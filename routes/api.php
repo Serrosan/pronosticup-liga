@@ -31,6 +31,7 @@ Route::prefix('v1')->group(function () {
     Route::post('/profile/password', [\App\Http\Controllers\Api\V1\ProfileController::class, 'updatePassword']);
     Route::post('/profile/avatar', [\App\Http\Controllers\Api\V1\ProfileController::class, 'uploadAvatar']);
     Route::get('/clasificacion-liga', [\App\Http\Controllers\Api\V1\LaLigaStandingsController::class, 'index']);
+    Route::get('/calendario', [\App\Http\Controllers\Api\V1\CalendarioController::class, 'mes']);
     Route::get('/equipos/{equipo}/partidos', [\App\Http\Controllers\Api\V1\EquipoPartidosController::class, 'index']);
     Route::get('/clasificacion/usuarios/{usuario}/detalle', [\App\Http\Controllers\Api\V1\ClasificacionController::class, 'detalle']);
 
@@ -52,6 +53,11 @@ Route::prefix('v1')->group(function () {
         Route::get('/ligas/{liga}', [\App\Http\Controllers\Api\V1\Admin\LigaAdminController::class, 'show']);
         Route::put('/ligas/{liga}', [\App\Http\Controllers\Api\V1\Admin\LigaAdminController::class, 'update']);
         Route::delete('/ligas/{liga}', [\App\Http\Controllers\Api\V1\Admin\LigaAdminController::class, 'destroy']);
+        Route::get('/eventos-calendario', [\App\Http\Controllers\Api\V1\Admin\EventoCalendarioAdminController::class, 'index']);
+        Route::post('/eventos-calendario', [\App\Http\Controllers\Api\V1\Admin\EventoCalendarioAdminController::class, 'store']);
+        Route::get('/eventos-calendario/{eventoCalendario}', [\App\Http\Controllers\Api\V1\Admin\EventoCalendarioAdminController::class, 'show']);
+        Route::put('/eventos-calendario/{eventoCalendario}', [\App\Http\Controllers\Api\V1\Admin\EventoCalendarioAdminController::class, 'update']);
+        Route::delete('/eventos-calendario/{eventoCalendario}', [\App\Http\Controllers\Api\V1\Admin\EventoCalendarioAdminController::class, 'destroy']);
         Route::post('/usuarios', [\App\Http\Controllers\Api\V1\Admin\UsuarioAdminController::class, 'store']);
         Route::put('/usuarios/{user}', [\App\Http\Controllers\Api\V1\Admin\UsuarioAdminController::class, 'update']);
         Route::post('/usuarios/{user}/activar', [\App\Http\Controllers\Api\V1\Admin\UsuarioAdminController::class, 'activar']);

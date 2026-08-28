@@ -10,6 +10,7 @@ const ENLACES = [
   { to: '/pronosticos', match: '/pronosticos', label: 'Pronósticos' },
   { to: '/clasificacion', match: '/clasificacion', label: 'Clasificación' },
   { to: '/clasificacion-liga', match: '/clasificacion-liga', label: 'LaLiga' },
+  { to: '/calendario', match: '/calendario', label: 'Calendario' },
 ]
 
 function NavBar() {

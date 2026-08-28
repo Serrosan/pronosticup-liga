@@ -98,4 +98,15 @@ export const CAMPOS_ADMIN = {
       { name: 'codigo_acceso', label: 'Código de acceso' },
     ],
   },
+
+  'eventos-calendario': {
+    titulo: 'nota de calendario',
+    volverA: '/admin/eventos-calendario',
+    campos: [
+      { name: 'titulo', label: 'Título' },
+      { name: 'fecha_inicio', label: 'Fecha de inicio', type: 'date' },
+      { name: 'fecha_fin', label: 'Fecha de fin', type: 'date' },
+      { name: 'color', label: 'Color', type: 'color' },
+    ],
+  },
 }

@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Equipo extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'nombre', 'nombre_corto', 'apodo', 'siglas', 'ciudad', 'id_estadio',
         'año_fundacion', 'escudo_url', 'color_primario', 'color_secundario',

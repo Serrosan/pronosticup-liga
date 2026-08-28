@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\PlantillaTemporada;
 
 class Jugador extends Model
 {
+    use HasFactory;
+
     protected $table = 'jugadores';
 
     protected $fillable = [
@@ -14,7 +17,7 @@ class Jugador extends Model
         'fecha_nacimiento', 'lugar_nacimiento', 'nacionalidad', 'seleccion',
         'altura', 'pie', 'foto_url', 'fecha_fin_contrato', 'club_anterior', 'id_externo_api',
     ];
-    
+
     protected function casts(): array
     {
         return ['fecha_nacimiento' => 'date'];

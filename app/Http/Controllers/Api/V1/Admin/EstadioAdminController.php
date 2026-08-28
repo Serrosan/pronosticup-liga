@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\EstadioRequest;
 use App\Http\Resources\EstadioResource;
 use App\Models\Estadio;
-use Illuminate\Http\Request;
 
 class EstadioAdminController extends Controller
 {
@@ -19,16 +19,16 @@ class EstadioAdminController extends Controller
         return response()->json(['data' => $estadio]);
     }
 
-    public function store(Request $request)
+    public function store(EstadioRequest $request)
     {
-        $estadio = Estadio::create($this->validado($request));
+        $estadio = Estadio::create($request->validated());
 
         return new EstadioResource($estadio);
     }
 
-    public function update(Request $request, Estadio $estadio)
+    public function update(EstadioRequest $request, Estadio $estadio)
     {
-        $estadio->update($this->validado($request));
+        $estadio->update($request->validated());
 
         return new EstadioResource($estadio);
     }
@@ -38,17 +38,5 @@ class EstadioAdminController extends Controller
         $estadio->delete();
 
         return response()->json(['message' => 'Estadio eliminado.']);
-    }
-
-    private function validado(Request $request): array
-    {
-        return $request->validate([
-            'nombre' => ['required', 'string', 'max:255'],
-            'ciudad' => ['nullable', 'string', 'max:255'],
-            'capacidad' => ['nullable', 'integer'],
-            'tamanio_campo' => ['nullable', 'string', 'max:50'],
-            'anio_construccion' => ['nullable', 'integer'],
-            'anio_ult_remodelacion' => ['nullable', 'integer'],
-        ]);
     }
 }

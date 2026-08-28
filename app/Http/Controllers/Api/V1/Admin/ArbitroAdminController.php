@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ArbitroRequest;
 use App\Http\Resources\ArbitroResource;
 use App\Models\Arbitro;
-use Illuminate\Http\Request;
 
 class ArbitroAdminController extends Controller
 {
@@ -19,16 +19,16 @@ class ArbitroAdminController extends Controller
         return response()->json(['data' => $arbitro]);
     }
 
-    public function store(Request $request)
+    public function store(ArbitroRequest $request)
     {
-        $arbitro = Arbitro::create($this->validado($request));
+        $arbitro = Arbitro::create($request->validated());
 
         return new ArbitroResource($arbitro);
     }
 
-    public function update(Request $request, Arbitro $arbitro)
+    public function update(ArbitroRequest $request, Arbitro $arbitro)
     {
-        $arbitro->update($this->validado($request));
+        $arbitro->update($request->validated());
 
         return new ArbitroResource($arbitro);
     }
@@ -38,19 +38,5 @@ class ArbitroAdminController extends Controller
         $arbitro->delete();
 
         return response()->json(['message' => 'Árbitro eliminado.']);
-    }
-
-    private function validado(Request $request): array
-    {
-        return $request->validate([
-            'nombre' => ['required', 'string', 'max:255'],
-            'apellidos' => ['nullable', 'string', 'max:255'],
-            'nacionalidad' => ['nullable', 'string', 'max:255'],
-            'comunidad_autonoma' => ['nullable', 'string', 'max:255'],
-            'anio_debut' => ['nullable', 'integer'],
-            'promedio_tarjetas_amarillas' => ['nullable', 'numeric'],
-            'promedio_tarjetas_rojas' => ['nullable', 'numeric'],
-            'imagen' => ['nullable', 'string', 'max:500'],
-        ]);
     }
 }

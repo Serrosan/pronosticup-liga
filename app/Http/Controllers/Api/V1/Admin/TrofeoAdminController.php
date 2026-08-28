@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\TrofeoRequest;
 use App\Http\Resources\TrofeoResource;
 use App\Models\Trofeo;
-use Illuminate\Http\Request;
 
 class TrofeoAdminController extends Controller
 {
@@ -19,16 +19,16 @@ class TrofeoAdminController extends Controller
         return response()->json(['data' => $trofeo]);
     }
 
-    public function store(Request $request)
+    public function store(TrofeoRequest $request)
     {
-        $trofeo = Trofeo::create($this->validado($request));
+        $trofeo = Trofeo::create($request->validated());
 
         return new TrofeoResource($trofeo);
     }
 
-    public function update(Request $request, Trofeo $trofeo)
+    public function update(TrofeoRequest $request, Trofeo $trofeo)
     {
-        $trofeo->update($this->validado($request));
+        $trofeo->update($request->validated());
 
         return new TrofeoResource($trofeo);
     }
@@ -38,16 +38,5 @@ class TrofeoAdminController extends Controller
         $trofeo->delete();
 
         return response()->json(['message' => 'Trofeo eliminado.']);
-    }
-
-    private function validado(Request $request): array
-    {
-        return $request->validate([
-            'nombre' => ['required', 'string', 'max:255'],
-            'tipo' => ['nullable', 'string', 'max:100'],
-            'ambito' => ['nullable', 'string', 'max:100'],
-            'logo' => ['nullable', 'string', 'max:500'],
-            'imagen' => ['nullable', 'string', 'max:500'],
-        ]);
     }
 }

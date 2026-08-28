@@ -26,6 +26,9 @@ class EquipoResource extends JsonResource
             'camiseta_1' => $this->camiseta_1,
             'camiseta_2' => $this->camiseta_2,
             'camiseta_3' => $this->camiseta_3,
+            'camiseta_1_reverso' => $this->camiseta_1_reverso,
+            'camiseta_2_reverso' => $this->camiseta_2_reverso,
+            'camiseta_3_reverso' => $this->camiseta_3_reverso,
             'id_externo_api' => $this->id_externo_api,
             'id_equipo_api' => $this->id_equipo_api,
         ];

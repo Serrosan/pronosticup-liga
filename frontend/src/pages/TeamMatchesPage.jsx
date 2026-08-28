@@ -38,6 +38,24 @@ function TeamMatchesPage() {
         <h1 className="font-display text-2xl text-texto">{nombreEquipo ?? 'Cargando...'}</h1>
       </div>
 
+      {(data?.equipo.camiseta_1 || data?.equipo.camiseta_2 || data?.equipo.camiseta_3) && (
+        <div className="flex flex-wrap items-start gap-6 mb-8 justify-center">
+          {[
+            { anverso: data.equipo.camiseta_1, reverso: data.equipo.camiseta_1_reverso, label: 'Local' },
+            { anverso: data.equipo.camiseta_2, reverso: data.equipo.camiseta_2_reverso, label: 'Visitante' },
+            { anverso: data.equipo.camiseta_3, reverso: data.equipo.camiseta_3_reverso, label: 'Tercera' },
+          ].filter((c) => c.anverso).map((c) => (
+            <div key={c.label} className="text-center">
+              <div className="flex items-center gap-2">
+                <img src={c.anverso} alt={`Camiseta ${c.label}, delante`} className="w-20 h-20 object-contain" />
+                {c.reverso && <img src={c.reverso} alt={`Camiseta ${c.label}, detrás`} className="w-20 h-20 object-contain" />}
+              </div>
+              <p className="font-body text-xs text-borde mt-1">{c.label}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
       {isLoading && <p className="font-body text-texto p-4">Cargando partidos...</p>}
 
       {data && (

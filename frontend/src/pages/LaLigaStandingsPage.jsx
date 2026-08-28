@@ -5,8 +5,8 @@ import TicketHeader from '../components/TicketHeader'
 import SkeletonLista from '../components/SkeletonLista'
 
 function Escudo({ url, alt }) {
-  if (!url) return <span className="w-7 h-7 rounded-full bg-borde/15 flex items-center justify-center text-xs shrink-0">⚽</span>
-  return <img src={url} alt={alt} className="w-7 h-7 object-contain shrink-0" />
+  if (!url) return <span className="w-5 h-5 rounded-full bg-borde/15 flex items-center justify-center text-xs shrink-0">⚽</span>
+  return <img src={url} alt={alt} className="w-5 h-5 object-contain shrink-0" />
 }
 
 const COLOR_FORMA = { G: 'bg-acento', E: 'bg-borde', P: 'bg-red-500' }
@@ -41,29 +41,38 @@ function LaLigaStandingsPage() {
     queryKey: ['clasificacion-liga'],
     queryFn: async () => {
       const respuesta = await client.get('/api/v1/clasificacion-liga')
-      return respuesta.data.data
+      return { tablas: respuesta.data.data, ultimaActualizacion: respuesta.data.meta?.ultima_actualizacion }
     },
   })
 
-  if (isLoading) return <div className="max-w-3xl mx-auto px-4 py-8"><SkeletonLista filas={20} /></div>
+  if (isLoading) return <div className="max-w-4xl mx-auto px-4 py-8"><SkeletonLista filas={20} /></div>
   if (error) return <p className="font-body text-red-500 p-4">{error.response?.data?.message ?? 'Error al cargar.'}</p>
 
-  const tabla = data[vista]
+  const tabla = data.tablas[vista]
+
+  const minutosDesdeActualizacion = data.ultimaActualizacion
+    ? Math.max(0, Math.round((Date.now() - new Date(data.ultimaActualizacion)) / 60000))
+    : null
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
-      <div className="flex gap-2 mb-4">
-        {VISTAS.map((v) => (
-          <button
-            key={v.key}
-            onClick={() => setVista(v.key)}
-            className={`font-body text-sm px-3 py-1.5 rounded-full transition ${
-              vista === v.key ? 'bg-acento text-fondo font-semibold' : 'text-texto border border-borde/40 hover:bg-borde/10'
-            }`}
-          >
-            {v.label}
-          </button>
-        ))}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex gap-2">
+          {VISTAS.map((v) => (
+            <button
+              key={v.key}
+              onClick={() => setVista(v.key)}
+              className={`font-body text-sm px-3 py-1.5 rounded-full transition ${
+                vista === v.key ? 'bg-acento text-fondo font-semibold' : 'text-texto border border-borde/40 hover:bg-borde/10'
+              }`}
+            >
+              {v.label}
+            </button>
+          ))}
+        </div>
+        {minutosDesdeActualizacion !== null && (
+          <p className="font-body text-[11px] text-borde">Actualizado hace {minutosDesdeActualizacion} min</p>
+        )}
       </div>
 
       <div className="bg-fondo border border-borde/30 rounded-lg overflow-hidden">

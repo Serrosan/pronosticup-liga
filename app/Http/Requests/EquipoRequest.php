@@ -29,6 +29,9 @@ class EquipoRequest extends FormRequest
             'camiseta_1' => ['nullable', 'string', 'max:500'],
             'camiseta_2' => ['nullable', 'string', 'max:500'],
             'camiseta_3' => ['nullable', 'string', 'max:500'],
+            'camiseta_1_reverso' => ['nullable', 'string', 'max:500'],
+            'camiseta_2_reverso' => ['nullable', 'string', 'max:500'],
+            'camiseta_3_reverso' => ['nullable', 'string', 'max:500'],
             'id_externo_api' => ['nullable', 'integer'],
             'id_equipo_api' => ['nullable', 'integer'],
         ];

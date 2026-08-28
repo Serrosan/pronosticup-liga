@@ -31,6 +31,12 @@ class EquipoPartidosController extends Controller
                     'id' => $equipo->id,
                     'nombre' => $equipo->nombre_corto ?? $equipo->nombre,
                     'escudo_url' => $equipo->escudo_url,
+                    'camiseta_1' => $equipo->camiseta_1,
+                    'camiseta_2' => $equipo->camiseta_2,
+                    'camiseta_3' => $equipo->camiseta_3,
+                    'camiseta_1_reverso' => $equipo->camiseta_1_reverso,
+                    'camiseta_2_reverso' => $equipo->camiseta_2_reverso,
+                    'camiseta_3_reverso' => $equipo->camiseta_3_reverso,
                 ],
                 'partidos' => $partidos->map(fn ($p) => [
                     'id' => $p->id,

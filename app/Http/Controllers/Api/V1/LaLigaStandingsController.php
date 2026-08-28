@@ -76,6 +76,7 @@ class LaLigaStandingsController extends Controller
                 'casa' => $ordenar($casa),
                 'fuera' => $ordenar($fuera),
             ],
+            'meta' => ['ultima_actualizacion' => $partidos->max('updated_at')?->toIso8601String()],
         ]);
     }
 }

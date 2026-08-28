@@ -15,6 +15,7 @@ function Avatar({ url, nombre, tamano = 'w-8 h-8' }) {
 
 function UserMenu() {
   const [abierto, setAbierto] = useState(false)
+  const [copiado, setCopiado] = useState(false)
   const { usuario, logout } = useAuth()
   const queryClient = useQueryClient()
 
@@ -31,6 +32,12 @@ function UserMenu() {
       window.location.href = '/dashboard'
     },
   })
+
+  function copiarCodigo() {
+    navigator.clipboard.writeText(usuario.liga_activa.codigo_acceso)
+    setCopiado(true)
+    setTimeout(() => setCopiado(false), 2000)
+  }
 
   return (
     <div className="relative">
@@ -49,6 +56,21 @@ function UserMenu() {
               <p className="font-body text-xs text-borde truncate">{usuario?.liga_activa?.nombre ?? 'Sin liga'}</p>
             </div>
           </div>
+
+          {usuario?.liga_activa?.codigo_acceso && (
+            <div className="px-4 py-2.5 border-b border-borde/20 flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="font-body text-[9px] uppercase tracking-widest text-borde">Código de invitación</p>
+                <p className="font-marcador text-sm text-texto tracking-widest">{usuario.liga_activa.codigo_acceso}</p>
+              </div>
+              <button
+                onClick={copiarCodigo}
+                className="font-body text-xs font-semibold text-acento hover:underline shrink-0"
+              >
+                {copiado ? '✓ Copiado' : 'Copiar'}
+              </button>
+            </div>
+          )}
 
           <div className="px-4 py-2 border-b border-borde/20">
             <p className="font-body text-[10px] uppercase tracking-widest text-borde mb-1">Cambiar de liga</p>

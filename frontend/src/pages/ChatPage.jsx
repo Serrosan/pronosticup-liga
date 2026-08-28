@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import client from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import TicketHeader from '../components/TicketHeader'
+import EstadoVacio from '../components/EstadoVacio'
 
 const REACCIONES = ['👍', '🔥', '😂', '😢', '🎉']
 const LIMITE_TEXTO = 500
@@ -243,10 +244,7 @@ function ChatPage() {
         {!data ? (
           <p className="font-body text-sm text-borde text-center">Cargando...</p>
         ) : data.mensajes.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="font-body text-sm text-borde">Aún no hay mensajes</p>
-            <p className="font-body text-xs text-borde/60 mt-1">Sé el primero en escribir algo</p>
-          </div>
+          <EstadoVacio icono="💬" titulo="Aún no hay mensajes" texto="Sé el primero en escribir algo." />
         ) : (
           grupos.map((grupo, i) => {
             const mostrarSeparador = i === 0 || grupos[i - 1].fechaDia !== grupo.fechaDia

@@ -49,6 +49,11 @@ Route::prefix('v1')->group(function () {
     ->except('show')
     ->parameters(['jugadores' => 'jugador']);
         Route::get('/arbitros/{arbitro}', [\App\Http\Controllers\Api\V1\Admin\ArbitroAdminController::class, 'show']);
+        Route::get('/novedades', [\App\Http\Controllers\Api\V1\Admin\NovedadAdminController::class, 'index']);
+        Route::post('/novedades', [\App\Http\Controllers\Api\V1\Admin\NovedadAdminController::class, 'store']);
+        Route::get('/novedades/{novedad}', [\App\Http\Controllers\Api\V1\Admin\NovedadAdminController::class, 'show']);
+        Route::put('/novedades/{novedad}', [\App\Http\Controllers\Api\V1\Admin\NovedadAdminController::class, 'update']);
+        Route::delete('/novedades/{novedad}', [\App\Http\Controllers\Api\V1\Admin\NovedadAdminController::class, 'destroy']);
         Route::get('/trofeos/{trofeo}', [\App\Http\Controllers\Api\V1\Admin\TrofeoAdminController::class, 'show']);
         Route::get('/estadios/{estadio}', [\App\Http\Controllers\Api\V1\Admin\EstadioAdminController::class, 'show']);
         Route::apiResource('estadios', \App\Http\Controllers\Api\V1\Admin\EstadioAdminController::class)->except('show');

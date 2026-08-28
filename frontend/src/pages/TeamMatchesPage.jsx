@@ -1,6 +1,7 @@
 import { useParams, useLocation, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import client from '../api/client'
+import EstadoVacio from '../components/EstadoVacio'
 
 function Escudo({ url, alt, tamano = 'w-8 h-8' }) {
   if (!url) return <span className={`${tamano} rounded-full bg-borde/15 flex items-center justify-center text-sm shrink-0`}>⚽</span>
@@ -41,26 +42,30 @@ function TeamMatchesPage() {
 
       {data && (
         <div className="bg-fondo border border-borde/30 rounded-lg overflow-hidden">
-          {data.partidos.map((p) => (
-            <div
-              key={p.id}
-              className={`flex items-center justify-between gap-3 px-4 py-4 border-b border-borde/10 last:border-0 flex-wrap sm:flex-nowrap odd:bg-borde/5 ${FONDO_ESTADO[p.estado] ?? ''}`}
-            >
-              <span className="font-body text-sm font-semibold text-borde w-10 shrink-0">J{p.jornada}</span>
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <span className="text-lg shrink-0" title={p.es_local ? 'En casa' : 'Fuera de casa'}>
-                  {p.es_local ? '🏠' : '✈️'}
-                </span>
-                <Escudo url={p.escudo_rival} alt={p.rival} />
-                <p className="font-body text-base text-texto truncate">{p.rival}</p>
+          {data.partidos.length === 0 ? (
+            <EstadoVacio icono="📅" titulo="Sin partidos" texto="Aún no hay partidos cargados para este equipo." />
+          ) : (
+            data.partidos.map((p) => (
+              <div
+                key={p.id}
+                className={`flex items-center justify-between gap-3 px-4 py-4 border-b border-borde/10 last:border-0 flex-wrap sm:flex-nowrap odd:bg-borde/5 ${FONDO_ESTADO[p.estado] ?? ''}`}
+              >
+                <span className="font-body text-sm font-semibold text-borde w-10 shrink-0">J{p.jornada}</span>
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <span className="text-lg shrink-0" title={p.es_local ? 'En casa' : 'Fuera de casa'}>
+                    {p.es_local ? '🏠' : '✈️'}
+                  </span>
+                  <Escudo url={p.escudo_rival} alt={p.rival} />
+                  <p className="font-body text-base text-texto truncate">{p.rival}</p>
+                </div>
+                {p.estado === 'Jugado' ? (
+                  <span className="font-marcador text-base font-bold text-texto shrink-0">{p.goles_casa}-{p.goles_fuera}</span>
+                ) : (
+                  <span className="font-marcador text-sm text-texto shrink-0">{p.horario_estimado?.slice(5, 16).replace('T', ' ')}</span>
+                )}
               </div>
-              {p.estado === 'Jugado' ? (
-                <span className="font-marcador text-base font-bold text-texto shrink-0">{p.goles_casa}-{p.goles_fuera}</span>
-              ) : (
-                <span className="font-marcador text-sm text-texto shrink-0">{p.horario_estimado?.slice(5, 16).replace('T', ' ')}</span>
-              )}
-            </div>
-          ))}
+            ))
+          )}
         </div>
       )}
     </div>

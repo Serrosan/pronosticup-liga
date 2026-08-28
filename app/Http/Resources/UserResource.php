@@ -20,6 +20,7 @@ class UserResource extends JsonResource
             'liga_activa' => $this->ligaActiva ? [
                 'id' => $this->ligaActiva->id,
                 'nombre' => $this->ligaActiva->nombre,
+                'codigo_acceso' => $this->ligaActiva->codigo_acceso,
             ] : null,
         ];
     }

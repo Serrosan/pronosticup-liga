@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\CalendarioPartido;
 use App\Models\EventoPuntos;
+use App\Models\Novedad;
 use App\Models\Pronostico;
 use Illuminate\Http\Request;
 
@@ -112,6 +113,8 @@ class DashboardController extends Controller
                 'puntos_totales' => (int) ($miFila->puntos_totales ?? 0),
                 'posicion' => $posicion === false ? null : $posicion + 1,
                 'total_participantes' => $clasificacion->count(),
+
+                'novedades' => Novedad::where('activa', true)->orderByDesc('id')->limit(5)->get(['titulo', 'emoji', 'created_at']),
 
                 'avisos' => $avisos,
 

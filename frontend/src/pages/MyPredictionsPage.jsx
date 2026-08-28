@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import client from '../api/client'
+import EstadoVacio from '../components/EstadoVacio'
+import SkeletonLista from '../components/SkeletonLista'
 
 function Escudo({ url, alt }) {
   if (!url) return <span className="w-5 h-5 rounded-full bg-borde/15 flex items-center justify-center text-xs shrink-0">⚽</span>
@@ -82,7 +84,7 @@ function MyPredictionsPage() {
     },
   })
 
-  if (isLoading) return <p className="font-body text-texto p-4">Cargando...</p>
+  if (isLoading) return <div className="max-w-2xl mx-auto px-4 py-8"><SkeletonLista /></div>
   if (error) return <p className="font-body text-red-500 p-4">{error.response?.data?.message ?? 'Error al cargar.'}</p>
 
   const filas = data.pronosticos.filter((p) => {
@@ -143,7 +145,11 @@ function MyPredictionsPage() {
 
       <div className="bg-fondo border-x border-b border-borde/30 rounded-b-2xl overflow-hidden">
         {filas.length === 0 ? (
-          <p className="font-body text-sm text-borde py-8 text-center">No hay pronósticos en esta categoría.</p>
+          <EstadoVacio
+            icono="⚽"
+            titulo="Nada por aquí"
+            texto={tab === 'pendientes' ? '¡Estás al día! No tienes partidos por pronosticar.' : 'Aún no has hecho ningún pronóstico en esta categoría.'}
+          />
         ) : (
           filas.map((p, i) => {
             const resultadoReal = calcularResultadoReal(p.goles_casa, p.goles_fuera)

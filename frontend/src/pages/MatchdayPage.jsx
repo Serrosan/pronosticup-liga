@@ -2,6 +2,8 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import client from '../api/client'
 import MatchCard from '../components/MatchCard'
+import useTitulo from '../hooks/useTitulo'
+import SkeletonJornada from '../components/SkeletonJornada'
 
 const TOTAL_JORNADAS = 38
 const DIAS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
@@ -27,6 +29,8 @@ function MatchdayPage() {
   const { jornada } = useParams()
   const navigate = useNavigate()
   const numeroJornada = Number(jornada)
+
+  useTitulo(`Jornada ${numeroJornada}`)
 
   const { data } = useQuery({
     queryKey: ['partidos', jornada],
@@ -93,7 +97,7 @@ function MatchdayPage() {
         </div>
       )}
 
-      {!partidos && <p className="font-body text-texto p-4 text-center">Cargando partidos...</p>}
+      {!partidos && <SkeletonJornada />}
 
       {grupos.map(([fecha, partidosDelDia]) => (
         <div key={fecha} className="mb-10">

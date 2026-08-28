@@ -3,6 +3,9 @@ import { useQuery } from '@tanstack/react-query'
 import client from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import TicketHeader from '../components/TicketHeader'
+import EstadoVacio from '../components/EstadoVacio'
+import SkeletonLista from '../components/SkeletonLista'
+import useTitulo from '../hooks/useTitulo'
 
 const MEDALLAS = ['🥇', '🥈', '🥉']
 
@@ -18,6 +21,8 @@ function Avatar({ url, nombre }) {
 function StandingsPage() {
   const { usuario } = useAuth()
 
+  useTitulo('Clasificación')
+
   const { data: clasificacion, isLoading, error } = useQuery({
     queryKey: ['clasificacion'],
     queryFn: async () => {
@@ -26,7 +31,7 @@ function StandingsPage() {
     },
   })
 
-  if (isLoading) return <p className="font-body text-texto p-4">Cargando clasificación...</p>
+  if (isLoading) return <div className="max-w-4xl mx-auto px-4 py-8"><SkeletonLista /></div>
   if (error) return <p className="font-body text-red-500 p-4">{error.response?.data?.message ?? 'Error al cargar.'}</p>
 
   return (
@@ -35,7 +40,7 @@ function StandingsPage() {
         <TicketHeader titulo="Clasificación de la liga" />
 
         {clasificacion.length === 0 ? (
-          <p className="font-body text-sm text-borde py-8 text-center">Aún no hay puntos registrados.</p>
+          <EstadoVacio icono="🏆" titulo="Aún no hay puntos" texto="En cuanto se cierre la primera jornada, aparecerá aquí la clasificación." />
         ) : (
           <div>
             <div className="flex items-center gap-2 px-4 py-2 border-b border-borde/10">

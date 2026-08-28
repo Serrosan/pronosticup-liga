@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import client from '../api/client'
 import TicketHeader from '../components/TicketHeader'
+import SkeletonLista from '../components/SkeletonLista'
 
 function Escudo({ url, alt }) {
   if (!url) return <span className="w-7 h-7 rounded-full bg-borde/15 flex items-center justify-center text-xs shrink-0">⚽</span>
@@ -44,7 +45,7 @@ function LaLigaStandingsPage() {
     },
   })
 
-  if (isLoading) return <p className="font-body text-texto p-4">Cargando clasificación...</p>
+  if (isLoading) return <div className="max-w-3xl mx-auto px-4 py-8"><SkeletonLista filas={20} /></div>
   if (error) return <p className="font-body text-red-500 p-4">{error.response?.data?.message ?? 'Error al cargar.'}</p>
 
   const tabla = data[vista]

@@ -11,6 +11,7 @@ const SECCIONES = [
   { to: '/admin/eventos-partido', label: 'Eventos' },
   { to: '/admin/calendario', label: 'Partidos' },
   { to: '/admin/eventos-calendario', label: 'Calendario' },
+  { to: '/admin/novedades', label: 'Novedades' },
 ]
 
 function AdminLayout({ children }) {

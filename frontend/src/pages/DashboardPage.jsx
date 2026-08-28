@@ -4,6 +4,8 @@ import client from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import EvolutionChart from '../components/EvolutionChart'
 import TicketHeader from '../components/TicketHeader'
+import SkeletonLista from '../components/SkeletonLista'
+import TickerNovedades from '../components/TickerNovedades'
 
 function Escudo({ url, alt }) {
   if (!url) return <span className="w-6 h-6 rounded-full bg-borde/15 flex items-center justify-center text-xs shrink-0">⚽</span>
@@ -29,7 +31,7 @@ function DashboardPage() {
     },
   })
 
-  if (isLoading) return <p className="font-body text-texto p-4">Cargando...</p>
+  if (isLoading) return <div className="max-w-6xl mx-auto px-4 py-6"><SkeletonLista /></div>
   if (error) return <p className="font-body text-red-500 p-4">{error.response?.data?.message ?? 'Error al cargar el dashboard.'}</p>
 
   const primerNombre = usuario?.nombre?.split(' ')[0]
@@ -37,6 +39,7 @@ function DashboardPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
       <h1 className="font-display text-2xl text-texto mb-4">{saludoSegunHora()}, {primerNombre} ⚽</h1>
+      <TickerNovedades novedades={data.novedades} />
 
       <div className="bg-fondo border border-borde/30 rounded-lg px-6 py-3 flex items-center justify-around mb-6">
         {[

@@ -11,6 +11,7 @@ const ENLACES = [
   { to: '/clasificacion', match: '/clasificacion', label: 'Clasificación' },
   { to: '/clasificacion-liga', match: '/clasificacion-liga', label: 'LaLiga' },
   { to: '/calendario', match: '/calendario', label: 'Calendario' },
+  { to: '/chat', match: '/chat', label: 'Chat' },
 ]
 
 function NavBar() {

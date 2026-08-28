@@ -61,22 +61,27 @@ function MatchDetailPage() {
 
   const porTipo = (tipo, lista) => lista.filter((e) => e.tipo_evento === tipo)
 
+  const minutosDesdeActualizacion = data.actualizado_en
+    ? Math.max(0, Math.round((Date.now() - new Date(data.actualizado_en)) / 60000))
+    : null
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
       <Link to={`/jornadas/${data.jornada}`} className="font-body text-sm text-acento hover:underline mb-4 inline-block">← Volver a la jornada</Link>
 
-      <div className="bg-fondo border border-borde/30 rounded-lg p-6 mb-6">
+      <div className="bg-fondo border border-borde/30 rounded-lg p-6 mb-2">
         <div className="flex items-center justify-between">
           <div className="flex flex-col items-center gap-3 flex-1">
             <Escudo url={data.equipo_local.escudo_url} alt={data.equipo_local.nombre} />
             <span className="font-body font-medium text-texto text-center">{data.equipo_local.nombre}</span>
           </div>
           <div className="text-center px-4">
-            {data.estado === 'Jugado' ? (
-              <span className="font-marcador text-5xl font-bold text-texto tabular-nums">{data.goles_casa}-{data.goles_fuera}</span>
+            {(data.estado === 'Jugado' || data.estado === 'En juego') ? (
+              <span className="font-marcador text-5xl font-bold text-texto tabular-nums">{data.goles_casa ?? 0}-{data.goles_fuera ?? 0}</span>
             ) : (
               <span className="font-body text-sm text-borde">{data.estado}</span>
             )}
+            {data.estado === 'En juego' && <p className="font-body text-xs text-red-400 font-semibold mt-1">● En juego</p>}
           </div>
           <div className="flex flex-col items-center gap-3 flex-1">
             <Escudo url={data.equipo_visitante.escudo_url} alt={data.equipo_visitante.nombre} />
@@ -90,6 +95,12 @@ function MatchDetailPage() {
           </div>
         )}
       </div>
+
+      {minutosDesdeActualizacion !== null && (
+        <p className="font-body text-[11px] text-borde text-center mb-4">
+          Actualizado hace {minutosDesdeActualizacion} min
+        </p>
+      )}
 
       <div className="bg-fondo border border-borde/30 rounded-lg overflow-hidden">
         <div className="px-4 py-3 bg-borde/10">

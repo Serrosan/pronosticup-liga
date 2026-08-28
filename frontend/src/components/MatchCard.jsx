@@ -10,6 +10,7 @@ function Escudo({ url, alt }) {
 
 const BADGE_ESTADO = {
   Jugado: 'bg-acento/15 text-acento',
+  'En juego': 'bg-red-400/15 text-red-400 animate-pulse',
   Aplazado: 'bg-red-400/15 text-red-400',
   Programado: 'bg-premio/15 text-premio',
 }
@@ -74,7 +75,7 @@ function MatchCard({ partido }) {
 
       <div className="flex items-center justify-between gap-2 mb-1">
         <EquipoEnlace equipo={partido.equipo_local} alinear="derecha" />
-        {partido.estado === 'Jugado' ? (
+        {(partido.estado === 'Jugado' || partido.estado === 'En juego') ? (
           <span className="font-marcador text-2xl font-bold text-texto tabular-nums px-3 shrink-0">
             {partido.goles_casa}-{partido.goles_fuera}
           </span>

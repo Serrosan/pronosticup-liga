@@ -87,6 +87,7 @@ class PartidoController extends Controller
                 'goles_casa' => $partido->goles_casa,
                 'goles_fuera' => $partido->goles_fuera,
                 'eventos' => $eventos,
+                'actualizado_en' => $partido->updated_at->toIso8601String(),
             ],
         ]);
     }

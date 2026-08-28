@@ -28,14 +28,16 @@ function MatchdayPage() {
   const navigate = useNavigate()
   const numeroJornada = Number(jornada)
 
-  const { data: partidos, error } = useQuery({
+  const { data } = useQuery({
     queryKey: ['partidos', jornada],
     queryFn: async () => {
       const respuesta = await client.get(`/api/v1/jornadas/${jornada}/partidos`)
-      return respuesta.data.data
+      return { partidos: respuesta.data.data, ultimaActualizacion: respuesta.data.meta?.ultima_actualizacion }
     },
     placeholderData: (datosAnteriores) => datosAnteriores,
   })
+
+  const partidos = data?.partidos
 
   function ir(numero) {
     if (numero < 1 || numero > TOTAL_JORNADAS) return
@@ -44,6 +46,10 @@ function MatchdayPage() {
 
   const grupos = partidos ? agruparPorDia(partidos) : []
   const sinPronosticar = partidos ? partidos.filter((p) => p.estado === 'Programado' && !p.mi_pronostico) : []
+
+  const minutosDesdeActualizacion = data?.ultimaActualizacion
+    ? Math.max(0, Math.round((Date.now() - new Date(data.ultimaActualizacion)) / 60000))
+    : null
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-4">
@@ -68,8 +74,14 @@ function MatchdayPage() {
       </div>
 
       {grupos.length > 0 && (
-        <p className="font-body text-sm font-semibold text-acento text-center whitespace-nowrap mb-6">
+        <p className="font-body text-sm font-semibold text-acento text-center whitespace-nowrap mb-1">
           {formatearFecha(grupos[0][0])} — {formatearFecha(grupos[grupos.length - 1][0])}
+        </p>
+      )}
+
+      {minutosDesdeActualizacion !== null && (
+        <p className="font-body text-[11px] text-borde text-center mb-4">
+          Actualizado hace {minutosDesdeActualizacion} min
         </p>
       )}
 
@@ -81,8 +93,7 @@ function MatchdayPage() {
         </div>
       )}
 
-      {!partidos && !error && <p className="font-body text-texto p-4 text-center">Cargando partidos...</p>}
-      {error && <p className="font-body text-red-500 p-4 text-center">Error al cargar: {error.message}</p>}
+      {!partidos && <p className="font-body text-texto p-4 text-center">Cargando partidos...</p>}
 
       {grupos.map(([fecha, partidosDelDia]) => (
         <div key={fecha} className="mb-10">

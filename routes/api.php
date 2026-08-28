@@ -28,9 +28,14 @@ Route::prefix('v1')->group(function () {
     Route::post('/jornadas/{jornada}/cerrar', [\App\Http\Controllers\Api\V1\JornadaController::class, 'cerrar']);
     Route::patch('/liga-activa', [\App\Http\Controllers\Api\V1\LigaActivaController::class, 'set']);
     Route::patch('/profile', [\App\Http\Controllers\Api\V1\ProfileController::class, 'update']);
+    Route::post('/chat/subir-imagen', [\App\Http\Controllers\Api\V1\ChatAdjuntoController::class, 'subirImagen']);
+    Route::post('/chat/subir-audio', [\App\Http\Controllers\Api\V1\ChatAdjuntoController::class, 'subirAudio']);
     Route::post('/profile/password', [\App\Http\Controllers\Api\V1\ProfileController::class, 'updatePassword']);
     Route::post('/profile/avatar', [\App\Http\Controllers\Api\V1\ProfileController::class, 'uploadAvatar']);
     Route::get('/clasificacion-liga', [\App\Http\Controllers\Api\V1\LaLigaStandingsController::class, 'index']);
+    Route::get('/chat', [\App\Http\Controllers\Api\V1\ChatController::class, 'index']);
+    Route::post('/chat', [\App\Http\Controllers\Api\V1\ChatController::class, 'store']);
+    Route::post('/chat/{mensajeChat}/reaccionar', [\App\Http\Controllers\Api\V1\ChatController::class, 'reaccionar']);
     Route::get('/calendario', [\App\Http\Controllers\Api\V1\CalendarioController::class, 'mes']);
     Route::get('/equipos/{equipo}/partidos', [\App\Http\Controllers\Api\V1\EquipoPartidosController::class, 'index']);
     Route::get('/partidos/{partido}', [PartidoController::class, 'show']);

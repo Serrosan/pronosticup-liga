@@ -30,6 +30,7 @@ import AdminResourceDetailPage from './pages/AdminResourceDetailPage'
 import CalendarPage from './pages/CalendarPage'
 import AdminEventosCalendarioPage from './pages/AdminEventosCalendarioPage'
 import MatchDetailPage from './pages/MatchDetailPage'
+import ChatPage from './pages/ChatPage'
 
 function RutaProtegida() {
   const { usuario, cargando } = useAuth()
@@ -77,6 +78,7 @@ function App() {
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/jornadas/:jornada" element={<MatchdayPage />} />
             <Route path="/clasificacion" element={<StandingsPage />} />
+            <Route path="/chat" element={<ChatPage />} />
             <Route path="/clasificacion/usuarios/:idUsuario" element={<UserPointsDetailPage />} />
             <Route path="/clasificacion-liga" element={<LaLigaStandingsPage />} />
             <Route path="/pronosticos" element={<MyPredictionsPage />} />

@@ -25,7 +25,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/jornadas/{jornada}/pronosticos', [PronosticoController::class, 'misPronosticos']);
     Route::get('/clasificacion', [\App\Http\Controllers\Api\V1\ClasificacionController::class, 'index']);
     Route::get('/dashboard', [\App\Http\Controllers\Api\V1\DashboardController::class, 'index']);
-    Route::post('/jornadas/{jornada}/cerrar', [\App\Http\Controllers\Api\V1\JornadaController::class, 'cerrar'])->middleware('admin');
+    Route::post('/jornadas/{jornada}/cerrar', [\App\Http\Controllers\Api\V1\JornadaController::class, 'cerrar']);
     Route::patch('/liga-activa', [\App\Http\Controllers\Api\V1\LigaActivaController::class, 'set']);
     Route::patch('/profile', [\App\Http\Controllers\Api\V1\ProfileController::class, 'update']);
     Route::post('/profile/password', [\App\Http\Controllers\Api\V1\ProfileController::class, 'updatePassword']);

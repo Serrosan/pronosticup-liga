@@ -2,14 +2,17 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Liga extends Model
 {
+    use HasFactory;
+
     protected $table = 'ligas';
 
     protected $fillable = [
-        'nombre', 'codigo_acceso', 'id_temporada', 'id_admin', 'logo_url', 'lema',
+        'nombre', 'codigo_acceso', 'id_temporada', 'id_usuario_creador', 'logo_url', 'lema',
     ];
 
     public function temporada()

@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class CalendarioPartido extends Model
 {
+    use HasFactory;
+
     protected $table = 'calendariopartidos';
 
     protected $fillable = [

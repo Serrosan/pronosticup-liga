@@ -5,6 +5,7 @@ const columnas = [
   { key: 'apellidos', label: 'Apellidos' },
   { key: 'posicion', label: 'Posición' },
   { key: 'nacionalidad', label: 'Nacionalidad' },
+  { key: 'estado', label: 'Estado' },  
 ]
 
 const campos = [

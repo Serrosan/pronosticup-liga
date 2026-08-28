@@ -56,6 +56,10 @@ Route::prefix('v1')->group(function () {
         Route::delete('/novedades/{novedad}', [\App\Http\Controllers\Api\V1\Admin\NovedadAdminController::class, 'destroy']);
         Route::get('/trofeos/{trofeo}', [\App\Http\Controllers\Api\V1\Admin\TrofeoAdminController::class, 'show']);
         Route::get('/estadios/{estadio}', [\App\Http\Controllers\Api\V1\Admin\EstadioAdminController::class, 'show']);
+        Route::post('/jugadores/{jugador}/fichar', [\App\Http\Controllers\Api\V1\Admin\FichajeAdminController::class, 'fichar']);
+        Route::get('/jugadores/{jugador}/historial', [\App\Http\Controllers\Api\V1\Admin\FichajeAdminController::class, 'historial']);
+        Route::post('/jugadores/{jugador}/dar-de-baja', [\App\Http\Controllers\Api\V1\Admin\FichajeAdminController::class, 'darDeBaja']);
+        Route::post('/jugadores/{jugador}/reactivar', [\App\Http\Controllers\Api\V1\Admin\FichajeAdminController::class, 'reactivar']);
         Route::apiResource('estadios', \App\Http\Controllers\Api\V1\Admin\EstadioAdminController::class)->except('show');
         Route::apiResource('arbitros', \App\Http\Controllers\Api\V1\Admin\ArbitroAdminController::class)->except('show');
         Route::post('/subir-imagen', [\App\Http\Controllers\Api\V1\Admin\ImagenAdminController::class, 'subir']);

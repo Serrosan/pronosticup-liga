@@ -70,7 +70,8 @@ class EventoPartidoAdminController extends Controller
 
     private function jugadoresDeEquipo(int $idEquipo)
     {
-        return Jugador::whereHas('plantillasTemporada', fn ($q) => $q->where('id_equipo', $idEquipo))
+        return Jugador::whereHas('plantillasTemporada', fn ($q) => $q->where('id_equipo', $idEquipo)->whereNull('fecha_salida'))
+            ->whereNull('dado_de_baja_en')
             ->get(['id', 'nombre', 'apellidos', 'nombre_camiseta']);
     }
 

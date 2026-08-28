@@ -26,6 +26,8 @@ class JugadorResource extends JsonResource
             'club_anterior' => $this->club_anterior,
             'id_externo_api' => $this->id_externo_api,
             'foto_url' => $this->foto_url,
+            'dado_de_baja_en' => $this->dado_de_baja_en,
+            'estado' => $this->dado_de_baja_en ? 'De baja' : 'Activo',
         ];
     }
 }

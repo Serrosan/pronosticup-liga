@@ -4,6 +4,7 @@ import { useQuery, useMutation } from '@tanstack/react-query'
 import client from '../api/client'
 import SelectTema from '../components/SelectTema'
 import CampoImagenSubida from '../components/CampoImagenSubida'
+import FichajesJugador from '../components/FichajesJugador'
 import { CAMPOS_ADMIN } from '../config/camposAdmin'
 
 function CampoTexto({ campo, valor, onChange }) {
@@ -109,6 +110,9 @@ function AdminResourceDetailPage() {
       <div className="flex items-center gap-3 mb-4">
         <button onClick={() => navigate(config.volverA)} className="font-body text-sm text-acento hover:underline">← Volver</button>
         <h2 className="font-display text-xl text-texto">Editar {config.titulo} #{id}</h2>
+        {resource === 'jugadores' && form.estado === 'De baja' && (
+          <span className="font-body text-xs font-semibold bg-red-500/15 text-red-500 rounded-full px-2.5 py-1">De baja</span>
+        )}
       </div>
 
       {mensaje && (
@@ -138,6 +142,10 @@ function AdminResourceDetailPage() {
           {guardar.isPending ? 'Guardando...' : 'Guardar cambios'}
         </button>
       </form>
+
+      {resource === 'jugadores' && (
+        <FichajesJugador jugadorId={id} dadoDeBaja={form.estado === 'De baja'} />
+      )}
     </div>
   )
 }

@@ -27,6 +27,16 @@ class CalendarioPartido extends Model
         return $this->belongsTo(Equipo::class, 'id_equipo_visitante');
     }
 
+    public function estadio()
+    {
+        return $this->belongsTo(Estadio::class, 'id_estadio');
+    }
+
+    public function arbitro()
+    {
+        return $this->belongsTo(Arbitro::class, 'id_arbitro');
+    }
+    
     protected function casts(): array
     {
         return [

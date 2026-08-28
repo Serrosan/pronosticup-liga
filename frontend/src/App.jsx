@@ -29,6 +29,7 @@ import AdminLayout from './components/AdminLayout'
 import AdminResourceDetailPage from './pages/AdminResourceDetailPage'
 import CalendarPage from './pages/CalendarPage'
 import AdminEventosCalendarioPage from './pages/AdminEventosCalendarioPage'
+import MatchDetailPage from './pages/MatchDetailPage'
 
 function RutaProtegida() {
   const { usuario, cargando } = useAuth()
@@ -80,6 +81,7 @@ function App() {
             <Route path="/clasificacion-liga" element={<LaLigaStandingsPage />} />
             <Route path="/pronosticos" element={<MyPredictionsPage />} />
             <Route path="/calendario" element={<CalendarPage />} />
+            <Route path="/partidos/:id" element={<MatchDetailPage />} />
             <Route path="/perfil" element={<ProfilePage />} />
             <Route path="/equipos/:idEquipo" element={<TeamMatchesPage />} />
           </Route>

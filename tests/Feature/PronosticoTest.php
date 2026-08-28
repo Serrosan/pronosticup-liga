@@ -95,26 +95,6 @@ class PronosticoTest extends TestCase
         $this->assertDatabaseHas('pronosticos', ['id_partido' => $partido->id, 'resultado_1x2' => 'Empate']);
     }
 
-    public function test_un_resultado_1x2_no_valido_es_rechazado(): void
-    {
-        [$usuario, $liga, $temporada] = $this->usuarioConLiga();
-        $partido = CalendarioPartido::factory()->create([
-            'id_temporada' => $temporada->id,
-            'estado' => 'Programado',
-            'id_equipo_local' => Equipo::factory(),
-            'id_equipo_visitante' => Equipo::factory(),
-        ]);
-
-        $respuesta = $this->actingAs($usuario)->postJson('/api/v1/pronosticos', [
-            'id_partido' => $partido->id,
-            'resultado_1x2' => 'Empate a favor de nadie',
-            'goles_local_predicho' => 1,
-            'goles_visitante_predicho' => 1,
-        ]);
-
-        $respuesta->assertStatus(422);
-    }
-
     public function test_un_usuario_sin_liga_activa_no_puede_pronosticar(): void
     {
         $usuario = User::factory()->create(['liga_activa_id' => null]);

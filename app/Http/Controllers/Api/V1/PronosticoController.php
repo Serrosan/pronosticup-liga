@@ -8,7 +8,6 @@ use App\Models\CalendarioPartido;
 use App\Models\EventoPuntos;
 use App\Models\Pronostico;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
 class PronosticoController extends Controller
 {
@@ -22,7 +21,6 @@ class PronosticoController extends Controller
 
         $validated = $request->validate([
             'id_partido' => ['required', 'exists:calendariopartidos,id'],
-            'resultado_1x2' => ['required', Rule::in(['Local', 'Empate', 'Visitante'])],
             'goles_local_predicho' => ['required', 'integer', 'min:0'],
             'goles_visitante_predicho' => ['required', 'integer', 'min:0'],
         ]);
@@ -33,6 +31,8 @@ class PronosticoController extends Controller
             return response()->json(['message' => 'Este partido ya no admite pronósticos.'], 422);
         }
 
+        $resultado1x2 = $this->calcularResultado($validated['goles_local_predicho'], $validated['goles_visitante_predicho']);
+
         $pronostico = Pronostico::updateOrCreate(
             [
                 'id_usuario' => $request->user()->id,
@@ -40,7 +40,7 @@ class PronosticoController extends Controller
                 'id_partido' => $validated['id_partido'],
             ],
             [
-                'resultado_1x2' => $validated['resultado_1x2'],
+                'resultado_1x2' => $resultado1x2,
                 'goles_local_predicho' => $validated['goles_local_predicho'],
                 'goles_visitante_predicho' => $validated['goles_visitante_predicho'],
                 'enviado_en' => now(),
@@ -122,5 +122,12 @@ class PronosticoController extends Controller
                 'pronosticos' => $filas,
             ],
         ]);
+    }
+
+    private function calcularResultado(int $golesLocal, int $golesVisitante): string
+    {
+        if ($golesLocal > $golesVisitante) return 'Local';
+        if ($golesLocal < $golesVisitante) return 'Visitante';
+        return 'Empate';
     }
 }

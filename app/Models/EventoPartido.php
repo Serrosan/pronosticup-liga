@@ -22,4 +22,14 @@ class EventoPartido extends Model
     {
         return $this->belongsTo(Jugador::class, 'id_jugador');
     }
+
+    public function jugadorRelacionado()
+    {
+        return $this->belongsTo(Jugador::class, 'id_jugador_relacionado');
+    }
+
+    public function equipo()
+    {
+        return $this->belongsTo(Equipo::class, 'id_equipo');
+    }
 }

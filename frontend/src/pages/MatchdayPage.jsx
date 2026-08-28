@@ -28,19 +28,14 @@ function MatchdayPage() {
   const navigate = useNavigate()
   const numeroJornada = Number(jornada)
 
-  const { data, error } = useQuery({
+  const { data: partidos, error } = useQuery({
     queryKey: ['partidos', jornada],
     queryFn: async () => {
       const respuesta = await client.get(`/api/v1/jornadas/${jornada}/partidos`)
-      return {
-        partidos: respuesta.data.data,
-        ultimaActualizacion: respuesta.data.meta?.ultima_actualizacion,
-      }
+      return respuesta.data.data
     },
     placeholderData: (datosAnteriores) => datosAnteriores,
   })
-
-  const partidos = data?.partidos
 
   function ir(numero) {
     if (numero < 1 || numero > TOTAL_JORNADAS) return
@@ -48,10 +43,11 @@ function MatchdayPage() {
   }
 
   const grupos = partidos ? agruparPorDia(partidos) : []
+  const sinPronosticar = partidos ? partidos.filter((p) => p.estado === 'Programado' && !p.mi_pronostico) : []
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-4">
-      <div className="flex items-center justify-center gap-4 mb-4">
+      <div className="flex items-center justify-center gap-4 mb-1">
         <button
           onClick={() => ir(numeroJornada - 1)}
           disabled={numeroJornada <= 1}
@@ -60,19 +56,7 @@ function MatchdayPage() {
         >
           ←
         </button>
-        <div className="text-center w-48">
-          <h2 className="font-display text-xl text-texto">Jornada {numeroJornada}</h2>
-          {grupos.length > 0 && (
-            <p className="font-body text-xs font-semibold text-acento">
-              {formatearFecha(grupos[0][0])} — {formatearFecha(grupos[grupos.length - 1][0])}
-            </p>
-          )}
-          {data?.ultimaActualizacion && (
-            <p className="font-body text-[10px] text-borde mt-0.5">
-              Actualizado {new Date(data.ultimaActualizacion).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-            </p>
-          )}
-        </div>
+        <h2 className="font-display text-xl text-texto whitespace-nowrap">Jornada {numeroJornada}</h2>
         <button
           onClick={() => ir(numeroJornada + 1)}
           disabled={numeroJornada >= TOTAL_JORNADAS}
@@ -83,21 +67,44 @@ function MatchdayPage() {
         </button>
       </div>
 
+      {grupos.length > 0 && (
+        <p className="font-body text-sm font-semibold text-acento text-center whitespace-nowrap mb-6">
+          {formatearFecha(grupos[0][0])} — {formatearFecha(grupos[grupos.length - 1][0])}
+        </p>
+      )}
+
+      {sinPronosticar.length > 0 && (
+        <div className="max-w-md mx-auto mb-6 bg-premio/10 border border-premio/30 rounded-lg px-4 py-3 text-center">
+          <p className="font-body text-sm text-premio font-semibold">
+            Te quedan {sinPronosticar.length} partido{sinPronosticar.length > 1 ? 's' : ''} por pronosticar
+          </p>
+        </div>
+      )}
+
       {!partidos && !error && <p className="font-body text-texto p-4 text-center">Cargando partidos...</p>}
       {error && <p className="font-body text-red-500 p-4 text-center">Error al cargar: {error.message}</p>}
 
       {grupos.map(([fecha, partidosDelDia]) => (
-        <div key={fecha} className="mb-6">
-          <div className="flex justify-center">
-            <p className="inline-block font-body text-sm font-bold text-premio bg-premio/10 px-3 py-1.5 rounded-full mb-3">
-              {formatearFecha(fecha)}
-            </p>
+        <div key={fecha} className="mb-10">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="h-px bg-borde/20 flex-1" />
+            <p className="font-display text-base text-texto tracking-wide whitespace-nowrap">{formatearFecha(fecha)}</p>
+            <div className="h-px bg-borde/20 flex-1" />
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-            {partidosDelDia.map((partido) => (
-              <MatchCard key={partido.id} partido={{ ...partido, jornada }} />
-            ))}
-          </div>
+
+          {partidosDelDia.length === 1 ? (
+            <div className="flex justify-center">
+              <div className="w-full max-w-md">
+                <MatchCard partido={{ ...partidosDelDia[0], jornada }} />
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 max-w-4xl mx-auto">
+              {partidosDelDia.map((partido) => (
+                <MatchCard key={partido.id} partido={{ ...partido, jornada }} />
+              ))}
+            </div>
+          )}
         </div>
       ))}
     </div>

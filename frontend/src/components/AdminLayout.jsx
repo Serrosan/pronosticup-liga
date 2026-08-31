@@ -1,17 +1,33 @@
 import { Link, NavLink } from 'react-router-dom'
 
-const SECCIONES = [
-  { to: '/admin/usuarios', label: 'Usuarios' },
-  { to: '/admin/ligas', label: 'Ligas' },
-  { to: '/admin/equipos', label: 'Equipos' },
-  { to: '/admin/jugadores', label: 'Jugadores' },
-  { to: '/admin/estadios', label: 'Estadios' },
-  { to: '/admin/arbitros', label: 'Árbitros' },
-  { to: '/admin/trofeos', label: 'Trofeos' },
-  { to: '/admin/eventos-partido', label: 'Eventos' },
-  { to: '/admin/calendario', label: 'Partidos' },
-  { to: '/admin/eventos-calendario', label: 'Calendario' },
-  { to: '/admin/novedades', label: 'Novedades' },
+const GRUPOS = [
+  {
+    titulo: 'General',
+    items: [
+      { to: '/admin/usuarios', label: 'Usuarios' },
+      { to: '/admin/ligas', label: 'Ligas' },
+      { to: '/admin/novedades', label: 'Novedades' },
+    ],
+  },
+  {
+    titulo: 'Datos maestros',
+    items: [
+      { to: '/admin/equipos', label: 'Equipos' },
+      { to: '/admin/jugadores', label: 'Jugadores' },
+      { to: '/admin/entrenadores', label: 'Entrenadores' },
+      { to: '/admin/estadios', label: 'Estadios' },
+      { to: '/admin/arbitros', label: 'Árbitros' },
+      { to: '/admin/trofeos', label: 'Trofeos' },
+    ],
+  },
+  {
+    titulo: 'Competición',
+    items: [
+      { to: '/admin/calendario', label: 'Partidos' },
+      { to: '/admin/eventos-partido', label: 'Eventos' },
+      { to: '/admin/eventos-calendario', label: 'Calendario' },
+    ],
+  },
 ]
 
 function AdminLayout({ children }) {
@@ -28,13 +44,19 @@ function AdminLayout({ children }) {
           <Link to="/" className="font-body text-xs underline hover:no-underline">Salir al área de usuarios</Link>
         </div>
       </div>
-
       <div className="max-w-6xl mx-auto px-4 py-6 flex flex-col md:flex-row gap-6">
         <aside className="md:w-48 shrink-0">
           <h1 className="font-display text-lg text-texto mb-3">Administración</h1>
-          <nav className="flex md:flex-col gap-1 overflow-x-auto">
-            {SECCIONES.map((s) => (
-              <NavLink key={s.to} to={s.to} className={enlaceClase}>{s.label}</NavLink>
+          <nav className="flex flex-col gap-4">
+            {GRUPOS.map((grupo) => (
+              <div key={grupo.titulo}>
+                <p className="font-body text-[10px] uppercase tracking-widest text-borde mb-1.5 px-3">{grupo.titulo}</p>
+                <div className="flex md:flex-col gap-1 overflow-x-auto">
+                  {grupo.items.map((s) => (
+                    <NavLink key={s.to} to={s.to} className={enlaceClase}>{s.label}</NavLink>
+                  ))}
+                </div>
+              </div>
             ))}
           </nav>
         </aside>

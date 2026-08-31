@@ -39,6 +39,10 @@ Route::prefix('v1')->group(function () {
     Route::get('/calendario', [\App\Http\Controllers\Api\V1\CalendarioController::class, 'mes']);
     Route::get('/equipos/{equipo}/partidos', [\App\Http\Controllers\Api\V1\EquipoPartidosController::class, 'index']);
     Route::get('/partidos/{partido}', [PartidoController::class, 'show']);
+    Route::get('/notificaciones', [\App\Http\Controllers\Api\V1\NotificacionController::class, 'index']);
+    Route::get('/notificaciones/no-leidas', [\App\Http\Controllers\Api\V1\NotificacionController::class, 'noLeidas']);
+    Route::post('/notificaciones/{id}/leer', [\App\Http\Controllers\Api\V1\NotificacionController::class, 'marcarLeida']);
+    Route::post('/notificaciones/leer-todas', [\App\Http\Controllers\Api\V1\NotificacionController::class, 'marcarTodasLeidas']);
     Route::get('/clasificacion/usuarios/{usuario}/detalle', [\App\Http\Controllers\Api\V1\ClasificacionController::class, 'detalle']);
 
     Route::middleware('admin')->prefix('admin')->group(function () {
@@ -48,6 +52,10 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('jugadores', \App\Http\Controllers\Api\V1\Admin\JugadorAdminController::class)
     ->except('show')
     ->parameters(['jugadores' => 'jugador']);
+        Route::get('/entrenadores/{entrenador}', [\App\Http\Controllers\Api\V1\Admin\EntrenadorAdminController::class, 'show']);
+        Route::apiResource('entrenadores', \App\Http\Controllers\Api\V1\Admin\EntrenadorAdminController::class)
+            ->except('show')
+            ->parameters(['entrenadores' => 'entrenador']);
         Route::get('/arbitros/{arbitro}', [\App\Http\Controllers\Api\V1\Admin\ArbitroAdminController::class, 'show']);
         Route::get('/novedades', [\App\Http\Controllers\Api\V1\Admin\NovedadAdminController::class, 'index']);
         Route::post('/novedades', [\App\Http\Controllers\Api\V1\Admin\NovedadAdminController::class, 'store']);

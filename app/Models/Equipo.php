@@ -21,4 +21,9 @@ class Equipo extends Model
     {
         return $this->belongsTo(Estadio::class, 'id_estadio');
     }
+
+    public function entrenadorActual()
+    {
+        return $this->hasOne(Entrenador::class, 'id_equipo_actual');
+    }
 }

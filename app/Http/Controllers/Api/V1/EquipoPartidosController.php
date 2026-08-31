@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\CalendarioPartido;
 use App\Models\Equipo;
+use App\Models\Estadio;
 use Illuminate\Http\Request;
 
 class EquipoPartidosController extends Controller
@@ -17,6 +18,8 @@ class EquipoPartidosController extends Controller
             return response()->json(['message' => 'No tienes ninguna liga activa.'], 409);
         }
 
+        $equipo->load(['estadio', 'entrenadorActual']);
+
         $partidos = CalendarioPartido::where('id_temporada', $liga->id_temporada)
             ->where(function ($q) use ($equipo) {
                 $q->where('id_equipo_local', $equipo->id)->orWhere('id_equipo_visitante', $equipo->id);
@@ -25,18 +28,42 @@ class EquipoPartidosController extends Controller
             ->orderBy('jornada')
             ->get();
 
+        $capacidadMaxima = Estadio::max('capacidad');
+
         return response()->json([
             'data' => [
                 'equipo' => [
                     'id' => $equipo->id,
-                    'nombre' => $equipo->nombre_corto ?? $equipo->nombre,
+                    'nombre' => $equipo->nombre,
+                    'nombre_corto' => $equipo->nombre_corto ?? $equipo->nombre,
+                    'apodo' => $equipo->apodo,
+                    'siglas' => $equipo->siglas,
+                    'ciudad' => $equipo->ciudad,
+                    'año_fundacion' => $equipo->año_fundacion,
                     'escudo_url' => $equipo->escudo_url,
+                    'color_primario' => $equipo->color_primario,
+                    'color_secundario' => $equipo->color_secundario,
+                    'num_socios' => $equipo->num_socios,
+                    'num_abonados' => $equipo->num_abonados,
                     'camiseta_1' => $equipo->camiseta_1,
                     'camiseta_2' => $equipo->camiseta_2,
                     'camiseta_3' => $equipo->camiseta_3,
                     'camiseta_1_reverso' => $equipo->camiseta_1_reverso,
                     'camiseta_2_reverso' => $equipo->camiseta_2_reverso,
                     'camiseta_3_reverso' => $equipo->camiseta_3_reverso,
+                    'estadio' => $equipo->estadio ? [
+                        'nombre' => $equipo->estadio->nombre,
+                        'ciudad' => $equipo->estadio->ciudad,
+                        'capacidad' => $equipo->estadio->capacidad,
+                        'tamanio_campo' => $equipo->estadio->tamanio_campo,
+                        'anio_construccion' => $equipo->estadio->anio_construccion,
+                        'anio_ult_remodelacion' => $equipo->estadio->anio_ult_remodelacion,
+                    ] : null,
+                    'capacidad_maxima_laliga' => $capacidadMaxima,
+                    'entrenador' => $equipo->entrenadorActual ? [
+                        'nombre' => $equipo->entrenadorActual->nombre,
+                        'nacionalidad' => $equipo->entrenadorActual->nacionalidad,
+                    ] : null,
                 ],
                 'partidos' => $partidos->map(fn ($p) => [
                     'id' => $p->id,

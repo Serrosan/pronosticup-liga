@@ -112,4 +112,18 @@ export const CAMPOS_ADMIN = {
       { name: 'color', label: 'Color', type: 'color' },
     ],
   },
+
+  entrenadores: {
+    titulo: 'entrenador',
+    volverA: '/admin/entrenadores',
+    campos: [
+      { name: 'nombre', label: 'Nombre' },
+      { name: 'nacionalidad', label: 'Nacionalidad' },
+      { name: 'fecha_nacimiento', label: 'Fecha de nacimiento', type: 'date' },
+      {
+        name: 'id_equipo_actual', label: 'Equipo actual', type: 'select',
+        optionsFrom: { resource: 'equipos', labelKey: 'nombre' },
+      },
+    ],
+  },
 }

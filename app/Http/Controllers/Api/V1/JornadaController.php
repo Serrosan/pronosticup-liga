@@ -7,6 +7,7 @@ use App\Models\CalendarioPartido;
 use App\Models\CierreJornada;
 use App\Models\EventoPuntos;
 use App\Models\Pronostico;
+use App\Notifications\JornadaCerradaConPuntos;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -50,12 +51,14 @@ class JornadaController extends Controller
             return response()->json(['message' => "Aún hay {$pendientes} partido(s) sin jugar en esta jornada."], 422);
         }
 
-        DB::transaction(function () use ($liga, $jornada, $partidos) {
+        $puntosPorUsuario = DB::transaction(function () use ($liga, $jornada, $partidos) {
             $idsPartidos = $partidos->pluck('id');
 
             $pronosticos = Pronostico::where('id_liga', $liga->id)
                 ->whereIn('id_partido', $idsPartidos)
                 ->get();
+
+            $puntosPorUsuario = [];
 
             foreach ($pronosticos as $pronostico) {
                 $partido = $partidos->firstWhere('id', $pronostico->id_partido);
@@ -83,13 +86,19 @@ class JornadaController extends Controller
                     'tipo_evento' => $tipo,
                     'puntos' => $puntos,
                 ]);
+
+                $puntosPorUsuario[$pronostico->id_usuario] = ($puntosPorUsuario[$pronostico->id_usuario] ?? 0) + $puntos;
             }
 
             CierreJornada::updateOrCreate(
                 ['id_liga' => $liga->id, 'jornada' => $jornada],
                 ['cerrada' => true, 'cerrada_en' => now(), 'cerrada_por' => auth()->id()]
             );
+
+            return $puntosPorUsuario;
         });
+
+        $this->notificarCierre($liga, $jornada, $puntosPorUsuario);
 
         $totalEventos = EventoPuntos::where('id_liga', $liga->id)->where('jornada', $jornada)->count();
 
@@ -97,6 +106,29 @@ class JornadaController extends Controller
             'message' => 'Jornada cerrada y puntos calculados.',
             'eventos_creados' => $totalEventos,
         ]);
+    }
+
+    private function notificarCierre($liga, int $jornada, array $puntosPorUsuario): void
+    {
+        $clasificacion = EventoPuntos::where('id_liga', $liga->id)
+            ->selectRaw('id_usuario, SUM(puntos) as total')
+            ->groupBy('id_usuario')
+            ->orderByDesc('total')
+            ->get();
+
+        foreach ($liga->usuarios as $usuario) {
+            if (! isset($puntosPorUsuario[$usuario->id])) {
+                continue;
+            }
+
+            $posicion = $clasificacion->search(fn ($fila) => $fila->id_usuario === $usuario->id);
+
+            $usuario->notify(new JornadaCerradaConPuntos(
+                $jornada,
+                $puntosPorUsuario[$usuario->id],
+                $posicion === false ? null : $posicion + 1,
+            ));
+        }
     }
 
     private function calcularResultado1x2(int $golesCasa, int $golesFuera): string

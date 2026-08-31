@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { useTheme } from '../context/ThemeContext'
 import UserMenu from './UserMenu'
+import CampanaNotificaciones from './CampanaNotificaciones'
 
 const ENLACES = [
   { to: '/dashboard', match: '/dashboard', label: 'Inicio' },
@@ -16,7 +16,6 @@ const ENLACES = [
 
 function NavBar() {
   const { usuario } = useAuth()
-  const { tema, alternarTema } = useTheme()
   const location = useLocation()
   const [menuAbierto, setMenuAbierto] = useState(false)
 
@@ -37,7 +36,6 @@ function NavBar() {
               LIGA
             </span>
           </div>
-
           <nav className="hidden md:flex items-center gap-1">
             {ENLACES.map((enlace) => (
               <Link key={enlace.to} to={enlace.to} className={claseEnlace(enlace.match)}>
@@ -48,19 +46,15 @@ function NavBar() {
               <Link to="/admin" className={claseEnlace('/admin')}>Admin</Link>
             )}
           </nav>
-
-          <div className="hidden md:flex items-center gap-3 shrink-0">
-            <button onClick={alternarTema} className="font-body text-xs text-borde hover:text-texto border border-borde/40 rounded px-2 py-1">
-              {tema === 'oscuro' ? '☀️' : '🌙'}
-            </button>
+          <div className="hidden md:flex items-center gap-4 shrink-0">
+            <CampanaNotificaciones />
+            <div className="w-px h-6 bg-borde/20" />
             <UserMenu />
           </div>
-
           <button onClick={() => setMenuAbierto(!menuAbierto)} className="md:hidden font-body text-texto p-2" aria-label="Abrir menú">
             {menuAbierto ? '✕' : '☰'}
           </button>
         </div>
-
         {menuAbierto && (
           <nav className="md:hidden flex flex-col gap-1 pb-4">
             {ENLACES.map((enlace) => (
@@ -71,11 +65,9 @@ function NavBar() {
             {usuario?.es_superadmin && (
               <Link to="/admin" onClick={() => setMenuAbierto(false)} className={claseEnlace('/admin')}>Admin</Link>
             )}
-            <div className="flex items-center justify-between px-3 py-2 mt-2 border-t border-borde/20 pt-3">
+            <div className="flex items-center gap-4 px-3 py-2 mt-2 border-t border-borde/20 pt-3">
               <UserMenu />
-              <button onClick={alternarTema} className="font-body text-xs border border-borde/40 rounded px-2 py-1">
-                {tema === 'oscuro' ? '☀️' : '🌙'}
-              </button>
+              <CampanaNotificaciones />
             </div>
           </nav>
         )}

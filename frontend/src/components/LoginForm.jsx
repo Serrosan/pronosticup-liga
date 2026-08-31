@@ -14,7 +14,7 @@ function LoginForm() {
     setError(null)
     setEnviando(true)
     try {
-      await login(email, password)
+      await login(email.trim(), password)
     } catch (err) {
       console.error(err)
       setError(err.response?.data?.message ?? 'Error desconocido, mira la consola.')

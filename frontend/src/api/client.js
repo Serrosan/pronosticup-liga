@@ -6,4 +6,20 @@ const client = axios.create({
   withXSRFToken: true,
 })
 
+let avisandoSesionCaducada = false
+
+client.interceptors.response.use(
+  (respuesta) => respuesta,
+  (error) => {
+    const esRutaAuth = error.config?.url?.includes('/login') || error.config?.url?.includes('/register')
+
+    if (error.response?.status === 401 && !esRutaAuth && !avisandoSesionCaducada) {
+      avisandoSesionCaducada = true
+      window.dispatchEvent(new CustomEvent('sesion-caducada'))
+    }
+
+    return Promise.reject(error)
+  }
+)
+
 export default client

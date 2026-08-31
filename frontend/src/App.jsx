@@ -36,6 +36,9 @@ import NotificacionModal from './components/NotificacionModal'
 import AdminEntrenadoresPage from './pages/AdminEntrenadoresPage'
 import ErrorBoundary from './components/ErrorBoundary'
 import NotFoundPage from './pages/NotFoundPage'
+import AvisoSinConexion from './components/AvisoSinConexion'
+import AvisoSesionCaducada from './components/AvisoSesionCaducada'
+import { ToastProvider } from './context/ToastContext'
 
 function RutaProtegida() {
   const { usuario, cargando } = useAuth()
@@ -70,52 +73,56 @@ function RutaAdmin() {
 function App() {
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
-            <Route path="/unirse/:codigo" element={<JoinByLinkPage />} />
+      <ToastProvider>
+        <AuthProvider>
+          <AvisoSinConexion />
+          <BrowserRouter>
+            <AvisoSesionCaducada />
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/unirse/:codigo" element={<JoinByLinkPage />} />
 
-            <Route element={<RutaProtegida />}>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/onboarding" element={<OnboardingPage />} />
-              <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/jornadas/:jornada" element={<MatchdayPage />} />
-              <Route path="/partidos/:id" element={<MatchDetailPage />} />
-              <Route path="/clasificacion" element={<StandingsPage />} />
-              <Route path="/clasificacion/usuarios/:idUsuario" element={<UserPointsDetailPage />} />
-              <Route path="/clasificacion-liga" element={<LaLigaStandingsPage />} />
-              <Route path="/pronosticos" element={<MyPredictionsPage />} />
-              <Route path="/calendario" element={<CalendarPage />} />
-              <Route path="/chat" element={<ChatPage />} />
-              <Route path="/perfil" element={<ProfilePage />} />
-              <Route path="/equipos/:idEquipo" element={<TeamMatchesPage />} />
-            </Route>
+              <Route element={<RutaProtegida />}>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/onboarding" element={<OnboardingPage />} />
+                <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/jornadas/:jornada" element={<MatchdayPage />} />
+                <Route path="/partidos/:id" element={<MatchDetailPage />} />
+                <Route path="/clasificacion" element={<StandingsPage />} />
+                <Route path="/clasificacion/usuarios/:idUsuario" element={<UserPointsDetailPage />} />
+                <Route path="/clasificacion-liga" element={<LaLigaStandingsPage />} />
+                <Route path="/pronosticos" element={<MyPredictionsPage />} />
+                <Route path="/calendario" element={<CalendarPage />} />
+                <Route path="/chat" element={<ChatPage />} />
+                <Route path="/perfil" element={<ProfilePage />} />
+                <Route path="/equipos/:idEquipo" element={<TeamMatchesPage />} />
+              </Route>
 
-            <Route path="/admin" element={<RutaAdmin />}>
-              <Route index element={<Navigate to="usuarios" replace />} />
-              <Route path="usuarios" element={<AdminUsersPage />} />
-              <Route path="ligas" element={<AdminLigasPage />} />
-              <Route path="calendario" element={<AdminCalendarioPage />} />
-              <Route path="eventos-partido" element={<AdminEventosPartidoPage />} />
-              <Route path="entrenadores" element={<AdminEntrenadoresPage />} />
-              <Route path="equipos" element={<AdminEquiposPage />} />
-              <Route path="jugadores" element={<AdminJugadoresPage />} />
-              <Route path="estadios" element={<AdminEstadiosPage />} />
-              <Route path="arbitros" element={<AdminArbitrosPage />} />
-              <Route path="trofeos" element={<AdminTrofeosPage />} />
-              <Route path="eventos-calendario" element={<AdminEventosCalendarioPage />} />
-              <Route path="novedades" element={<AdminNovedadesPage />} />
-              <Route path=":resource/detalle/:id" element={<AdminResourceDetailPage />} />
-            </Route>
+              <Route path="/admin" element={<RutaAdmin />}>
+                <Route index element={<Navigate to="usuarios" replace />} />
+                <Route path="usuarios" element={<AdminUsersPage />} />
+                <Route path="ligas" element={<AdminLigasPage />} />
+                <Route path="calendario" element={<AdminCalendarioPage />} />
+                <Route path="eventos-partido" element={<AdminEventosPartidoPage />} />
+                <Route path="entrenadores" element={<AdminEntrenadoresPage />} />
+                <Route path="equipos" element={<AdminEquiposPage />} />
+                <Route path="jugadores" element={<AdminJugadoresPage />} />
+                <Route path="estadios" element={<AdminEstadiosPage />} />
+                <Route path="arbitros" element={<AdminArbitrosPage />} />
+                <Route path="trofeos" element={<AdminTrofeosPage />} />
+                <Route path="eventos-calendario" element={<AdminEventosCalendarioPage />} />
+                <Route path="novedades" element={<AdminNovedadesPage />} />
+                <Route path=":resource/detalle/:id" element={<AdminResourceDetailPage />} />
+              </Route>
 
-          <Route path="*" element={<NotFoundPage />} />
-          </Routes>
-        </BrowserRouter>
-      </AuthProvider>
+            <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+          </BrowserRouter>
+        </AuthProvider>
+      </ToastProvider>
     </ErrorBoundary>
   )
 }

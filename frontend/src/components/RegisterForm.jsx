@@ -21,11 +21,11 @@ function RegisterForm() {
     try {
       await client.get('/sanctum/csrf-cookie')
       await client.post('/api/v1/register', {
-        name,
-        email,
+        name: name.trim(),
+        email: email.trim(),
         password,
         password_confirmation: passwordConfirmation,
-        codigo_liga: codigoLiga || null,
+        codigo_liga: codigoLiga.trim() || null,
       })
       setExito(true)
     } catch (err) {

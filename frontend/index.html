@@ -8,10 +8,29 @@
     <meta name="theme-color" content="#0E1B2B" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex, nofollow">
+    <meta http-equiv="Content-Security-Policy" content="
+      default-src 'self';
+      script-src 'self' http://localhost:3001;
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+      font-src 'self' https://fonts.gstatic.com;
+      img-src 'self' data: https: http://localhost:*;
+      connect-src 'self' http://localhost:* https://api.football-data.org;
+      object-src 'none';
+      base-uri 'self';
+      form-action 'self';
+      frame-ancestors 'self';
+    ">
+    <meta property="og:title" content="PronostiCup Liga">
+    <meta property="og:description" content="Pronostica LaLiga con tus amigos — clasificación, cartas, y mucho más.">
+    <meta property="og:image" content="https://pronosticup.es/og-image.png">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://pronosticup.es">
+    <meta name="twitter:card" content="summary_large_image">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Anton&family=JetBrains+Mono:wght@400;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
     <title>PronostiCup Liga</title>
+    <script defer src="http://localhost:3001/script.js" data-website-id="b1b5fcaf-447e-4126-822c-8ccf95c3c110"></script>
   </head>
   <body>
     <div id="root"></div>

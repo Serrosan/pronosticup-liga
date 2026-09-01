@@ -73,7 +73,38 @@ services:
         command: sh -c "npm install && npm run dev -- --host"
         networks:
             - sail
-
+    umami:
+        image: 'ghcr.io/umami-software/umami:postgresql-latest'
+        ports:
+            - '3001:3000'
+        environment:
+            DATABASE_URL: 'postgresql://umami:umami@umami-db:5432/umami'
+            DATABASE_TYPE: 'postgresql'
+            APP_SECRET: '${UMAMI_APP_SECRET:-cambia-este-secreto-largo-y-aleatorio}'
+        depends_on:
+            umami-db:
+                condition: service_healthy
+        networks:
+            - sail
+    umami-db:
+        image: 'postgres:15-alpine'
+        environment:
+            POSTGRES_DB: umami
+            POSTGRES_USER: umami
+            POSTGRES_PASSWORD: umami
+        volumes:
+            - 'sail-umami-db:/var/lib/postgresql/data'
+        networks:
+            - sail
+        healthcheck:
+            test:
+                - CMD
+                - pg_isready
+                - '-U'
+                - umami
+            retries: 5
+            interval: 3s
+            timeout: 5s
 networks:
     sail:
         driver: bridge
@@ -81,4 +112,6 @@ volumes:
     sail-mysql:
         driver: local
     sail-redis:
+        driver: local
+    sail-umami-db:
         driver: local

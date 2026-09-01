@@ -31,7 +31,6 @@ class AuthController extends Controller
 
         if (! empty($validated['codigo_liga'])) {
             $liga = Liga::where('codigo_acceso', strtoupper($validated['codigo_liga']))->first();
-
             if ($liga) {
                 $liga->usuarios()->attach($user->id, ['rol' => 'Miembro']);
             }
@@ -59,12 +58,16 @@ class AuthController extends Controller
         }
 
         $request->session()->regenerate();
-
         $user = Auth::user();
 
         if (is_null($user->activado_en)) {
             Auth::logout();
             return response()->json(['message' => 'Debes activar tu cuenta antes de entrar.'], 403);
+        }
+
+        if (! is_null($user->desactivada_en)) {
+            Auth::logout();
+            return response()->json(['message' => 'Esta cuenta ha sido desactivada. Contacta con el administrador si quieres reactivarla.'], 403);
         }
 
         return new UserResource($user);
@@ -102,13 +105,13 @@ class AuthController extends Controller
         $validated = $request->validate([
             'token' => ['required'],
             'email' => ['required', 'email'],
-            'password' => ['required', 'confirmed', \Illuminate\Validation\Rules\Password::defaults()],
+            'password' => ['required', 'confirmed', Password::defaults()],
         ]);
 
         $status = \Illuminate\Support\Facades\Password::reset(
             $validated,
             function ($user, $password) {
-                $user->forceFill(['password' => \Illuminate\Support\Facades\Hash::make($password)])->save();
+                $user->forceFill(['password' => Hash::make($password)])->save();
             }
         );
 

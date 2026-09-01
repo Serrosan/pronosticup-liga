@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\CierreJornada;
 use App\Models\EventoPuntos;
 use App\Models\Pronostico;
 use App\Models\User;
@@ -21,6 +22,22 @@ class ClasificacionController extends Controller
         $eventos = EventoPuntos::where('id_liga', $liga->id)->get();
         $porUsuario = $eventos->groupBy('id_usuario');
 
+        $ultimaJornadaCerrada = CierreJornada::where('id_liga', $liga->id)
+            ->where('cerrada', true)
+            ->max('jornada');
+
+        $posicionesAnteriores = [];
+        if ($ultimaJornadaCerrada) {
+            $eventosAnteriores = $eventos->where('jornada', '<', $ultimaJornadaCerrada);
+            $posicionesAnteriores = $eventosAnteriores->groupBy('id_usuario')
+                ->map(fn ($grupo) => $grupo->sum('puntos'))
+                ->sortDesc()
+                ->keys()
+                ->values()
+                ->flip()
+                ->toArray();
+        }
+
         $filas = $porUsuario->map(function ($grupo, $idUsuario) {
             $usuario = User::find($idUsuario);
 
@@ -34,6 +51,23 @@ class ClasificacionController extends Controller
                 'exactos' => $grupo->where('tipo_evento', 'AciertoExacto')->count(),
             ];
         })->sortByDesc('puntos_totales')->values();
+
+        $filas = $filas->map(function ($fila, $posicionActual) use ($posicionesAnteriores) {
+            $posicionAnterior = $posicionesAnteriores[$fila['id_usuario']] ?? null;
+
+            $fila['tendencia'] = null;
+            if (! is_null($posicionAnterior)) {
+                if ($posicionAnterior > $posicionActual) {
+                    $fila['tendencia'] = 'sube';
+                } elseif ($posicionAnterior < $posicionActual) {
+                    $fila['tendencia'] = 'baja';
+                } else {
+                    $fila['tendencia'] = 'igual';
+                }
+            }
+
+            return $fila;
+        });
 
         return response()->json(['data' => $filas]);
     }

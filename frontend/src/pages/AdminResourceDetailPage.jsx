@@ -6,6 +6,7 @@ import SelectTema from '../components/SelectTema'
 import CampoImagenSubida from '../components/CampoImagenSubida'
 import FichajesJugador from '../components/FichajesJugador'
 import { CAMPOS_ADMIN } from '../config/camposAdmin'
+import { useToast } from '../context/ToastContext'
 
 function CampoTexto({ campo, valor, onChange }) {
   return (
@@ -68,6 +69,7 @@ function AdminResourceDetailPage() {
   const navigate = useNavigate()
   const [form, setForm] = useState(null)
   const [mensaje, setMensaje] = useState(null)
+  const toast = useToast()
 
   const config = CAMPOS_ADMIN[resource]
 
@@ -82,10 +84,10 @@ function AdminResourceDetailPage() {
   const guardar = useMutation({
     mutationFn: (datos) => client.put(`/api/v1/admin/${resource}/${id}`, datos),
     onSuccess: (respuesta) => {
-      setMensaje({ tipo: 'exito', texto: `${config.titulo[0].toUpperCase()}${config.titulo.slice(1)} actualizado correctamente.` })
+      toast.exito(`${config.titulo[0].toUpperCase()}${config.titulo.slice(1)} actualizado correctamente.`)
       setForm(respuesta.data.data)
     },
-    onError: (err) => setMensaje({ tipo: 'error', texto: err.response?.data?.message ?? 'Error al guardar.' }),
+    onError: (err) => toast.error(err.response?.data?.message ?? 'Error al guardar.'),
   })
 
   function actualizar(campo, valor) {

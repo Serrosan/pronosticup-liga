@@ -39,6 +39,7 @@ import NotFoundPage from './pages/NotFoundPage'
 import AvisoSinConexion from './components/AvisoSinConexion'
 import AvisoSesionCaducada from './components/AvisoSesionCaducada'
 import { ToastProvider } from './context/ToastContext'
+import PrivacyPage from './pages/PrivacyPage'
 
 function RutaProtegida() {
   const { usuario, cargando } = useAuth()
@@ -98,6 +99,7 @@ function App() {
                 <Route path="/calendario" element={<CalendarPage />} />
                 <Route path="/chat" element={<ChatPage />} />
                 <Route path="/perfil" element={<ProfilePage />} />
+                <Route path="/privacidad" element={<PrivacyPage />} />
                 <Route path="/equipos/:idEquipo" element={<TeamMatchesPage />} />
               </Route>
 

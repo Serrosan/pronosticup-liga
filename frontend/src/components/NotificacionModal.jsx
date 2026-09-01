@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import client from '../api/client'
+import useCerrarConEscape from '../hooks/useCerrarConEscape'
 
 function NotificacionModal() {
   const [cerrado, setCerrado] = useState(null)
@@ -17,16 +18,25 @@ function NotificacionModal() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notificaciones-no-leidas'] }),
   })
 
+  const pendiente = data?.importante_pendiente
+  const mostrar = !!pendiente && cerrado !== pendiente.id
+
+  function cerrar() {
+    if (pendiente) {
+      marcarLeida.mutate(pendiente.id)
+      setCerrado(pendiente.id)
+    }
+  }
+
+  useCerrarConEscape(mostrar, cerrar)
+
   useEffect(() => {
-    const pendiente = data?.importante_pendiente
     if (pendiente && cerrado !== pendiente.id && Notification?.permission === 'granted' && document.hidden) {
       new Notification(pendiente.titulo, { body: pendiente.mensaje })
     }
   }, [data, cerrado])
 
-  const pendiente = data?.importante_pendiente
-
-  if (!pendiente || cerrado === pendiente.id) return null
+  if (!mostrar) return null
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
@@ -35,7 +45,7 @@ function NotificacionModal() {
         <h2 className="font-display text-lg text-texto mb-2">{pendiente.titulo}</h2>
         <p className="font-body text-sm text-borde mb-5">{pendiente.mensaje}</p>
         <button
-          onClick={() => { marcarLeida.mutate(pendiente.id); setCerrado(pendiente.id) }}
+          onClick={cerrar}
           className="bg-acento text-fondo font-body font-semibold text-sm rounded px-6 py-2.5 hover:brightness-110"
         >
           Entendido

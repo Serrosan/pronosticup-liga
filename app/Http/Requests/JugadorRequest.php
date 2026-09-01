@@ -11,6 +11,17 @@ class JugadorRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $camposNumericos = ['altura', 'id_externo_api'];
+
+        foreach ($camposNumericos as $campo) {
+            if ($this->has($campo) && $this->input($campo) === '') {
+                $this->merge([$campo => null]);
+            }
+        }
+    }
+
     public function rules(): array
     {
         return [

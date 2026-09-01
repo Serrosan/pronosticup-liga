@@ -113,7 +113,7 @@ function CalendarPage() {
                       <span className="font-body text-xs text-texto">{dia}</span>
                       <div className="flex gap-0.5 flex-wrap justify-center">
                         {jornadas.map((j) => (
-                          <span key={j} className="font-marcador text-[9px] font-bold bg-acento text-fondo rounded px-1 leading-tight">
+                          <span key={j} className="font-marcador text-[11px] font-bold bg-acento text-fondo rounded px-1.5 py-0.5 leading-tight">
                             J{j}
                           </span>
                         ))}

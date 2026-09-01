@@ -2,8 +2,8 @@ import { useState, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import client from '../api/client'
 import { useAuth } from '../context/AuthContext'
+import { useToast } from '../context/ToastContext'
 import TicketHeader from '../components/TicketHeader'
-import EstadoVacio from '../components/EstadoVacio'
 
 const REACCIONES = ['👍', '🔥', '😂', '😢', '🎉']
 const LIMITE_TEXTO = 500
@@ -159,6 +159,7 @@ function useGrabadorAudio(onGrabado) {
 
 function ChatPage() {
   const { usuario } = useAuth()
+  const toast = useToast()
   const [texto, setTexto] = useState('')
   const [subiendo, setSubiendo] = useState(false)
   const finRef = useRef(null)
@@ -180,6 +181,7 @@ function ChatPage() {
       setTexto('')
       queryClient.invalidateQueries({ queryKey: ['chat'] })
     },
+    onError: () => toast.error('No se pudo enviar el mensaje.'),
   })
 
   const enviarImagen = useMutation({
@@ -190,6 +192,7 @@ function ChatPage() {
       return client.post('/api/v1/chat', { tipo: 'imagen', adjunto_url: subida.data.url })
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['chat'] }),
+    onError: () => toast.error('No se pudo enviar la imagen.'),
     onSettled: () => setSubiendo(false),
   })
 
@@ -201,6 +204,7 @@ function ChatPage() {
       return client.post('/api/v1/chat', { tipo: 'audio', adjunto_url: subida.data.url })
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['chat'] }),
+    onError: () => toast.error('No se pudo enviar la nota de voz.'),
     onSettled: () => setSubiendo(false),
   })
 
@@ -244,7 +248,10 @@ function ChatPage() {
         {!data ? (
           <p className="font-body text-sm text-borde text-center">Cargando...</p>
         ) : data.mensajes.length === 0 ? (
-          <EstadoVacio icono="💬" titulo="Aún no hay mensajes" texto="Sé el primero en escribir algo." />
+          <div className="text-center py-12">
+            <p className="font-body text-sm text-borde">Aún no hay mensajes</p>
+            <p className="font-body text-xs text-borde/60 mt-1">Sé el primero en escribir algo</p>
+          </div>
         ) : (
           grupos.map((grupo, i) => {
             const mostrarSeparador = i === 0 || grupos[i - 1].fechaDia !== grupo.fechaDia

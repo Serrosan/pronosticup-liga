@@ -1,22 +1,27 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
+
+const RUTAS_PUBLICAS = ['/login', '/register', '/forgot-password', '/reset-password']
 
 function AvisoSesionCaducada() {
   const [mostrar, setMostrar] = useState(false)
   const navigate = useNavigate()
+  const location = useLocation()
 
   useEffect(() => {
     function alRecibirEvento() {
-      setMostrar(true)
+      const enRutaPublica = RUTAS_PUBLICAS.some((ruta) => location.pathname.startsWith(ruta))
+      if (!enRutaPublica) {
+        setMostrar(true)
+      }
     }
     window.addEventListener('sesion-caducada', alRecibirEvento)
     return () => window.removeEventListener('sesion-caducada', alRecibirEvento)
-  }, [])
+  }, [location.pathname])
 
   function irALogin() {
     setMostrar(false)
     navigate('/login')
-    window.location.reload()
   }
 
   if (!mostrar) return null

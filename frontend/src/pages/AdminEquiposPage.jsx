@@ -12,9 +12,9 @@ const campos = [
   { name: 'nombre_corto', label: 'Nombre corto' },
   { name: 'siglas', label: 'Siglas' },
   { name: 'ciudad', label: 'Ciudad' },
-  { name: 'escudo_url', label: 'URL del escudo' },
-  { name: 'color_primario', label: 'Color primario' },
-  { name: 'color_secundario', label: 'Color secundario' },
+  { name: 'escudo_url', label: 'Escudo', type: 'imagen', carpeta: 'equipos' },
+  { name: 'color_primario', label: 'Color primario', type: 'color' },
+  { name: 'color_secundario', label: 'Color secundario', type: 'color' },
 ]
 
 function AdminEquiposPage() {

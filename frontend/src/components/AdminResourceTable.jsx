@@ -3,6 +3,9 @@ import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import client from '../api/client'
 import SelectTema from './SelectTema'
+import CampoImagenSubida from './CampoImagenSubida'
+import ConfirmModal from './ConfirmModal'
+import { useToast } from '../context/ToastContext'
 
 const POR_PAGINA = 25
 
@@ -16,7 +19,9 @@ function AdminResourceTable({ resource, title, columns, fields }) {
   const [busqueda, setBusqueda] = useState('')
   const [pagina, setPagina] = useState(1)
   const [errorGuardado, setErrorGuardado] = useState(null)
+  const [aEliminar, setAEliminar] = useState(null)
   const queryClient = useQueryClient()
+  const toast = useToast()
 
   const { data: items, isLoading, error } = useQuery({
     queryKey: ['admin', resource],
@@ -32,6 +37,7 @@ function AdminResourceTable({ resource, title, columns, fields }) {
         ? client.put(`/api/v1/admin/${resource}/${datos.id}`, datos)
         : client.post(`/api/v1/admin/${resource}`, datos),
     onSuccess: () => {
+      toast.exito('Guardado correctamente.')
       queryClient.invalidateQueries({ queryKey: ['admin', resource] })
       setEditando(null)
       setErrorGuardado(null)
@@ -48,7 +54,10 @@ function AdminResourceTable({ resource, title, columns, fields }) {
 
   const eliminar = useMutation({
     mutationFn: (id) => client.delete(`/api/v1/admin/${resource}/${id}`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', resource] }),
+    onSuccess: () => {
+      toast.exito('Eliminado correctamente.')
+      queryClient.invalidateQueries({ queryKey: ['admin', resource] })
+    },
   })
 
   function handleSubmit(event) {
@@ -67,6 +76,15 @@ function AdminResourceTable({ resource, title, columns, fields }) {
   function abrirEdicion(item) {
     setErrorGuardado(null)
     setEditando(item)
+  }
+
+  function actualizarCampoImagen(campo, url) {
+    setEditando((prev) => ({ ...prev, [campo]: url }))
+  }
+
+  function confirmarEliminar() {
+    eliminar.mutate(aEliminar.id)
+    setAEliminar(null)
   }
 
   if (isLoading) return <p className="font-body text-texto p-4">Cargando {title}...</p>
@@ -130,6 +148,16 @@ function AdminResourceTable({ resource, title, columns, fields }) {
                     defaultValue={editando[field.name] || '#FFB238'}
                     className="w-10 h-9 rounded border border-borde/40 shrink-0"
                   />
+                ) : field.type === 'imagen' ? (
+                  <>
+                    <input type="hidden" name={field.name} value={editando[field.name] ?? ''} />
+                    <CampoImagenSubida
+                      label=""
+                      valor={editando[field.name]}
+                      onChange={(url) => actualizarCampoImagen(field.name, url)}
+                      carpeta={field.carpeta ?? 'equipos'}
+                    />
+                  </>
                 ) : (
                   <input
                     name={field.name}
@@ -184,7 +212,7 @@ function AdminResourceTable({ resource, title, columns, fields }) {
                     Edición rápida
                   </button>
                   <button
-                    onClick={() => { if (confirm('¿Seguro que quieres eliminarlo?')) eliminar.mutate(item.id) }}
+                    onClick={() => setAEliminar(item)}
                     className="font-body text-xs text-red-500 hover:underline"
                   >
                     Eliminar
@@ -222,6 +250,14 @@ function AdminResourceTable({ resource, title, columns, fields }) {
           </button>
         </div>
       )}
+
+      <ConfirmModal
+        abierto={!!aEliminar}
+        titulo="¿Eliminar este registro?"
+        mensaje="Esta acción no se puede deshacer."
+        onConfirmar={confirmarEliminar}
+        onCancelar={() => setAEliminar(null)}
+      />
     </div>
   )
 }

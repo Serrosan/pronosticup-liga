@@ -40,6 +40,7 @@ import AvisoSinConexion from './components/AvisoSinConexion'
 import AvisoSesionCaducada from './components/AvisoSesionCaducada'
 import { ToastProvider } from './context/ToastContext'
 import PrivacyPage from './pages/PrivacyPage'
+import AdminRegistroActividadPage from './pages/AdminRegistroActividadPage'
 
 function RutaProtegida() {
   const { usuario, cargando } = useAuth()
@@ -112,6 +113,7 @@ function App() {
                 <Route path="entrenadores" element={<AdminEntrenadoresPage />} />
                 <Route path="equipos" element={<AdminEquiposPage />} />
                 <Route path="jugadores" element={<AdminJugadoresPage />} />
+                <Route path="registro-actividad" element={<AdminRegistroActividadPage />} />
                 <Route path="estadios" element={<AdminEstadiosPage />} />
                 <Route path="arbitros" element={<AdminArbitrosPage />} />
                 <Route path="trofeos" element={<AdminTrofeosPage />} />

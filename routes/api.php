@@ -64,6 +64,7 @@ Route::prefix('v1')->group(function () {
         Route::put('/novedades/{novedad}', [\App\Http\Controllers\Api\V1\Admin\NovedadAdminController::class, 'update']);
         Route::delete('/novedades/{novedad}', [\App\Http\Controllers\Api\V1\Admin\NovedadAdminController::class, 'destroy']);
         Route::get('/trofeos/{trofeo}', [\App\Http\Controllers\Api\V1\Admin\TrofeoAdminController::class, 'show']);
+        Route::get('/registro-actividad', [\App\Http\Controllers\Api\V1\Admin\RegistroActividadController::class, 'index']);
         Route::get('/estadios/{estadio}', [\App\Http\Controllers\Api\V1\Admin\EstadioAdminController::class, 'show']);
         Route::post('/jugadores/{jugador}/fichar', [\App\Http\Controllers\Api\V1\Admin\FichajeAdminController::class, 'fichar']);
         Route::get('/jugadores/{jugador}/historial', [\App\Http\Controllers\Api\V1\Admin\FichajeAdminController::class, 'historial']);

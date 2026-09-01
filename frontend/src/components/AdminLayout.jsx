@@ -7,6 +7,7 @@ const GRUPOS = [
       { to: '/admin/usuarios', label: 'Usuarios' },
       { to: '/admin/ligas', label: 'Ligas' },
       { to: '/admin/novedades', label: 'Novedades' },
+      { to: '/admin/registro-actividad', label: 'Actividad' },
     ],
   },
   {

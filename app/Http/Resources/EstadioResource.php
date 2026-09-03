@@ -17,6 +17,7 @@ class EstadioResource extends JsonResource
             'tamanio_campo' => $this->tamanio_campo,
             'anio_construccion' => $this->anio_construccion,
             'anio_ult_remodelacion' => $this->anio_ult_remodelacion,
+            'foto_url' => $this->foto_url,
         ];
     }
 }

@@ -20,6 +20,7 @@ class EstadioRequest extends FormRequest
             'tamanio_campo' => ['nullable', 'string', 'max:50'],
             'anio_construccion' => ['nullable', 'integer'],
             'anio_ult_remodelacion' => ['nullable', 'integer'],
+            'foto_url' => ['nullable', 'string', 'max:500'],
         ];
     }
 }

@@ -36,6 +36,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/chat', [\App\Http\Controllers\Api\V1\ChatController::class, 'index']);
     Route::post('/chat', [\App\Http\Controllers\Api\V1\ChatController::class, 'store']);
     Route::post('/chat/{mensajeChat}/reaccionar', [\App\Http\Controllers\Api\V1\ChatController::class, 'reaccionar']);
+    Route::get('/estadios', [\App\Http\Controllers\Api\V1\EstadioController::class, 'index']);
     Route::get('/calendario', [\App\Http\Controllers\Api\V1\CalendarioController::class, 'mes']);
     Route::get('/equipos/{equipo}/partidos', [\App\Http\Controllers\Api\V1\EquipoPartidosController::class, 'index']);
     Route::post('/cuenta/desactivar', [\App\Http\Controllers\Api\V1\CuentaController::class, 'desactivar']);

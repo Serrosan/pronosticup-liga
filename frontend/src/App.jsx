@@ -41,6 +41,7 @@ import AvisoSesionCaducada from './components/AvisoSesionCaducada'
 import { ToastProvider } from './context/ToastContext'
 import PrivacyPage from './pages/PrivacyPage'
 import AdminRegistroActividadPage from './pages/AdminRegistroActividadPage'
+import StadiumsPage from './pages/StadiumsPage'
 
 function RutaProtegida() {
   const { usuario, cargando } = useAuth()
@@ -99,6 +100,7 @@ function App() {
                 <Route path="/pronosticos" element={<MyPredictionsPage />} />
                 <Route path="/calendario" element={<CalendarPage />} />
                 <Route path="/chat" element={<ChatPage />} />
+                <Route path="/estadios" element={<StadiumsPage />} />
                 <Route path="/perfil" element={<ProfilePage />} />
                 <Route path="/privacidad" element={<PrivacyPage />} />
                 <Route path="/equipos/:idEquipo" element={<TeamMatchesPage />} />

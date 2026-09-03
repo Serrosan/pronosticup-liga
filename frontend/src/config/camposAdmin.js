@@ -82,6 +82,7 @@ export const CAMPOS_ADMIN = {
     titulo: 'estadio',
     volverA: '/admin/estadios',
     campos: [
+      { name: 'foto_url', label: 'Foto', type: 'imagen', carpeta: 'estadios' },
       { name: 'nombre', label: 'Nombre' },
       { name: 'ciudad', label: 'Ciudad' },
       { name: 'capacidad', label: 'Capacidad', type: 'number' },

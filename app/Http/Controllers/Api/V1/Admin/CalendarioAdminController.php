@@ -30,6 +30,7 @@ class CalendarioAdminController extends Controller
                 'estado' => $p->estado,
                 'goles_casa' => $p->goles_casa,
                 'goles_fuera' => $p->goles_fuera,
+                'video_resumen_url' => $p->video_resumen_url,
             ]),
         ]);
     }
@@ -41,6 +42,7 @@ class CalendarioAdminController extends Controller
             'estado' => ['required', Rule::in(['Programado', 'Jugado', 'Aplazado'])],
             'goles_casa' => ['nullable', 'integer', 'min:0'],
             'goles_fuera' => ['nullable', 'integer', 'min:0'],
+            'video_resumen_url' => ['nullable', 'url', 'max:500'],
         ]);
 
         $partido->update($validated);

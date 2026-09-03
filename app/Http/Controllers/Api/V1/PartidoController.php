@@ -61,6 +61,8 @@ class PartidoController extends Controller
     {
         $partido->load(['equipoLocal.estadio', 'equipoVisitante', 'estadio', 'arbitro']);
 
+        $estadio = $partido->estadio ?? $partido->equipoLocal->estadio;
+
         $eventos = EventoPartido::where('id_partido', $partido->id)
             ->with(['jugador', 'jugadorRelacionado', 'equipo'])
             ->get()
@@ -69,6 +71,7 @@ class PartidoController extends Controller
                 'minuto' => $e->minuto,
                 'tipo_evento' => $e->tipo_evento,
                 'jugador' => $e->jugador ? trim("{$e->jugador->nombre} {$e->jugador->apellidos}") : null,
+                'jugador_foto' => $e->jugador?->foto_url,
                 'jugador_relacionado' => $e->jugadorRelacionado ? trim("{$e->jugadorRelacionado->nombre} {$e->jugadorRelacionado->apellidos}") : null,
                 'id_equipo' => $e->id_equipo,
             ])
@@ -80,13 +83,15 @@ class PartidoController extends Controller
                 'jornada' => $partido->jornada,
                 'equipo_local' => ['id' => $partido->equipoLocal->id, 'nombre' => $partido->equipoLocal->nombre_corto ?? $partido->equipoLocal->nombre, 'escudo_url' => $partido->equipoLocal->escudo_url],
                 'equipo_visitante' => ['id' => $partido->equipoVisitante->id, 'nombre' => $partido->equipoVisitante->nombre_corto ?? $partido->equipoVisitante->nombre, 'escudo_url' => $partido->equipoVisitante->escudo_url],
-                'estadio' => $partido->estadio?->nombre ?? $partido->equipoLocal->estadio?->nombre,
+                'estadio' => $estadio?->nombre,
+                'ciudad' => $estadio?->ciudad,
                 'arbitro' => $partido->arbitro ? trim("{$partido->arbitro->nombre} {$partido->arbitro->apellidos}") : null,
                 'horario_estimado' => $partido->horario_estimado?->toIso8601String(),
                 'estado' => $partido->estado,
                 'goles_casa' => $partido->goles_casa,
                 'goles_fuera' => $partido->goles_fuera,
                 'eventos' => $eventos,
+                'video_resumen_url' => $partido->video_resumen_url,
                 'actualizado_en' => $partido->updated_at->toIso8601String(),
             ],
         ]);

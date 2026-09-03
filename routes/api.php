@@ -70,6 +70,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/jugadores/{jugador}/historial', [\App\Http\Controllers\Api\V1\Admin\FichajeAdminController::class, 'historial']);
         Route::post('/jugadores/{jugador}/dar-de-baja', [\App\Http\Controllers\Api\V1\Admin\FichajeAdminController::class, 'darDeBaja']);
         Route::post('/jugadores/{jugador}/reactivar', [\App\Http\Controllers\Api\V1\Admin\FichajeAdminController::class, 'reactivar']);
+        Route::post('/jugadores/{jugador}/cambiar-dorsal', [\App\Http\Controllers\Api\V1\Admin\FichajeAdminController::class, 'cambiarDorsal']);
         Route::apiResource('estadios', \App\Http\Controllers\Api\V1\Admin\EstadioAdminController::class)->except('show');
         Route::apiResource('arbitros', \App\Http\Controllers\Api\V1\Admin\ArbitroAdminController::class)->except('show');
         Route::post('/subir-imagen', [\App\Http\Controllers\Api\V1\Admin\ImagenAdminController::class, 'subir']);

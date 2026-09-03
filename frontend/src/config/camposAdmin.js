@@ -120,6 +120,7 @@ export const CAMPOS_ADMIN = {
       { name: 'nombre', label: 'Nombre' },
       { name: 'nacionalidad', label: 'Nacionalidad' },
       { name: 'fecha_nacimiento', label: 'Fecha de nacimiento', type: 'date' },
+      { name: 'foto_url', label: 'Foto', type: 'imagen', carpeta: 'entrenadores' },
       {
         name: 'id_equipo_actual', label: 'Equipo actual', type: 'select',
         optionsFrom: { resource: 'equipos', labelKey: 'nombre' },

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import client from '../api/client'
 import SelectTema from './SelectTema'
@@ -14,14 +14,17 @@ function valorParaCampo(field, valor) {
   return valor ?? ''
 }
 
-function AdminResourceTable({ resource, title, columns, fields }) {
+function AdminResourceTable({ resource, title, columns, fields, irADetalleTrasCrear = false, filtros = [] }) {
   const [editando, setEditando] = useState(null)
   const [busqueda, setBusqueda] = useState('')
   const [pagina, setPagina] = useState(1)
   const [errorGuardado, setErrorGuardado] = useState(null)
   const [aEliminar, setAEliminar] = useState(null)
+  const [valoresFiltro, setValoresFiltro] = useState({})
+  const [orden, setOrden] = useState({ campo: null, direccion: 'asc' })
   const queryClient = useQueryClient()
   const toast = useToast()
+  const navigate = useNavigate()
 
   const { data: items, isLoading, error } = useQuery({
     queryKey: ['admin', resource],
@@ -36,11 +39,16 @@ function AdminResourceTable({ resource, title, columns, fields }) {
       datos.id
         ? client.put(`/api/v1/admin/${resource}/${datos.id}`, datos)
         : client.post(`/api/v1/admin/${resource}`, datos),
-    onSuccess: () => {
+    onSuccess: (respuesta, datosEnviados) => {
       toast.exito('Guardado correctamente.')
       queryClient.invalidateQueries({ queryKey: ['admin', resource] })
       setEditando(null)
       setErrorGuardado(null)
+
+      const fueCreacion = !datosEnviados.id
+      if (fueCreacion && irADetalleTrasCrear) {
+        navigate(`/admin/${resource}/detalle/${respuesta.data.data.id}`)
+      }
     },
     onError: (err) => {
       if (err.response?.status === 422) {
@@ -87,23 +95,61 @@ function AdminResourceTable({ resource, title, columns, fields }) {
     setAEliminar(null)
   }
 
+  function cambiarSelect(campo, valor) {
+    setValoresFiltro((prev) => ({ ...prev, [campo]: valor }))
+    setPagina(1)
+  }
+
+  function cambiarOrden(campo) {
+    setOrden((prev) => {
+      if (prev.campo !== campo) return { campo, direccion: 'asc' }
+      if (prev.direccion === 'asc') return { campo, direccion: 'desc' }
+      return { campo: null, direccion: 'asc' }
+    })
+    setPagina(1)
+  }
+
   if (isLoading) return <p className="font-body text-texto p-4">Cargando {title}...</p>
   if (error) return <p className="font-body text-red-500 p-4">Error al cargar {title}.</p>
 
   const normalizar = (texto) => String(texto ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 
-  const itemsFiltrados = items.filter((item) => {
-    if (!busqueda) return true
-    const termino = normalizar(busqueda)
-    return columns.some((col) => normalizar(item[col.key]).includes(termino)) || String(item.id).includes(busqueda)
-  })
+  let itemsFiltrados = items
+    .filter((item) => filtros.every((f) => {
+      const valorActivo = valoresFiltro[f.campo]
+      if (!valorActivo) return true
+      return normalizar(item[f.campo]) === normalizar(valorActivo)
+    }))
+    .filter((item) => {
+      if (!busqueda) return true
+      const termino = normalizar(busqueda)
+      return columns.some((col) => normalizar(item[col.key]).includes(termino)) || String(item.id).includes(busqueda)
+    })
+
+  if (orden.campo) {
+    itemsFiltrados = [...itemsFiltrados].sort((a, b) => {
+      const valorA = a[orden.campo]
+      const valorB = b[orden.campo]
+
+      if (valorA == null && valorB == null) return 0
+      if (valorA == null) return 1
+      if (valorB == null) return -1
+
+      const sonNumeros = typeof valorA === 'number' && typeof valorB === 'number'
+      const comparacion = sonNumeros
+        ? valorA - valorB
+        : normalizar(valorA).localeCompare(normalizar(valorB))
+
+      return orden.direccion === 'asc' ? comparacion : -comparacion
+    })
+  }
 
   const totalPaginas = Math.max(1, Math.ceil(itemsFiltrados.length / POR_PAGINA))
   const itemsPagina = itemsFiltrados.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA)
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+      <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
         <h2 className="font-display text-xl text-texto">{title}</h2>
         <div className="flex items-center gap-2">
           <input
@@ -122,9 +168,30 @@ function AdminResourceTable({ resource, title, columns, fields }) {
         </div>
       </div>
 
+      {filtros.length > 0 && (
+        <div className="flex flex-wrap items-center gap-3 mb-4 bg-borde/5 border border-borde/20 rounded-lg px-3 py-2.5">
+          {filtros.map((f) => {
+            const opcionesDinamicas = f.opciones ?? [...new Set(items.map((i) => i[f.campo]).filter(Boolean))].sort()
+            return (
+              <div key={f.campo} className="flex items-center gap-2">
+                <span className="font-body text-xs text-borde whitespace-nowrap">{f.label}</span>
+                <SelectTema
+                  value={valoresFiltro[f.campo] ?? ''}
+                  onChange={(e) => cambiarSelect(f.campo, e.target.value)}
+                  options={[{ value: '', label: 'Todos' }, ...opcionesDinamicas.map((op) => ({ value: op, label: op }))]}
+                  className="bg-fondo text-sm min-w-[130px]"
+                />
+              </div>
+            )
+          })}
+        </div>
+      )}
+
       {editando && (
         <form onSubmit={handleSubmit} className="bg-borde/10 border border-borde/30 rounded-lg p-4 mb-4">
-          <p className="font-body text-xs text-borde mb-3">Edición rápida — para el resto de campos, usa "Editar detallado" en la fila.</p>
+          <p className="font-body text-xs text-borde mb-3">
+            {editando.id ? 'Edición rápida — para el resto de campos, usa "Editar detallado" en la fila.' : irADetalleTrasCrear ? 'Solo lo esencial — tras guardar irás directo a la ficha completa para rellenar el resto y ficharlo.' : 'Edición rápida.'}
+          </p>
 
           {errorGuardado && (
             <p className="font-body text-xs text-red-500 bg-red-500/10 rounded px-3 py-2 mb-3">{errorGuardado}</p>
@@ -190,9 +257,20 @@ function AdminResourceTable({ resource, title, columns, fields }) {
         <table className="w-full text-left">
           <thead>
             <tr className="border-b border-borde/30">
-              <th className="font-body text-xs text-borde uppercase px-4 py-2 w-16">ID</th>
+              <th
+                onClick={() => cambiarOrden('id')}
+                className="font-body text-xs text-borde uppercase px-4 py-2 w-16 cursor-pointer select-none hover:text-texto whitespace-nowrap"
+              >
+                ID {orden.campo === 'id' && (orden.direccion === 'asc' ? '↑' : '↓')}
+              </th>
               {columns.map((col) => (
-                <th key={col.key} className="font-body text-xs text-borde uppercase px-4 py-2">{col.label}</th>
+                <th
+                  key={col.key}
+                  onClick={() => cambiarOrden(col.key)}
+                  className="font-body text-xs text-borde uppercase px-4 py-2 cursor-pointer select-none hover:text-texto whitespace-nowrap"
+                >
+                  {col.label} {orden.campo === col.key && (orden.direccion === 'asc' ? '↑' : '↓')}
+                </th>
               ))}
               <th className="px-4 py-2" />
             </tr>
@@ -223,7 +301,7 @@ function AdminResourceTable({ resource, title, columns, fields }) {
             {itemsFiltrados.length === 0 && (
               <tr>
                 <td colSpan={columns.length + 2} className="font-body text-sm text-borde text-center px-4 py-6">
-                  Sin resultados para "{busqueda}"
+                  Sin resultados{busqueda && ` para "${busqueda}"`}
                 </td>
               </tr>
             )}

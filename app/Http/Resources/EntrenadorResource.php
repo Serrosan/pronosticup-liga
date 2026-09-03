@@ -14,6 +14,7 @@ class EntrenadorResource extends JsonResource
             'nombre' => $this->nombre,
             'nacionalidad' => $this->nacionalidad,
             'fecha_nacimiento' => $this->fecha_nacimiento?->format('Y-m-d'),
+            'foto_url' => $this->foto_url,
             'id_equipo_actual' => $this->id_equipo_actual,
             'equipo_actual' => $this->whenLoaded('equipoActual', fn () => $this->equipoActual?->nombre_corto ?? $this->equipoActual?->nombre),
         ];

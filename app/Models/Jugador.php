@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\PlantillaTemporada;
 
 class Jugador extends Model
 {
@@ -16,11 +15,12 @@ class Jugador extends Model
         'nombre', 'apellidos', 'nombre_camiseta', 'posicion', 'posicion_detallada',
         'fecha_nacimiento', 'lugar_nacimiento', 'nacionalidad', 'seleccion',
         'altura', 'pie', 'foto_url', 'fecha_fin_contrato', 'club_anterior', 'id_externo_api',
+        'dado_de_baja_en',
     ];
 
     protected function casts(): array
     {
-        return ['fecha_nacimiento' => 'date'];
+        return ['fecha_nacimiento' => 'date', 'dado_de_baja_en' => 'datetime'];
     }
 
     public function plantillasTemporada()

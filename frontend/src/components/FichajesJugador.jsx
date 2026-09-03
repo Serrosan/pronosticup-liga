@@ -13,6 +13,7 @@ function FichajesJugador({ jugadorId, dadoDeBaja }) {
   const [equipoDestino, setEquipoDestino] = useState('')
   const [fechaFichaje, setFechaFichaje] = useState(new Date().toISOString().slice(0, 10))
   const [dorsal, setDorsal] = useState('')
+  const [nuevoDorsal, setNuevoDorsal] = useState('')
   const [mensaje, setMensaje] = useState(null)
 
   const { data: historial } = useQuery({
@@ -28,6 +29,7 @@ function FichajesJugador({ jugadorId, dadoDeBaja }) {
   function invalidarTodo() {
     queryClient.invalidateQueries({ queryKey: ['admin', 'jugador-historial', jugadorId] })
     queryClient.invalidateQueries({ queryKey: ['admin', 'jugadores', String(jugadorId)] })
+    queryClient.invalidateQueries({ queryKey: ['admin', 'jugadores'] })
   }
 
   const fichar = useMutation({
@@ -55,6 +57,16 @@ function FichajesJugador({ jugadorId, dadoDeBaja }) {
     onSuccess: () => { setMensaje({ tipo: 'exito', texto: 'Jugador reactivado.' }); invalidarTodo() },
   })
 
+  const cambiarDorsal = useMutation({
+    mutationFn: () => client.post(`/api/v1/admin/jugadores/${jugadorId}/cambiar-dorsal`, { dorsal: nuevoDorsal }),
+    onSuccess: () => {
+      setMensaje({ tipo: 'exito', texto: 'Dorsal actualizado.' })
+      setNuevoDorsal('')
+      invalidarTodo()
+    },
+    onError: (err) => setMensaje({ tipo: 'error', texto: err.response?.data?.message ?? 'Error al cambiar el dorsal.' }),
+  })
+
   function handleFichar(event) {
     event.preventDefault()
     setMensaje(null)
@@ -74,7 +86,7 @@ function FichajesJugador({ jugadorId, dadoDeBaja }) {
         </p>
       )}
 
-      <div className="flex items-center justify-between mb-4 pb-4 border-b border-borde/20">
+      <div className="flex items-center justify-between mb-4 pb-4 border-b border-borde/20 flex-wrap gap-3">
         <div className="flex items-center gap-2">
           {equipoActual ? (
             <>
@@ -99,6 +111,30 @@ function FichajesJugador({ jugadorId, dadoDeBaja }) {
           {dadoDeBaja ? 'Reactivar jugador' : 'Dar de baja'}
         </button>
       </div>
+
+      {equipoActual && !dadoDeBaja && (
+        <div className="mb-4 pb-4 border-b border-borde/20">
+          <p className="font-body text-xs uppercase tracking-widest text-borde mb-2">Cambiar solo el dorsal</p>
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min="1"
+              max="99"
+              placeholder="Nuevo dorsal"
+              value={nuevoDorsal}
+              onChange={(e) => setNuevoDorsal(e.target.value)}
+              className="w-32 font-body text-sm bg-borde/10 text-texto rounded border border-borde/40 px-3 py-1.5"
+            />
+            <button
+              onClick={() => cambiarDorsal.mutate()}
+              disabled={!nuevoDorsal || cambiarDorsal.isPending}
+              className="font-body text-sm font-semibold bg-premio text-fondo rounded px-4 py-1.5 hover:brightness-110 disabled:opacity-50"
+            >
+              {cambiarDorsal.isPending ? 'Guardando...' : 'Cambiar dorsal'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {!dadoDeBaja && (
         <form onSubmit={handleFichar} className="flex flex-wrap items-end gap-3 mb-4 pb-4 border-b border-borde/20">

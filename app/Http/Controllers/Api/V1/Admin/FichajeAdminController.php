@@ -7,6 +7,7 @@ use App\Http\Requests\FicharJugadorRequest;
 use App\Models\Jugador;
 use App\Models\PlantillaTemporada;
 use App\Models\Temporada;
+use Illuminate\Http\Request;
 
 class FichajeAdminController extends Controller
 {
@@ -100,5 +101,38 @@ class FichajeAdminController extends Controller
         $jugador->update(['dado_de_baja_en' => null]);
 
         return response()->json(['message' => 'Jugador reactivado. Recuerda ficharlo por un equipo si va a volver a jugar.']);
+    }
+
+    public function cambiarDorsal(Request $request, Jugador $jugador)
+    {
+        $validated = $request->validate([
+            'dorsal' => ['required', 'integer', 'min:1', 'max:99'],
+        ]);
+
+        $temporada = Temporada::first();
+
+        $plantillaActual = PlantillaTemporada::where('id_jugador', $jugador->id)
+            ->where('id_temporada', $temporada->id)
+            ->whereNull('fecha_salida')
+            ->first();
+
+        if (! $plantillaActual) {
+            return response()->json(['message' => 'Este jugador no tiene equipo activo.'], 422);
+        }
+
+        $dorsalOcupado = PlantillaTemporada::where('id_equipo', $plantillaActual->id_equipo)
+            ->where('id_temporada', $temporada->id)
+            ->where('dorsal', $validated['dorsal'])
+            ->where('id', '!=', $plantillaActual->id)
+            ->whereNull('fecha_salida')
+            ->exists();
+
+        if ($dorsalOcupado) {
+            return response()->json(['message' => "El dorsal {$validated['dorsal']} ya lo lleva otro jugador activo de ese equipo."], 422);
+        }
+
+        $plantillaActual->update(['dorsal' => $validated['dorsal']]);
+
+        return response()->json(['message' => 'Dorsal actualizado.', 'data' => $plantillaActual]);
     }
 }

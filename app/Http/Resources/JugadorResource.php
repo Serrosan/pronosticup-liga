@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Models\PlantillaTemporada;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -9,6 +10,11 @@ class JugadorResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $plantillaActiva = PlantillaTemporada::where('id_jugador', $this->id)
+            ->whereNull('fecha_salida')
+            ->with('equipo')
+            ->first();
+
         return [
             'id' => $this->id,
             'nombre' => $this->nombre,
@@ -28,6 +34,8 @@ class JugadorResource extends JsonResource
             'foto_url' => $this->foto_url,
             'dado_de_baja_en' => $this->dado_de_baja_en,
             'estado' => $this->dado_de_baja_en ? 'De baja' : 'Activo',
+            'equipo_actual' => $plantillaActiva?->equipo->nombre_corto ?? $plantillaActiva?->equipo->nombre,
+            'dorsal_actual' => $plantillaActiva?->dorsal,
         ];
     }
 }

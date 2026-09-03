@@ -11,7 +11,7 @@ class Entrenador extends Model
 
     protected $table = 'entrenadores';
 
-    protected $fillable = ['nombre', 'nacionalidad', 'fecha_nacimiento', 'id_equipo_actual'];
+    protected $fillable = ['nombre', 'nacionalidad', 'fecha_nacimiento', 'id_equipo_actual', 'foto_url'];
 
     protected function casts(): array
     {

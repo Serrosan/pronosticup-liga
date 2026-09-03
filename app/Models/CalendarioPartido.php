@@ -15,6 +15,7 @@ class CalendarioPartido extends Model
         'id_temporada', 'id_equipo_local', 'id_equipo_visitante', 'id_estadio',
         'jornada', 'horario_estimado', 'horario_oficial', 'id_arbitro',
         'goles_casa', 'goles_fuera', 'estado', 'asistencia', 'id_externo_api',
+        'video_resumen_url',
     ];
 
     public function equipoLocal()
@@ -36,7 +37,7 @@ class CalendarioPartido extends Model
     {
         return $this->belongsTo(Arbitro::class, 'id_arbitro');
     }
-    
+
     protected function casts(): array
     {
         return [

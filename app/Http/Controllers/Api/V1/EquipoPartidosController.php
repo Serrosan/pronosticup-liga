@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\CalendarioPartido;
 use App\Models\Equipo;
 use App\Models\Estadio;
+use App\Models\Jugador;
 use Illuminate\Http\Request;
 
 class EquipoPartidosController extends Controller
@@ -29,6 +30,27 @@ class EquipoPartidosController extends Controller
             ->get();
 
         $capacidadMaxima = Estadio::max('capacidad');
+
+        $plantilla = Jugador::whereHas('plantillasTemporada', fn ($q) => $q->where('id_equipo', $equipo->id)->whereNull('fecha_salida'))
+            ->whereNull('dado_de_baja_en')
+            ->with(['plantillasTemporada' => fn ($q) => $q->where('id_equipo', $equipo->id)->whereNull('fecha_salida')])
+            ->get()
+            ->map(fn ($j) => [
+                'id' => $j->id,
+                'nombre' => $j->nombre,
+                'apellidos' => $j->apellidos,
+                'nombre_camiseta' => $j->nombre_camiseta,
+                'posicion' => $j->posicion,
+                'nacionalidad' => $j->nacionalidad,
+                'foto_url' => $j->foto_url,
+                'fecha_nacimiento' => $j->fecha_nacimiento?->format('Y-m-d'),
+                'pie' => $j->pie,
+                'dorsal' => $j->plantillasTemporada->first()?->dorsal,
+            ])
+            ->sortBy(fn ($j) => $j['dorsal'] ?? 99)
+            ->values();
+
+        $edades = $plantilla->map(fn ($j) => $j['fecha_nacimiento'] ? now()->diffInYears($j['fecha_nacimiento']) : null)->filter();
 
         return response()->json([
             'data' => [
@@ -63,7 +85,13 @@ class EquipoPartidosController extends Controller
                     'entrenador' => $equipo->entrenadorActual ? [
                         'nombre' => $equipo->entrenadorActual->nombre,
                         'nacionalidad' => $equipo->entrenadorActual->nacionalidad,
+                        'foto_url' => $equipo->entrenadorActual->foto_url,
                     ] : null,
+                ],
+                'plantilla' => $plantilla,
+                'plantilla_stats' => [
+                    'total' => $plantilla->count(),
+                    'edad_media' => $edades->count() > 0 ? round($edades->avg(), 1) : null,
                 ],
                 'partidos' => $partidos->map(fn ($p) => [
                     'id' => $p->id,

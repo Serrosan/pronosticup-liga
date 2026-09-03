@@ -18,6 +18,7 @@ class EntrenadorRequest extends FormRequest
             'nacionalidad' => ['nullable', 'string', 'max:255'],
             'fecha_nacimiento' => ['nullable', 'date'],
             'id_equipo_actual' => ['nullable', 'integer', 'exists:equipos,id'],
+            'foto_url' => ['nullable', 'string', 'max:500'],
         ];
     }
 }

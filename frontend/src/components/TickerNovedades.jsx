@@ -10,10 +10,9 @@ function TickerNovedades({ novedades }) {
   return (
     <div className="bg-fondo border border-acento/30 rounded-lg overflow-hidden mb-6 relative">
       <div
-        className="absolute inset-0 pointer-events-none opacity-40"
+        className="absolute inset-0 pointer-events-none opacity-40 dark:opacity-40 opacity-[0.15]"
         style={{ background: 'radial-gradient(ellipse at top left, var(--color-acento)22, transparent 70%)' }}
       />
-
       <div className="bg-acento/10 px-4 py-1.5 flex items-center gap-2 relative">
         <span className="relative flex h-2 w-2">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-acento opacity-75" />
@@ -21,7 +20,6 @@ function TickerNovedades({ novedades }) {
         </span>
         <p className="font-body text-[10px] uppercase tracking-widest text-acento font-semibold">Novedades</p>
       </div>
-
       <div className="px-4 py-2.5 flex flex-col gap-1.5 relative">
         {novedades.map((n, i) => {
           const reciente = esReciente(n.created_at)
@@ -29,9 +27,8 @@ function TickerNovedades({ novedades }) {
             <div key={i} className="flex items-center gap-2">
               <span className="text-sm shrink-0">{n.emoji || '🆕'}</span>
               <p
-                className="font-marcador text-xs tracking-wide"
+                className="font-marcador text-xs font-semibold tracking-wide text-acento dark:font-normal"
                 style={{
-                  color: 'var(--color-acento)',
                   textShadow: reciente
                     ? '0 0 8px var(--color-acento), 0 0 16px var(--color-acento)66'
                     : '0 0 3px var(--color-acento)55',

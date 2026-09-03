@@ -48,9 +48,9 @@ function DashboardPage() {
       <div className="bg-fondo border border-borde/30 rounded-lg px-6 py-3 flex items-center justify-around mb-6">
         {[
           { label: 'LIGA', valor: data.liga_nombre, texto: true },
-          { label: 'POSICIÓN', valor: data.posicion ? `#${data.posicion}` : '—', color: 'var(--color-texto)' },
-          { label: 'PUNTOS', valor: data.puntos_totales, color: 'var(--color-acento)' },
-          { label: 'PARTICIPANTES', valor: data.total_participantes, color: 'var(--color-premio)' },
+          { label: 'POSICIÓN', valor: data.posicion ? `#${data.posicion}` : '—', color: 'var(--color-acento)' },
+          { label: 'PUNTOS', valor: data.puntos_totales, color: 'var(--color-premio)' },
+          { label: 'PARTICIPANTES', valor: data.total_participantes, color: 'var(--color-texto)' },
         ].map((item, i) => (
           <div key={item.label} className={`text-center flex-1 ${i > 0 ? 'border-l border-dotted border-borde/30' : ''}`}>
             {item.texto ? (

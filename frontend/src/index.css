@@ -1,11 +1,11 @@
 @import "tailwindcss";
 
 @theme {
-  --color-lienzo: #E9EBE3;
-  --color-fondo: #FFFFFF;
-  --color-texto: #111827;
-  --color-acento: #16A34A;
-  --color-premio: #B45309;
+  --color-lienzo: #CFE0D6;
+  --color-fondo: #E3EFE8;
+  --color-texto: #0E1B2B;
+  --color-acento: #178A47;
+  --color-premio: #C97A1A;
   --color-borde: #7C93AB;
 
   --font-display: "Anton", sans-serif;
@@ -37,4 +37,12 @@
 
 body {
   background-color: var(--color-lienzo);
+}
+
+.border-borde\/30 {
+  box-shadow: 0 1px 3px rgba(14, 27, 43, 0.06);
+}
+
+.dark .border-borde\/30 {
+  box-shadow: none;
 }

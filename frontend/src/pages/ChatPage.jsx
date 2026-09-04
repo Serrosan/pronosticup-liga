@@ -4,9 +4,12 @@ import client from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import TicketHeader from '../components/TicketHeader'
+import ReproductorAudio from '../components/ReproductorAudio'
+import SelectorStickers from '../components/SelectorStickers'
 
 const REACCIONES = ['👍', '🔥', '😂', '😢', '🎉']
 const LIMITE_TEXTO = 500
+const PATRON_URL = /(https?:\/\/[^\s]+)/g
 
 function Avatar({ url, nombre }) {
   if (url) return <img src={url} alt={nombre} className="w-8 h-8 rounded-full object-cover shrink-0" />
@@ -44,14 +47,41 @@ function agruparPorFechaYAutor(mensajes) {
   return grupos
 }
 
-function ContenidoMensaje({ mensaje }) {
+function TextoConEnlaces({ texto, esMio }) {
+  const partes = texto.split(PATRON_URL)
+
+  return (
+    <p className="font-body text-sm break-words">
+      {partes.map((parte, i) => {
+        const esUrl = /^https?:\/\//.test(parte)
+        if (esUrl) {
+          return (
+            <a
+              key={i}
+              href={parte}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`underline ${esMio ? 'text-fondo/90 hover:text-fondo' : 'text-acento hover:brightness-110'}`}
+              onClick={(evento) => evento.stopPropagation()}
+            >
+              {parte}
+            </a>
+          )
+        }
+        return <span key={i}>{parte}</span>
+      })}
+    </p>
+  )
+}
+
+function ContenidoMensaje({ mensaje, esMio }) {
   if (mensaje.tipo === 'imagen') {
     return <img src={mensaje.adjunto_url} alt="Imagen enviada" className="rounded-xl max-w-full max-h-64 object-cover" />
   }
   if (mensaje.tipo === 'audio') {
-    return <audio controls src={mensaje.adjunto_url} className="max-w-[220px] h-9" />
+    return <ReproductorAudio src={mensaje.adjunto_url} />
   }
-  return <p className="font-body text-sm break-words">{mensaje.texto}</p>
+  return <TextoConEnlaces texto={mensaje.texto} esMio={esMio} />
 }
 
 function GrupoMensajes({ grupo, esMio, miId }) {
@@ -76,11 +106,16 @@ function GrupoMensajes({ grupo, esMio, miId }) {
           const hora = new Date(mensaje.creado_en).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
           const tieneReacciones = Object.entries(mensaje.reacciones).some(([, ids]) => ids.length > 0)
           const esMultimedia = mensaje.tipo !== 'texto'
+          const esSticker = mensaje.tipo === 'imagen' && mensaje.adjunto_url?.startsWith('/stickers/')
 
           return (
             <div key={mensaje.id} className="w-full">
               <div className={esMultimedia ? '' : `rounded-2xl px-3.5 py-2 ${esMio ? 'bg-acento text-fondo rounded-tr-sm' : 'bg-borde/10 text-texto rounded-tl-sm'}`}>
-                <ContenidoMensaje mensaje={mensaje} />
+                {esSticker ? (
+                  <img src={mensaje.adjunto_url} alt="Sticker" className="w-28 h-28 object-contain" />
+                ) : (
+                  <ContenidoMensaje mensaje={mensaje} esMio={esMio} />
+                )}
               </div>
 
               <div className="flex items-center gap-1 mt-1 px-1 relative">
@@ -162,6 +197,7 @@ function ChatPage() {
   const toast = useToast()
   const [texto, setTexto] = useState('')
   const [subiendo, setSubiendo] = useState(false)
+  const [mostrarStickers, setMostrarStickers] = useState(false)
   const finRef = useRef(null)
   const inputImagenRef = useRef(null)
   const queryClient = useQueryClient()
@@ -194,6 +230,12 @@ function ChatPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['chat'] }),
     onError: () => toast.error('No se pudo enviar la imagen.'),
     onSettled: () => setSubiendo(false),
+  })
+
+  const enviarSticker = useMutation({
+    mutationFn: (archivo) => client.post('/api/v1/chat', { tipo: 'imagen', adjunto_url: `/stickers/${archivo}` }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['chat'] }),
+    onError: () => toast.error('No se pudo enviar el sticker.'),
   })
 
   const enviarAudio = useMutation({
@@ -236,12 +278,18 @@ function ChatPage() {
   const cercaDelLimite = texto.length > LIMITE_TEXTO - 60
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 flex flex-col" style={{ height: 'calc(100vh - 5rem)' }}>
+    <div className="max-w-3xl mx-auto px-4 py-6 flex flex-col" style={{ height: 'calc(100vh - 5rem)' }}>
       <div className="bg-fondo border border-borde/30 rounded-t-lg overflow-hidden">
-        <TicketHeader titulo="Chat de la liga" />
-        {data?.totalMiembros && (
-          <p className="font-body text-xs text-borde px-4 py-2">{data.totalMiembros} miembros</p>
-        )}
+        <TicketHeader
+          titulo="Chat de la liga"
+          accion={
+            data?.totalMiembros && (
+              <span className="font-body text-[11px] text-acento bg-acento/10 rounded-full px-2.5 py-1 font-semibold">
+                {data.totalMiembros} miembros
+              </span>
+            )
+          }
+        />
       </div>
 
       <div className="flex-1 overflow-y-auto bg-fondo border-x border-borde/30 p-4">
@@ -276,7 +324,7 @@ function ChatPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="bg-fondo border border-borde/30 rounded-b-lg p-3">
-        <div className="flex gap-2 items-center">
+        <div className="flex gap-2 items-center relative">
           <input type="file" accept="image/*" ref={inputImagenRef} onChange={handleImagenSeleccionada} className="hidden" />
           <button
             type="button"
@@ -287,6 +335,24 @@ function ChatPage() {
           >
             📷
           </button>
+
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setMostrarStickers(!mostrarStickers)}
+              disabled={grabando}
+              className="font-body text-lg text-borde hover:text-texto shrink-0 disabled:opacity-30"
+              title="Stickers"
+            >
+              😄
+            </button>
+            {mostrarStickers && (
+              <SelectorStickers
+                onSeleccionar={(archivo) => enviarSticker.mutate(archivo)}
+                onCerrar={() => setMostrarStickers(false)}
+              />
+            )}
+          </div>
 
           <input
             value={texto}

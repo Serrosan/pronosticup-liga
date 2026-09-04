@@ -7,6 +7,7 @@ import CampoImagenSubida from '../components/CampoImagenSubida'
 import FichajesJugador from '../components/FichajesJugador'
 import { CAMPOS_ADMIN } from '../config/camposAdmin'
 import { useToast } from '../context/ToastContext'
+import useAvisoSalir from '../hooks/useAvisoSalir'
 
 function CampoTexto({ campo, valor, onChange }) {
   return (
@@ -51,11 +52,9 @@ function CampoSelect({ campo, valor, onChange }) {
     queryFn: async () => (await client.get(`/api/v1/admin/${campo.optionsFrom.resource}`)).data.data,
     enabled: !!campo.optionsFrom,
   })
-
   const options = campo.optionsFrom
     ? (opcionesRelacionadas ?? []).map((o) => ({ value: o.id, label: o[campo.optionsFrom.labelKey] }))
     : campo.options
-
   return (
     <div>
       <label className="font-body text-xs text-borde block mb-1">{campo.label}</label>
@@ -68,9 +67,8 @@ function AdminResourceDetailPage() {
   const { resource, id } = useParams()
   const navigate = useNavigate()
   const [form, setForm] = useState(null)
-  const [mensaje, setMensaje] = useState(null)
+  const [huboCambios, setHuboCambios] = useState(false)
   const toast = useToast()
-
   const config = CAMPOS_ADMIN[resource]
 
   const { data: item, isLoading } = useQuery({
@@ -79,19 +77,28 @@ function AdminResourceDetailPage() {
     enabled: !!config,
   })
 
-  useEffect(() => { if (item) setForm(item) }, [item])
+  useEffect(() => {
+    if (item) {
+      setForm(item)
+      setHuboCambios(false)
+    }
+  }, [item])
+
+  useAvisoSalir(huboCambios)
 
   const guardar = useMutation({
     mutationFn: (datos) => client.put(`/api/v1/admin/${resource}/${id}`, datos),
     onSuccess: (respuesta) => {
       toast.exito(`${config.titulo[0].toUpperCase()}${config.titulo.slice(1)} actualizado correctamente.`)
       setForm(respuesta.data.data)
+      setHuboCambios(false)
     },
     onError: (err) => toast.error(err.response?.data?.message ?? 'Error al guardar.'),
   })
 
   function actualizar(campo, valor) {
     setForm((prev) => ({ ...prev, [campo]: valor }))
+    setHuboCambios(true)
   }
 
   function guardarInmediato(campo, valor) {
@@ -100,8 +107,14 @@ function AdminResourceDetailPage() {
 
   function handleSubmit(event) {
     event.preventDefault()
-    setMensaje(null)
     guardar.mutate(form)
+  }
+
+  function volver() {
+    if (huboCambios && !confirm('Tienes cambios sin guardar. ¿Seguro que quieres salir sin guardarlos?')) {
+      return
+    }
+    navigate(config.volverA)
   }
 
   if (!config) return <p className="font-body text-red-500 p-4">No hay configuración de edición detallada para "{resource}" todavía.</p>
@@ -110,32 +123,27 @@ function AdminResourceDetailPage() {
   return (
     <div className="max-w-2xl">
       <div className="flex items-center gap-3 mb-4">
-        <button onClick={() => navigate(config.volverA)} className="font-body text-sm text-acento hover:underline">← Volver</button>
+        <button onClick={volver} className="font-body text-sm text-acento hover:underline">← Volver</button>
         <h2 className="font-display text-xl text-texto">Editar {config.titulo} #{id}</h2>
         {resource === 'jugadores' && form.estado === 'De baja' && (
           <span className="font-body text-xs font-semibold bg-red-500/15 text-red-500 rounded-full px-2.5 py-1">De baja</span>
         )}
+        {huboCambios && (
+          <span className="font-body text-xs text-premio">● cambios sin guardar</span>
+        )}
       </div>
-
-      {mensaje && (
-        <p className={`font-body text-sm mb-4 px-3 py-2 rounded ${mensaje.tipo === 'exito' ? 'bg-acento/10 text-acento' : 'bg-red-500/10 text-red-500'}`}>
-          {mensaje.texto}
-        </p>
-      )}
 
       <form onSubmit={handleSubmit} className="bg-fondo border border-borde/30 rounded-lg p-6 flex flex-col gap-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {config.campos.map((campo) => {
             const valor = campo.type === 'date' ? form[campo.name]?.slice(0, 10) : form[campo.name]
             const props = { key: campo.name, campo, valor, onChange: (v) => actualizar(campo.name, v) }
-
             if (campo.type === 'imagen') return <CampoImagen {...props} onGuardarInmediato={guardarInmediato} />
             if (campo.type === 'color') return <CampoColor {...props} />
             if (campo.type === 'select') return <CampoSelect {...props} />
             return <CampoTexto {...props} />
           })}
         </div>
-
         <button
           type="submit"
           disabled={guardar.isPending}

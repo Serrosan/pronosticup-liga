@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import client from '../api/client'
+import CampoPassword from './CampoPassword'
 
 function RegisterForm() {
   const [searchParams] = useSearchParams()
@@ -96,24 +97,21 @@ function RegisterForm() {
 
       <div>
         <label className="font-body text-xs font-medium text-borde block mb-1">Contraseña</label>
-        <input
-          type="password"
+        <CampoPassword
           placeholder="Mínimo 8 caracteres"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full font-body bg-borde/10 text-texto placeholder:text-borde/60 rounded border border-borde/40 px-3 py-2.5 focus:outline-none focus:border-acento focus:ring-1 focus:ring-acento"
         />
+        <p className="font-body text-[10px] text-borde mt-1">Mínimo 8 caracteres, con al menos una letra y un número</p>
         {errores.password && <p className="font-body text-xs text-red-500 mt-1">{errores.password[0]}</p>}
       </div>
 
       <div>
         <label className="font-body text-xs font-medium text-borde block mb-1">Confirmar contraseña</label>
-        <input
-          type="password"
+        <CampoPassword
           placeholder="Repite la contraseña"
           value={passwordConfirmation}
           onChange={(e) => setPasswordConfirmation(e.target.value)}
-          className="w-full font-body bg-borde/10 text-texto placeholder:text-borde/60 rounded border border-borde/40 px-3 py-2.5 focus:outline-none focus:border-acento focus:ring-1 focus:ring-acento"
         />
       </div>
 

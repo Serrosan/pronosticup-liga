@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import CampoPassword from './CampoPassword'
 
 function LoginForm() {
   const [email, setEmail] = useState('')
@@ -49,12 +50,10 @@ function LoginForm() {
 
       <div>
         <label className="font-body text-xs font-medium text-borde block mb-1">Contraseña</label>
-        <input
-          type="password"
+        <CampoPassword
           placeholder="••••••••"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full font-body bg-borde/10 text-texto placeholder:text-borde/60 rounded border border-borde/40 px-3 py-2.5 focus:outline-none focus:border-acento focus:ring-1 focus:ring-acento"
         />
       </div>
 

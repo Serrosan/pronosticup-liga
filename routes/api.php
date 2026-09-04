@@ -40,6 +40,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/calendario', [\App\Http\Controllers\Api\V1\CalendarioController::class, 'mes']);
     Route::get('/equipos/{equipo}/partidos', [\App\Http\Controllers\Api\V1\EquipoPartidosController::class, 'index']);
     Route::post('/cuenta/desactivar', [\App\Http\Controllers\Api\V1\CuentaController::class, 'desactivar']);
+    Route::get('/jugadores/{jugador}', [\App\Http\Controllers\Api\V1\JugadorController::class, 'show']);
     Route::get('/partidos/{partido}', [PartidoController::class, 'show']);
     Route::get('/notificaciones', [\App\Http\Controllers\Api\V1\NotificacionController::class, 'index']);
     Route::get('/notificaciones/no-leidas', [\App\Http\Controllers\Api\V1\NotificacionController::class, 'noLeidas']);

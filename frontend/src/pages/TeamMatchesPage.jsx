@@ -50,7 +50,10 @@ function TarjetaJugador({ jugador }) {
   const edad = calcularEdad(jugador.fecha_nacimiento)
 
   return (
-    <div className="flex items-center gap-3 bg-borde/5 border border-borde/10 rounded-lg p-3">
+    <Link
+      to={`/jugadores/${jugador.id}`}
+      className="flex items-center gap-3 bg-borde/5 border border-borde/10 rounded-lg p-3 hover:border-acento/30 transition"
+    >
       <div className="relative shrink-0">
         {jugador.foto_url ? (
           <img src={jugador.foto_url} alt={nombreMostrado} className="w-12 h-12 rounded-full object-cover" />
@@ -70,7 +73,7 @@ function TarjetaJugador({ jugador }) {
           {edad !== null && <span className="font-body text-[11px] text-borde/70">· {edad} años</span>}
         </div>
       </div>
-    </div>
+    </Link>
   )
 }
 

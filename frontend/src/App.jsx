@@ -42,6 +42,7 @@ import { ToastProvider } from './context/ToastContext'
 import PrivacyPage from './pages/PrivacyPage'
 import AdminRegistroActividadPage from './pages/AdminRegistroActividadPage'
 import StadiumsPage from './pages/StadiumsPage'
+import PlayerDetailPage from './pages/PlayerDetailPage'
 
 function RutaProtegida() {
   const { usuario, cargando } = useAuth()
@@ -99,6 +100,7 @@ function App() {
                 <Route path="/clasificacion-liga" element={<LaLigaStandingsPage />} />
                 <Route path="/pronosticos" element={<MyPredictionsPage />} />
                 <Route path="/calendario" element={<CalendarPage />} />
+                <Route path="/jugadores/:idJugador" element={<PlayerDetailPage />} />
                 <Route path="/chat" element={<ChatPage />} />
                 <Route path="/estadios" element={<StadiumsPage />} />
                 <Route path="/perfil" element={<ProfilePage />} />

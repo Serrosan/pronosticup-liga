@@ -25,6 +25,7 @@ class EstadioController extends Controller
                     'id' => $e->equipo->id,
                     'nombre' => $e->equipo->nombre_corto ?? $e->equipo->nombre,
                     'escudo_url' => $e->equipo->escudo_url,
+                    'color_primario' => $e->equipo->color_primario,
                 ] : null,
             ]);
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import client from '../api/client'
@@ -9,7 +9,7 @@ import { CAMPOS_ADMIN } from '../config/camposAdmin'
 import { useToast } from '../context/ToastContext'
 import useAvisoSalir from '../hooks/useAvisoSalir'
 
-function CampoTexto({ campo, valor, onChange }) {
+function CampoTexto({ campo, valor, onChange, modificado }) {
   return (
     <div>
       <label className="font-body text-xs text-borde block mb-1">{campo.label}</label>
@@ -17,7 +17,9 @@ function CampoTexto({ campo, valor, onChange }) {
         type={campo.type === 'number' ? 'number' : campo.type === 'date' ? 'date' : 'text'}
         value={valor ?? ''}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full font-body bg-borde/10 text-texto rounded border border-borde/40 px-3 py-1.5 focus:outline-none focus:border-acento"
+        className={`w-full font-body bg-borde/10 text-texto rounded border px-3 py-1.5 focus:outline-none focus:border-acento transition-colors ${
+          modificado ? 'border-premio' : 'border-borde/40'
+        }`}
       />
     </div>
   )
@@ -34,13 +36,17 @@ function CampoImagen({ campo, valor, onChange, onGuardarInmediato }) {
   )
 }
 
-function CampoColor({ campo, valor, onChange }) {
+function CampoColor({ campo, valor, onChange, modificado }) {
   return (
     <div>
       <label className="font-body text-xs text-borde block mb-1">{campo.label}</label>
       <div className="flex items-center gap-2">
         <input type="color" value={valor || '#000000'} onChange={(e) => onChange(e.target.value)} className="w-10 h-9 rounded border border-borde/40 shrink-0" />
-        <input value={valor ?? ''} onChange={(e) => onChange(e.target.value)} className="flex-1 font-body bg-borde/10 text-texto rounded border border-borde/40 px-3 py-1.5" />
+        <input
+          value={valor ?? ''}
+          onChange={(e) => onChange(e.target.value)}
+          className={`flex-1 font-body bg-borde/10 text-texto rounded border px-3 py-1.5 transition-colors ${modificado ? 'border-premio' : 'border-borde/40'}`}
+        />
       </div>
     </div>
   )
@@ -67,8 +73,9 @@ function AdminResourceDetailPage() {
   const { resource, id } = useParams()
   const navigate = useNavigate()
   const [form, setForm] = useState(null)
-  const [huboCambios, setHuboCambios] = useState(false)
+  const [camposModificados, setCamposModificados] = useState(new Set())
   const toast = useToast()
+  const formRef = useRef(null)
   const config = CAMPOS_ADMIN[resource]
 
   const { data: item, isLoading } = useQuery({
@@ -80,10 +87,11 @@ function AdminResourceDetailPage() {
   useEffect(() => {
     if (item) {
       setForm(item)
-      setHuboCambios(false)
+      setCamposModificados(new Set())
     }
   }, [item])
 
+  const huboCambios = camposModificados.size > 0
   useAvisoSalir(huboCambios)
 
   const guardar = useMutation({
@@ -91,14 +99,20 @@ function AdminResourceDetailPage() {
     onSuccess: (respuesta) => {
       toast.exito(`${config.titulo[0].toUpperCase()}${config.titulo.slice(1)} actualizado correctamente.`)
       setForm(respuesta.data.data)
-      setHuboCambios(false)
+      setCamposModificados(new Set())
     },
-    onError: (err) => toast.error(err.response?.data?.message ?? 'Error al guardar.'),
+    onError: (err) => {
+      toast.error(err.response?.data?.message ?? 'Error al guardar.')
+      setTimeout(() => {
+        const primerCampoInvalido = formRef.current?.querySelector(':invalid, .border-red-500')
+        primerCampoInvalido?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, 100)
+    },
   })
 
   function actualizar(campo, valor) {
     setForm((prev) => ({ ...prev, [campo]: valor }))
-    setHuboCambios(true)
+    setCamposModificados((prev) => new Set(prev).add(campo))
   }
 
   function guardarInmediato(campo, valor) {
@@ -133,11 +147,12 @@ function AdminResourceDetailPage() {
         )}
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-fondo border border-borde/30 rounded-lg p-6 flex flex-col gap-4">
+      <form ref={formRef} onSubmit={handleSubmit} className="bg-fondo border border-borde/30 rounded-lg p-6 flex flex-col gap-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {config.campos.map((campo) => {
             const valor = campo.type === 'date' ? form[campo.name]?.slice(0, 10) : form[campo.name]
-            const props = { key: campo.name, campo, valor, onChange: (v) => actualizar(campo.name, v) }
+            const modificado = camposModificados.has(campo.name)
+            const props = { key: campo.name, campo, valor, modificado, onChange: (v) => actualizar(campo.name, v) }
             if (campo.type === 'imagen') return <CampoImagen {...props} onGuardarInmediato={guardarInmediato} />
             if (campo.type === 'color') return <CampoColor {...props} />
             if (campo.type === 'select') return <CampoSelect {...props} />
@@ -146,10 +161,10 @@ function AdminResourceDetailPage() {
         </div>
         <button
           type="submit"
-          disabled={guardar.isPending}
-          className="font-body text-sm font-semibold bg-acento text-fondo rounded py-2.5 hover:brightness-110 disabled:opacity-50 self-start px-6"
+          disabled={guardar.isPending || !huboCambios}
+          className="font-body text-sm font-semibold bg-acento text-fondo rounded py-2.5 hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed self-start px-6"
         >
-          {guardar.isPending ? 'Guardando...' : 'Guardar cambios'}
+          {guardar.isPending ? 'Guardando...' : huboCambios ? 'Guardar cambios' : 'Sin cambios'}
         </button>
       </form>
 

@@ -10,6 +10,7 @@ import SelectorStickers from '../components/SelectorStickers'
 const REACCIONES = ['👍', '🔥', '😂', '😢', '🎉']
 const LIMITE_TEXTO = 500
 const PATRON_URL = /(https?:\/\/[^\s]+)/g
+const SEGUNDOS_PARA_DESHACER = 3
 
 function Avatar({ url, nombre }) {
   if (url) return <img src={url} alt={nombre} className="w-8 h-8 rounded-full object-cover shrink-0" />
@@ -158,6 +159,22 @@ function GrupoMensajes({ grupo, esMio, miId }) {
   )
 }
 
+function MensajePendiente({ texto, segundosRestantes, onDeshacer }) {
+  return (
+    <div className="flex flex-row-reverse gap-2 mb-4">
+      <div className="w-8 h-8 shrink-0" />
+      <div className="flex flex-col items-end max-w-[75%] gap-1">
+        <div className="rounded-2xl px-3.5 py-2 bg-acento/40 text-fondo rounded-tr-sm">
+          <p className="font-body text-sm break-words opacity-70">{texto}</p>
+        </div>
+        <button onClick={onDeshacer} className="font-body text-xs text-premio hover:underline">
+          Enviando en {segundosRestantes}s · Deshacer
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function useGrabadorAudio(onGrabado) {
   const [grabando, setGrabando] = useState(false)
   const mediaRecorderRef = useRef(null)
@@ -198,8 +215,13 @@ function ChatPage() {
   const [texto, setTexto] = useState('')
   const [subiendo, setSubiendo] = useState(false)
   const [mostrarStickers, setMostrarStickers] = useState(false)
+  const [mensajePendiente, setMensajePendiente] = useState(null)
+  const [segundosRestantes, setSegundosRestantes] = useState(SEGUNDOS_PARA_DESHACER)
+  const [imagenPreview, setImagenPreview] = useState(null)
   const finRef = useRef(null)
   const inputImagenRef = useRef(null)
+  const timeoutEnvioRef = useRef(null)
+  const intervaloCuentaRef = useRef(null)
   const queryClient = useQueryClient()
 
   const { data } = useQuery({
@@ -213,10 +235,7 @@ function ChatPage() {
 
   const enviarTexto = useMutation({
     mutationFn: (texto) => client.post('/api/v1/chat', { tipo: 'texto', texto }),
-    onSuccess: () => {
-      setTexto('')
-      queryClient.invalidateQueries({ queryKey: ['chat'] })
-    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['chat'] }),
     onError: () => toast.error('No se pudo enviar el mensaje.'),
   })
 
@@ -257,25 +276,62 @@ function ChatPage() {
 
   useEffect(() => {
     finRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [data])
+  }, [data, mensajePendiente])
+
+  useEffect(() => {
+    return () => {
+      clearTimeout(timeoutEnvioRef.current)
+      clearInterval(intervaloCuentaRef.current)
+    }
+  }, [])
 
   function handleSubmit(event) {
     event.preventDefault()
-    if (!texto.trim()) return
-    enviarTexto.mutate(texto.trim())
+    const textoAEnviar = texto.trim()
+    if (!textoAEnviar) return
+
+    setTexto('')
+    setMensajePendiente(textoAEnviar)
+    setSegundosRestantes(SEGUNDOS_PARA_DESHACER)
+
+    intervaloCuentaRef.current = setInterval(() => {
+      setSegundosRestantes((prev) => Math.max(0, prev - 1))
+    }, 1000)
+
+    timeoutEnvioRef.current = setTimeout(() => {
+      clearInterval(intervaloCuentaRef.current)
+      setMensajePendiente(null)
+      enviarTexto.mutate(textoAEnviar)
+    }, SEGUNDOS_PARA_DESHACER * 1000)
+  }
+
+  function deshacerEnvio() {
+    clearTimeout(timeoutEnvioRef.current)
+    clearInterval(intervaloCuentaRef.current)
+    setTexto(mensajePendiente)
+    setMensajePendiente(null)
   }
 
   function handleImagenSeleccionada(event) {
     const archivo = event.target.files[0]
     if (archivo) {
-      setSubiendo(true)
-      enviarImagen.mutate(archivo)
+      setImagenPreview({ archivo, url: URL.createObjectURL(archivo) })
     }
     event.target.value = ''
   }
 
+  function confirmarEnvioImagen() {
+    setSubiendo(true)
+    enviarImagen.mutate(imagenPreview.archivo)
+    setImagenPreview(null)
+  }
+
+  function cancelarEnvioImagen() {
+    URL.revokeObjectURL(imagenPreview.url)
+    setImagenPreview(null)
+  }
+
   const grupos = data ? agruparPorFechaYAutor(data.mensajes) : []
-  const cercaDelLimite = texto.length > LIMITE_TEXTO - 60
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 flex flex-col" style={{ height: 'calc(100vh - 5rem)' }}>
@@ -295,7 +351,7 @@ function ChatPage() {
       <div className="flex-1 overflow-y-auto bg-fondo border-x border-borde/30 p-4">
         {!data ? (
           <p className="font-body text-sm text-borde text-center">Cargando...</p>
-        ) : data.mensajes.length === 0 ? (
+        ) : data.mensajes.length === 0 && !mensajePendiente ? (
           <div className="text-center py-12">
             <p className="font-body text-sm text-borde">Aún no hay mensajes</p>
             <p className="font-body text-xs text-borde/60 mt-1">Sé el primero en escribir algo</p>
@@ -319,9 +375,25 @@ function ChatPage() {
             )
           })
         )}
+        {mensajePendiente && (
+          <MensajePendiente texto={mensajePendiente} segundosRestantes={segundosRestantes} onDeshacer={deshacerEnvio} />
+        )}
         {subiendo && <p className="font-body text-xs text-borde text-center">Subiendo...</p>}
         <div ref={finRef} />
       </div>
+
+      {imagenPreview && (
+        <div className="bg-fondo border-x border-borde/30 p-3 flex items-center gap-3">
+          <img src={imagenPreview.url} alt="Vista previa" className="w-16 h-16 rounded-lg object-cover" />
+          <p className="font-body text-sm text-borde flex-1">¿Enviar esta imagen?</p>
+          <button onClick={cancelarEnvioImagen} className="font-body text-sm text-borde hover:text-texto px-3 py-1.5">
+            Cancelar
+          </button>
+          <button onClick={confirmarEnvioImagen} className="font-body text-sm font-semibold bg-acento text-fondo rounded-full px-4 py-1.5 hover:brightness-110">
+            Enviar
+          </button>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="bg-fondo border border-borde/30 rounded-b-lg p-3">
         <div className="flex gap-2 items-center relative">
@@ -375,14 +447,14 @@ function ChatPage() {
           {!grabando && (
             <button
               type="submit"
-              disabled={enviarTexto.isPending || !texto.trim()}
+              disabled={!texto.trim()}
               className="bg-acento text-fondo font-body font-semibold text-sm rounded-full px-5 py-2.5 hover:brightness-110 disabled:opacity-50 shrink-0"
             >
               ➤
             </button>
           )}
         </div>
-        {cercaDelLimite && !grabando && (
+        {!grabando && (
           <p className={`font-body text-[10px] mt-1 px-2 ${texto.length >= LIMITE_TEXTO ? 'text-red-500' : 'text-borde'}`}>
             {texto.length}/{LIMITE_TEXTO}
           </p>

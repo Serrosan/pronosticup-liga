@@ -46,3 +46,7 @@ body {
 .dark .border-borde\/30 {
   box-shadow: none;
 }
+
+body, .bg-fondo, .bg-lienzo, .text-texto, .border-borde\/30, .border-borde\/10 {
+  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+}

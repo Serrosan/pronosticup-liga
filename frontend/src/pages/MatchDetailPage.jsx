@@ -1,6 +1,7 @@
 import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import client from '../api/client'
+import { useToast } from '../context/ToastContext'
 
 function Escudo({ url, alt }) {
   return (
@@ -83,6 +84,7 @@ function SeccionCompartida({ tipo, titulo, icono, eventosLocal, eventosVisitante
 
 function MatchDetailPage() {
   const { id } = useParams()
+  const toast = useToast()
 
   const { data, isLoading } = useQuery({
     queryKey: ['partido-detalle', id],
@@ -102,14 +104,27 @@ function MatchDetailPage() {
 
   const idVideo = obtenerIdYoutube(data.video_resumen_url)
 
+  function copiarEnlace() {
+    navigator.clipboard.writeText(window.location.href)
+    toast.exito('Enlace copiado.')
+  }
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
-      <Link
-        to={`/jornadas/${data.jornada}`}
-        className="inline-flex items-center gap-1.5 font-body text-sm text-texto border border-borde/30 rounded-full px-3 py-1.5 mb-4 hover:bg-borde/10 hover:border-borde/50 transition"
-      >
-        ← Volver a la jornada
-      </Link>
+      <div className="flex items-center justify-between mb-4">
+        <Link
+          to={`/jornadas/${data.jornada}`}
+          className="inline-flex items-center gap-1.5 font-body text-sm text-texto border border-borde/30 rounded-full px-3 py-1.5 hover:bg-borde/10 hover:border-borde/50 transition"
+        >
+          ← Volver a la jornada
+        </Link>
+        <button
+          onClick={copiarEnlace}
+          className="font-body text-xs text-borde hover:text-texto border border-borde/30 rounded-full px-3 py-1.5"
+        >
+          Copiar enlace
+        </button>
+      </div>
 
       <div className="bg-fondo border border-borde/30 rounded-lg p-6 mb-2">
         <div className="flex items-center justify-between">

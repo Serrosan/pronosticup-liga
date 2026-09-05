@@ -81,7 +81,12 @@ function TeamMatchesPage() {
   const { idEquipo } = useParams()
   const location = useLocation()
   const infoInicial = location.state
-  const [tab, setTab] = useState('info')
+  const [tab, setTab] = useState(() => sessionStorage.getItem(`equipo-tab-${idEquipo}`) ?? 'info')
+
+  function cambiarTab(clave) {
+    setTab(clave)
+    sessionStorage.setItem(`equipo-tab-${idEquipo}`, clave)
+  }
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['equipo-partidos', idEquipo],
@@ -134,7 +139,7 @@ function TeamMatchesPage() {
         {TABS.map((t) => (
           <button
             key={t.key}
-            onClick={() => setTab(t.key)}
+            onClick={() => cambiarTab(t.key)}
             className={`font-body text-sm px-4 py-2 rounded-full transition ${
               tab === t.key ? 'bg-acento text-fondo font-semibold' : 'text-texto border border-borde/40 hover:bg-borde/10'
             }`}

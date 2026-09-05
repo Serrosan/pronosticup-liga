@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import client from '../api/client'
 
@@ -42,6 +42,13 @@ function CampanaNotificaciones() {
       queryClient.invalidateQueries({ queryKey: ['notificaciones-lista'] })
     },
   })
+
+  useEffect(() => {
+    if (abierto && lista?.some((n) => !n.leida)) {
+      const timeoutId = setTimeout(() => marcarTodas.mutate(), 1200)
+      return () => clearTimeout(timeoutId)
+    }
+  }, [abierto, lista])
 
   const total = noLeidas?.total ?? 0
 

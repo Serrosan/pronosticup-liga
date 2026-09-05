@@ -64,6 +64,7 @@ function AdminResourceTable({ resource, title, columns, fields, irADetalleTrasCr
   const [pagina, setPagina] = useState(1)
   const [errorGuardado, setErrorGuardado] = useState(null)
   const [aEliminar, setAEliminar] = useState(null)
+  const [avisoHistorial, setAvisoHistorial] = useState(null)
   const [valoresFiltro, setValoresFiltro] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem(claveFiltroGuardado)) ?? {}
@@ -124,10 +125,17 @@ function AdminResourceTable({ resource, title, columns, fields, irADetalleTrasCr
   })
 
   const eliminar = useMutation({
-    mutationFn: (id) => client.delete(`/api/v1/admin/${resource}/${id}`),
+    mutationFn: ({ id, confirmado }) => client.delete(`/api/v1/admin/${resource}/${id}${confirmado ? '?confirmado=1' : ''}`),
     onSuccess: () => {
       toast.exito('Eliminado correctamente.')
       queryClient.invalidateQueries({ queryKey: ['admin', resource] })
+    },
+    onError: (err, variables) => {
+      if (err.response?.status === 409 && err.response.data.requiere_confirmacion) {
+        setAvisoHistorial({ id: variables.id, mensaje: err.response.data.message })
+      } else {
+        toast.error(err.response?.data?.message ?? 'No se pudo eliminar.')
+      }
     },
   })
 
@@ -154,8 +162,13 @@ function AdminResourceTable({ resource, title, columns, fields, irADetalleTrasCr
   }
 
   function confirmarEliminar() {
-    eliminar.mutate(aEliminar.id)
+    eliminar.mutate({ id: aEliminar.id, confirmado: false })
     setAEliminar(null)
+  }
+
+  function confirmarEliminarConHistorial() {
+    eliminar.mutate({ id: avisoHistorial.id, confirmado: true })
+    setAvisoHistorial(null)
   }
 
   function cambiarSelect(campo, valor) {
@@ -405,6 +418,14 @@ function AdminResourceTable({ resource, title, columns, fields, irADetalleTrasCr
         mensaje="Esta acción no se puede deshacer."
         onConfirmar={confirmarEliminar}
         onCancelar={() => setAEliminar(null)}
+      />
+
+      <ConfirmModal
+        abierto={!!avisoHistorial}
+        titulo="Este registro tiene historial"
+        mensaje={`${avisoHistorial?.mensaje ?? ''} ¿Seguro que quieres eliminarlo de todas formas?`}
+        onConfirmar={confirmarEliminarConHistorial}
+        onCancelar={() => setAvisoHistorial(null)}
       />
     </div>
   )

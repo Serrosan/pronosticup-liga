@@ -3,6 +3,8 @@
 namespace App\Console\Commands;
 
 use App\Jobs\Partidos\SincronizarPartidosJob;
+use App\Models\User;
+use App\Notifications\SincronizacionFallida;
 use Illuminate\Console\Command;
 
 class SincronizarPartidos extends Command
@@ -12,7 +14,15 @@ class SincronizarPartidos extends Command
 
     public function handle()
     {
-        SincronizarPartidosJob::dispatchSync();
-        $this->info('Sincronización completada.');
+        try {
+            SincronizarPartidosJob::dispatchSync();
+            $this->info('Sincronización completada.');
+        } catch (\Throwable $e) {
+            $this->error('Fallo al sincronizar: '.$e->getMessage());
+
+            User::where('es_superadmin', true)->get()->each(function ($admin) use ($e) {
+                $admin->notify(new SincronizacionFallida($e->getMessage()));
+            });
+        }
     }
 }

@@ -1,3 +1,5 @@
+import useCerrarConEscape from '../hooks/useCerrarConEscape'
+
 const STICKERS = [
   { archivo: 'gol.png', alt: '¡Gol!' },
   { archivo: 'var.png', alt: 'VAR revisando' },
@@ -14,6 +16,8 @@ const STICKERS = [
 ]
 
 function SelectorStickers({ onSeleccionar, onCerrar }) {
+  useCerrarConEscape(true, onCerrar)
+
   return (
     <div className="absolute bottom-full mb-2 left-0 bg-fondo border border-borde/30 rounded-lg p-3 shadow-lg z-20 grid grid-cols-4 gap-2 w-[280px] max-h-[240px] overflow-y-auto">
       {STICKERS.map((s) => (

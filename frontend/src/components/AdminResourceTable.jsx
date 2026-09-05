@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import client from '../api/client'
@@ -14,17 +14,80 @@ function valorParaCampo(field, valor) {
   return valor ?? ''
 }
 
+function IconoCopiar() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="9" y="9" width="13" height="13" rx="2" />
+      <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+    </svg>
+  )
+}
+
+function IconoEditarDetallado() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+      <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+    </svg>
+  )
+}
+
+function IconoEdicionRapida() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+    </svg>
+  )
+}
+
+function IconoEliminar() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M3 6h18" />
+      <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+    </svg>
+  )
+}
+
+function BotonAccion({ icono, onClick, titulo, color = 'text-borde hover:text-texto' }) {
+  return (
+    <button onClick={onClick} title={titulo} className={`p-1.5 rounded transition ${color} hover:bg-borde/10`}>
+      {icono}
+    </button>
+  )
+}
+
 function AdminResourceTable({ resource, title, columns, fields, irADetalleTrasCrear = false, filtros = [] }) {
+  const claveFiltroGuardado = `filtro-admin-${resource}`
   const [editando, setEditando] = useState(null)
   const [busqueda, setBusqueda] = useState('')
   const [pagina, setPagina] = useState(1)
   const [errorGuardado, setErrorGuardado] = useState(null)
   const [aEliminar, setAEliminar] = useState(null)
-  const [valoresFiltro, setValoresFiltro] = useState({})
+  const [valoresFiltro, setValoresFiltro] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem(claveFiltroGuardado)) ?? {}
+    } catch {
+      return {}
+    }
+  })
   const [orden, setOrden] = useState({ campo: null, direccion: 'asc' })
+  const inputBusquedaRef = useRef(null)
   const queryClient = useQueryClient()
   const toast = useToast()
   const navigate = useNavigate()
+
+  useEffect(() => {
+    function alPulsarTecla(evento) {
+      const dentroDeCampo = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)
+      if (evento.key === '/' && !dentroDeCampo) {
+        evento.preventDefault()
+        inputBusquedaRef.current?.focus()
+      }
+    }
+    window.addEventListener('keydown', alPulsarTecla)
+    return () => window.removeEventListener('keydown', alPulsarTecla)
+  }, [])
 
   const { data: items, isLoading, error } = useQuery({
     queryKey: ['admin', resource],
@@ -96,7 +159,11 @@ function AdminResourceTable({ resource, title, columns, fields, irADetalleTrasCr
   }
 
   function cambiarSelect(campo, valor) {
-    setValoresFiltro((prev) => ({ ...prev, [campo]: valor }))
+    setValoresFiltro((prev) => {
+      const nuevo = { ...prev, [campo]: valor }
+      localStorage.setItem(claveFiltroGuardado, JSON.stringify(nuevo))
+      return nuevo
+    })
     setPagina(1)
   }
 
@@ -107,6 +174,12 @@ function AdminResourceTable({ resource, title, columns, fields, irADetalleTrasCr
       return { campo: null, direccion: 'asc' }
     })
     setPagina(1)
+  }
+
+  function copiarFila(item) {
+    const texto = columns.map((col) => `${col.label}: ${item[col.key] ?? '—'}`).join('\n')
+    navigator.clipboard.writeText(texto)
+    toast.exito('Fila copiada al portapapeles.')
   }
 
   if (isLoading) return <p className="font-body text-texto p-4">Cargando {title}...</p>
@@ -153,8 +226,9 @@ function AdminResourceTable({ resource, title, columns, fields, irADetalleTrasCr
         <h2 className="font-display text-xl text-texto">{title}</h2>
         <div className="flex items-center gap-2">
           <input
+            ref={inputBusquedaRef}
             type="text"
-            placeholder="Buscar..."
+            placeholder="Buscar... (pulsa /)"
             value={busqueda}
             onChange={(e) => handleBusqueda(e.target.value)}
             className="font-body text-sm bg-borde/10 text-texto rounded border border-borde/40 px-3 py-1.5 w-48"
@@ -272,7 +346,7 @@ function AdminResourceTable({ resource, title, columns, fields, irADetalleTrasCr
                   {col.label} {orden.campo === col.key && (orden.direccion === 'asc' ? '↑' : '↓')}
                 </th>
               ))}
-              <th className="px-4 py-2" />
+              <th className="px-4 py-2 w-32" />
             </tr>
           </thead>
           <tbody>
@@ -282,19 +356,15 @@ function AdminResourceTable({ resource, title, columns, fields, irADetalleTrasCr
                 {columns.map((col) => (
                   <td key={col.key} className="font-body text-sm text-texto px-4 py-2">{item[col.key]}</td>
                 ))}
-                <td className="px-4 py-2 text-right whitespace-nowrap">
-                  <Link to={`/admin/${resource}/detalle/${item.id}`} className="font-body text-xs text-premio hover:underline mr-3">
-                    Editar detallado
-                  </Link>
-                  <button onClick={() => abrirEdicion(item)} className="font-body text-xs text-acento hover:underline mr-3">
-                    Edición rápida
-                  </button>
-                  <button
-                    onClick={() => setAEliminar(item)}
-                    className="font-body text-xs text-red-500 hover:underline"
-                  >
-                    Eliminar
-                  </button>
+                <td className="px-2 py-2">
+                  <div className="flex items-center justify-end gap-0.5">
+                    <BotonAccion icono={<IconoCopiar />} onClick={() => copiarFila(item)} titulo="Copiar fila" />
+                    <Link to={`/admin/${resource}/detalle/${item.id}`} title="Editar detallado" className="p-1.5 rounded transition text-premio hover:text-premio hover:bg-borde/10">
+                      <IconoEditarDetallado />
+                    </Link>
+                    <BotonAccion icono={<IconoEdicionRapida />} onClick={() => abrirEdicion(item)} titulo="Edición rápida" color="text-acento hover:text-acento" />
+                    <BotonAccion icono={<IconoEliminar />} onClick={() => setAEliminar(item)} titulo="Eliminar" color="text-red-500 hover:text-red-500" />
+                  </div>
                 </td>
               </tr>
             ))}

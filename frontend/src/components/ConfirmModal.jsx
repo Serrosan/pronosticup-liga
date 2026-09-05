@@ -1,7 +1,17 @@
+import { useEffect } from 'react'
 import useCerrarConEscape from '../hooks/useCerrarConEscape'
 
 function ConfirmModal({ abierto, titulo, mensaje, onConfirmar, onCancelar, peligroso = true }) {
   useCerrarConEscape(abierto, onCancelar)
+
+  useEffect(() => {
+    if (!abierto) return
+    function alPulsarEnter(evento) {
+      if (evento.key === 'Enter') onConfirmar()
+    }
+    window.addEventListener('keydown', alPulsarEnter)
+    return () => window.removeEventListener('keydown', alPulsarEnter)
+  }, [abierto, onConfirmar])
 
   if (!abierto) return null
 

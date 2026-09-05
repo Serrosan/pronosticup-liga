@@ -43,12 +43,12 @@ import PrivacyPage from './pages/PrivacyPage'
 import AdminRegistroActividadPage from './pages/AdminRegistroActividadPage'
 import StadiumsPage from './pages/StadiumsPage'
 import PlayerDetailPage from './pages/PlayerDetailPage'
+import BotonVolverArriba from './components/BotonVolverArriba'
 
 function RutaProtegida() {
   const { usuario, cargando } = useAuth()
   if (cargando) return <p className="font-body text-texto p-4">Cargando...</p>
   if (!usuario) return <Navigate to="/login" replace />
-
   return (
     <div className="min-h-screen bg-lienzo">
       <NavBar />
@@ -63,7 +63,6 @@ function RutaAdmin() {
   if (cargando) return <p className="font-body text-texto p-4">Cargando...</p>
   if (!usuario) return <Navigate to="/login" replace />
   if (!usuario.es_superadmin) return <Navigate to="/" replace />
-
   return (
     <div className="min-h-screen bg-lienzo">
       <NavBar />
@@ -82,13 +81,13 @@ function App() {
           <AvisoSinConexion />
           <BrowserRouter>
             <AvisoSesionCaducada />
+            <BotonVolverArriba />
             <Routes>
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/unirse/:codigo" element={<JoinByLinkPage />} />
-
               <Route element={<RutaProtegida />}>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/onboarding" element={<OnboardingPage />} />
@@ -125,7 +124,6 @@ function App() {
                 <Route path="novedades" element={<AdminNovedadesPage />} />
                 <Route path=":resource/detalle/:id" element={<AdminResourceDetailPage />} />
               </Route>
-
             <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </BrowserRouter>

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\CalendarioPartido;
 use App\Models\CierreJornada;
+use App\Models\ConfiguracionPuntos;
 use App\Models\EventoPuntos;
 use App\Models\Pronostico;
 use App\Notifications\JornadaCerradaConPuntos;
@@ -13,10 +14,6 @@ use Illuminate\Support\Facades\DB;
 
 class JornadaController extends Controller
 {
-    private const PUNTOS_EXACTO = 3;
-    private const PUNTOS_1X2 = 1;
-    private const PUNTOS_FALLO = 0;
-
     public function cerrar(Request $request, int $jornada)
     {
         $liga = $request->user()->ligaActiva;
@@ -35,23 +32,23 @@ class JornadaController extends Controller
         }
 
         $yaCerrada = CierreJornada::where('id_liga', $liga->id)->where('jornada', $jornada)->where('cerrada', true)->exists();
-
         if ($yaCerrada) {
             return response()->json(['message' => 'Esta jornada ya estaba cerrada.'], 409);
         }
 
         $partidos = CalendarioPartido::where('id_temporada', $liga->id_temporada)
             ->where('jornada', $jornada)
-            ->where('estado', '!=', 'Aplazado')
             ->get();
 
         $pendientes = $partidos->where('estado', '!=', 'Jugado')->count();
-
         if ($pendientes > 0) {
             return response()->json(['message' => "Aún hay {$pendientes} partido(s) sin jugar en esta jornada."], 422);
         }
 
-        $puntosPorUsuario = DB::transaction(function () use ($liga, $jornada, $partidos) {
+        $config = ConfiguracionPuntos::paraLiga($liga->id);
+        $totalPartidos = $partidos->count();
+
+        $puntosPorUsuario = DB::transaction(function () use ($liga, $jornada, $partidos, $config, $totalPartidos) {
             $idsPartidos = $partidos->pluck('id');
 
             $pronosticos = Pronostico::where('id_liga', $liga->id)
@@ -59,23 +56,32 @@ class JornadaController extends Controller
                 ->get();
 
             $puntosPorUsuario = [];
+            $aciertosSignoPorUsuario = [];
 
             foreach ($pronosticos as $pronostico) {
                 $partido = $partidos->firstWhere('id', $pronostico->id_partido);
-
                 $resultadoReal = $this->calcularResultado1x2($partido->goles_casa, $partido->goles_fuera);
+                $aciertaSigno = $resultadoReal === $pronostico->resultado_1x2;
+
                 $exactoReal = $partido->goles_casa === $pronostico->goles_local_predicho
                     && $partido->goles_fuera === $pronostico->goles_visitante_predicho;
 
+                $diferenciaReal = $partido->goles_casa - $partido->goles_fuera;
+                $diferenciaPredicha = $pronostico->goles_local_predicho - $pronostico->goles_visitante_predicho;
+                $aciertaDiferencia = $aciertaSigno && $diferenciaReal === $diferenciaPredicha;
+
                 if ($exactoReal) {
                     $tipo = 'AciertoExacto';
-                    $puntos = self::PUNTOS_EXACTO;
-                } elseif ($resultadoReal === $pronostico->resultado_1x2) {
+                    $puntos = $config->puntos_exacto;
+                } elseif ($aciertaDiferencia) {
+                    $tipo = 'AciertoDiferencia';
+                    $puntos = $config->puntos_diferencia;
+                } elseif ($aciertaSigno) {
                     $tipo = 'Acierto1x2';
-                    $puntos = self::PUNTOS_1X2;
+                    $puntos = $config->puntos_signo;
                 } else {
                     $tipo = 'Fallo';
-                    $puntos = self::PUNTOS_FALLO;
+                    $puntos = 0;
                 }
 
                 EventoPuntos::create([
@@ -88,6 +94,27 @@ class JornadaController extends Controller
                 ]);
 
                 $puntosPorUsuario[$pronostico->id_usuario] = ($puntosPorUsuario[$pronostico->id_usuario] ?? 0) + $puntos;
+
+                if ($aciertaSigno) {
+                    $aciertosSignoPorUsuario[$pronostico->id_usuario] = ($aciertosSignoPorUsuario[$pronostico->id_usuario] ?? 0) + 1;
+                }
+            }
+
+            foreach ($aciertosSignoPorUsuario as $idUsuario => $aciertos) {
+                $bonus = $this->calcularBonusPleno($aciertos, $totalPartidos, $config);
+
+                if ($bonus > 0) {
+                    EventoPuntos::create([
+                        'id_usuario' => $idUsuario,
+                        'id_liga' => $liga->id,
+                        'id_partido' => null,
+                        'jornada' => $jornada,
+                        'tipo_evento' => 'BonusPleno',
+                        'puntos' => $bonus,
+                    ]);
+
+                    $puntosPorUsuario[$idUsuario] = ($puntosPorUsuario[$idUsuario] ?? 0) + $bonus;
+                }
             }
 
             CierreJornada::updateOrCreate(
@@ -106,6 +133,30 @@ class JornadaController extends Controller
             'message' => 'Jornada cerrada y puntos calculados.',
             'eventos_creados' => $totalEventos,
         ]);
+    }
+
+    private function calcularBonusPleno(int $aciertos, int $totalPartidos, ConfiguracionPuntos $config): int
+    {
+        if ($totalPartidos <= 0) {
+            return 0;
+        }
+
+        $porcentaje = ($aciertos / $totalPartidos) * 100;
+
+        if ($aciertos === $totalPartidos) {
+            return $config->bonus_pleno_10;
+        }
+        if ($porcentaje >= 90) {
+            return $config->bonus_pleno_9;
+        }
+        if ($porcentaje >= 80) {
+            return $config->bonus_pleno_8;
+        }
+        if ($porcentaje >= 70) {
+            return $config->bonus_pleno_7;
+        }
+
+        return 0;
     }
 
     private function notificarCierre($liga, int $jornada, array $puntosPorUsuario): void

@@ -19,15 +19,6 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $this->call([
-        /*    TemporadasSeeder::class,
-            EstadiosSeeder::class,
-            EquiposSeeder::class,
-            EntrenadoresSeeder::class,
-            ArbitrosSeeder::class,
-            TrofeosSeeder::class,
-            JugadoresSeeder::class,
-            CalendarioPartidosSeeder::class,*/
-        ]);
+        $this->call(ConfiguracionPuntosSeeder::class);
     }
 }

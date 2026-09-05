@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\CalendarioPartido;
 use App\Models\CierreJornada;
+use App\Models\ConfiguracionPuntos;
 use App\Models\Equipo;
 use App\Models\EventoPuntos;
 use App\Models\Liga;
@@ -16,6 +17,12 @@ use Tests\TestCase;
 class MotorPuntosTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        ConfiguracionPuntos::firstOrCreate(['id_liga' => null]);
+    }
 
     private function ligaConAdmin(): array
     {
@@ -55,7 +62,7 @@ class MotorPuntosTest extends TestCase
         ]);
     }
 
-    public function test_un_pronostico_exacto_da_3_puntos(): void
+    public function test_un_pronostico_exacto_da_5_puntos(): void
     {
         [$liga, $admin, $temporada] = $this->ligaConAdmin();
         $partido = $this->partidoJugado($temporada->id, 1, 2, 1);
@@ -68,7 +75,24 @@ class MotorPuntosTest extends TestCase
         $this->actingAs($admin)->postJson("/api/v1/jornadas/1/cerrar")->assertStatus(200);
 
         $this->assertDatabaseHas('eventos_puntos', [
-            'id_usuario' => $admin->id, 'tipo_evento' => 'AciertoExacto', 'puntos' => 3,
+            'id_usuario' => $admin->id, 'tipo_evento' => 'AciertoExacto', 'puntos' => 5,
+        ]);
+    }
+
+    public function test_acertar_signo_y_diferencia_da_2_puntos(): void
+    {
+        [$liga, $admin, $temporada] = $this->ligaConAdmin();
+        $partido = $this->partidoJugado($temporada->id, 1, 3, 1);
+
+        Pronostico::create([
+            'id_usuario' => $admin->id, 'id_liga' => $liga->id, 'id_partido' => $partido->id,
+            'resultado_1x2' => 'Local', 'goles_local_predicho' => 2, 'goles_visitante_predicho' => 0,
+        ]);
+
+        $this->actingAs($admin)->postJson("/api/v1/jornadas/1/cerrar");
+
+        $this->assertDatabaseHas('eventos_puntos', [
+            'id_usuario' => $admin->id, 'tipo_evento' => 'AciertoDiferencia', 'puntos' => 2,
         ]);
     }
 
@@ -145,7 +169,7 @@ class MotorPuntosTest extends TestCase
         $respuesta->assertStatus(403);
     }
 
-    public function test_un_partido_aplazado_no_bloquea_el_cierre_del_resto_de_la_jornada(): void
+    public function test_un_partido_aplazado_bloquea_el_cierre_de_la_jornada(): void
     {
         [$liga, $admin, $temporada] = $this->ligaConAdmin();
         $this->partidoJugado($temporada->id, 1, 2, 0);
@@ -157,6 +181,34 @@ class MotorPuntosTest extends TestCase
 
         $respuesta = $this->actingAs($admin)->postJson('/api/v1/jornadas/1/cerrar');
 
-        $respuesta->assertStatus(200);
+        $respuesta->assertStatus(422);
+        $this->assertDatabaseCount('eventos_puntos', 0);
+    }
+
+    public function test_acertar_7_de_10_de_signo_da_el_bonus_correspondiente(): void
+    {
+        [$liga, $admin, $temporada] = $this->ligaConAdmin();
+
+        for ($i = 1; $i <= 7; $i++) {
+            $partido = $this->partidoJugado($temporada->id, 1, 2, 0);
+            Pronostico::create([
+                'id_usuario' => $admin->id, 'id_liga' => $liga->id, 'id_partido' => $partido->id,
+                'resultado_1x2' => 'Local', 'goles_local_predicho' => 5, 'goles_visitante_predicho' => 1,
+            ]);
+        }
+
+        for ($i = 1; $i <= 3; $i++) {
+            $partido = $this->partidoJugado($temporada->id, 1, 2, 0);
+            Pronostico::create([
+                'id_usuario' => $admin->id, 'id_liga' => $liga->id, 'id_partido' => $partido->id,
+                'resultado_1x2' => 'Visitante', 'goles_local_predicho' => 0, 'goles_visitante_predicho' => 1,
+            ]);
+        }
+
+        $this->actingAs($admin)->postJson('/api/v1/jornadas/1/cerrar')->assertStatus(200);
+
+        $this->assertDatabaseHas('eventos_puntos', [
+            'id_usuario' => $admin->id, 'tipo_evento' => 'BonusPleno', 'puntos' => 2,
+        ]);
     }
 }

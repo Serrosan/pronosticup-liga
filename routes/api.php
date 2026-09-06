@@ -52,6 +52,7 @@ Route::prefix('v1')->group(function () {
     Route::post('/notificaciones/{id}/leer', [\App\Http\Controllers\Api\V1\NotificacionController::class, 'marcarLeida']);
     Route::post('/notificaciones/leer-todas', [\App\Http\Controllers\Api\V1\NotificacionController::class, 'marcarTodasLeidas']);
     Route::get('/clasificacion/usuarios/{usuario}/detalle', [\App\Http\Controllers\Api\V1\ClasificacionController::class, 'detalle']);
+    Route::get('/jornadas/{jornada}/otros-pronosticos', [\App\Http\Controllers\Api\V1\OtrosPronosticosController::class, 'show']);
 
     Route::middleware('admin')->prefix('admin')->group(function () {
         Route::get('/equipos/{equipo}', [\App\Http\Controllers\Api\V1\Admin\EquipoAdminController::class, 'show']);

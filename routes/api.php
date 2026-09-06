@@ -53,6 +53,9 @@ Route::prefix('v1')->group(function () {
     Route::post('/notificaciones/leer-todas', [\App\Http\Controllers\Api\V1\NotificacionController::class, 'marcarTodasLeidas']);
     Route::get('/clasificacion/usuarios/{usuario}/detalle', [\App\Http\Controllers\Api\V1\ClasificacionController::class, 'detalle']);
     Route::get('/jornadas/{jornada}/otros-pronosticos', [\App\Http\Controllers\Api\V1\OtrosPronosticosController::class, 'show']);
+    Route::get('/estadisticas-jugadores/goleadores', [\App\Http\Controllers\Api\V1\EstadisticasJugadoresController::class, 'goleadores']);
+    Route::get('/estadisticas-jugadores/asistencias', [\App\Http\Controllers\Api\V1\EstadisticasJugadoresController::class, 'asistencias']);
+    Route::get('/estadisticas-jugadores/tarjetas', [\App\Http\Controllers\Api\V1\EstadisticasJugadoresController::class, 'tarjetas']);
 
     Route::middleware('admin')->prefix('admin')->group(function () {
         Route::get('/equipos/{equipo}', [\App\Http\Controllers\Api\V1\Admin\EquipoAdminController::class, 'show']);

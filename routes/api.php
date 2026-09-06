@@ -109,6 +109,7 @@ Route::prefix('v1')->group(function () {
         Route::put('/calendario/{partido}', [\App\Http\Controllers\Api\V1\Admin\CalendarioAdminController::class, 'update']);
         Route::post('/eventos-partido/interpretar', [\App\Http\Controllers\Api\V1\Admin\EventoPartidoAdminController::class, 'interpretar']);
         Route::post('/eventos-partido/guardar', [\App\Http\Controllers\Api\V1\Admin\EventoPartidoAdminController::class, 'guardar']);
+        Route::post('/jornadas/{jornada}/recalcular-eventos', [\App\Http\Controllers\Api\V1\JornadaController::class, 'recalcularEventos']);
     });
     });
 

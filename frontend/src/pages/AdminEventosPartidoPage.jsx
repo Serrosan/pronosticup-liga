@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import client from '../api/client'
 import { useTheme } from '../context/ThemeContext'
+import { useToast } from '../context/ToastContext'
 
 const TOTAL_JORNADAS = 38
 const TIPOS = {
@@ -10,6 +11,7 @@ const TIPOS = {
 
 function AdminEventosPartidoPage() {
   const { tema } = useTheme()
+  const toast = useToast()
   const colorFondo = tema === 'oscuro' ? '#0E1B2B' : '#FFFFFF'
   const colorTexto = tema === 'oscuro' ? '#ECE7DB' : '#111827'
 
@@ -41,6 +43,12 @@ function AdminEventosPartidoPage() {
     onError: (err) => setMensaje({ tipo: 'error', texto: err.response?.data?.message ?? 'Error al guardar.' }),
   })
 
+  const recalcular = useMutation({
+    mutationFn: () => client.post(`/api/v1/admin/jornadas/${jornada}/recalcular-eventos`),
+    onSuccess: (respuesta) => toast.exito(respuesta.data.message),
+    onError: (err) => toast.error(err.response?.data?.message ?? 'No se pudo recalcular.'),
+  })
+
   function actualizarEvento(index, campo, valor) {
     setEventos((prev) => prev.map((e, i) => (i === index ? { ...e, [campo]: valor } : e)))
   }
@@ -48,6 +56,22 @@ function AdminEventosPartidoPage() {
   return (
     <div>
       <h2 className="font-display text-xl text-texto mb-4">Eventos de partido (goles/tarjetas/sustituciones)</h2>
+
+      <div className="bg-premio/10 border border-premio/30 rounded-lg p-4 mb-4 max-w-xl flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <p className="font-body text-sm font-semibold text-premio">Recalcular puntos de goleadores</p>
+          <p className="font-body text-xs text-borde mt-0.5">
+            Ejecútalo cuando termines de cargar los eventos de esta jornada — puedes repetirlo tantas veces como añadas eventos nuevos.
+          </p>
+        </div>
+        <button
+          onClick={() => recalcular.mutate()}
+          disabled={recalcular.isPending}
+          className="font-body text-sm font-semibold bg-premio text-fondo rounded px-4 py-2 hover:brightness-110 disabled:opacity-50 shrink-0"
+        >
+          {recalcular.isPending ? 'Recalculando...' : `Recalcular jornada ${jornada}`}
+        </button>
+      </div>
 
       <div className="flex flex-col gap-3 mb-4 max-w-xl">
         <div className="flex gap-3">

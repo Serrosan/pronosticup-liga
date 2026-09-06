@@ -119,6 +119,59 @@ class JornadaController extends Controller
                 }
             }
 
+            CierreJornada::updateOrCreate(
+                ['id_liga' => $liga->id, 'jornada' => $jornada],
+                ['cerrada' => true, 'cerrada_en' => now(), 'cerrada_por' => auth()->id()]
+            );
+
+            return $puntosPorUsuario;
+        });
+
+        $this->notificarCierre($liga, $jornada, $puntosPorUsuario);
+
+        $totalEventos = EventoPuntos::where('id_liga', $liga->id)->where('jornada', $jornada)->count();
+
+        return response()->json([
+            'message' => 'Jornada cerrada. Puntos de signo/diferencia/exacto calculados. Recuerda recalcular los goleadores cuando termines de cargar los eventos del partido.',
+            'eventos_creados' => $totalEventos,
+        ]);
+    }
+
+    public function recalcularEventos(Request $request, int $jornada)
+    {
+        $liga = $request->user()->ligaActiva;
+
+        if (! $liga) {
+            return response()->json(['message' => 'No tienes ninguna liga activa.'], 409);
+        }
+
+        $esAdmin = $liga->usuarios()
+            ->where('id_usuario', $request->user()->id)
+            ->wherePivot('rol', 'Admin')
+            ->exists();
+
+        if (! $esAdmin) {
+            return response()->json(['message' => 'Solo el admin de la liga puede recalcular esto.'], 403);
+        }
+
+        $yaCerrada = CierreJornada::where('id_liga', $liga->id)->where('jornada', $jornada)->where('cerrada', true)->exists();
+        if (! $yaCerrada) {
+            return response()->json(['message' => 'Esta jornada aún no está cerrada. Ciérrala primero.'], 422);
+        }
+
+        $config = ConfiguracionPuntos::paraLiga($liga->id);
+
+        $idsPartidos = CalendarioPartido::where('id_temporada', $liga->id_temporada)
+            ->where('jornada', $jornada)
+            ->pluck('id');
+
+        $creados = DB::transaction(function () use ($liga, $jornada, $idsPartidos, $config) {
+            // Idempotente: borramos lo que ya existiera de esta categoría en esta jornada, para poder recalcular sin duplicar
+            EventoPuntos::where('id_liga', $liga->id)
+                ->where('jornada', $jornada)
+                ->where('tipo_evento', 'GolesGoleadorElegido')
+                ->delete();
+
             $golesPorJugador = EventoPartido::whereIn('id_partido', $idsPartidos)
                 ->where('tipo_evento', 'gol')
                 ->get()
@@ -127,6 +180,8 @@ class JornadaController extends Controller
             $seleccionesGoleadores = GoleadorJornada::where('id_liga', $liga->id)
                 ->where('jornada', $jornada)
                 ->get();
+
+            $creados = 0;
 
             foreach ($seleccionesGoleadores as $seleccion) {
                 $golesDeEseJugador = $golesPorJugador->get($seleccion->id_jugador, 0);
@@ -143,25 +198,15 @@ class JornadaController extends Controller
                         'puntos' => $puntosGoleador,
                     ]);
 
-                    $puntosPorUsuario[$seleccion->id_usuario] = ($puntosPorUsuario[$seleccion->id_usuario] ?? 0) + $puntosGoleador;
+                    $creados++;
                 }
             }
 
-            CierreJornada::updateOrCreate(
-                ['id_liga' => $liga->id, 'jornada' => $jornada],
-                ['cerrada' => true, 'cerrada_en' => now(), 'cerrada_por' => auth()->id()]
-            );
-
-            return $puntosPorUsuario;
+            return $creados;
         });
 
-        $this->notificarCierre($liga, $jornada, $puntosPorUsuario);
-
-        $totalEventos = EventoPuntos::where('id_liga', $liga->id)->where('jornada', $jornada)->count();
-
         return response()->json([
-            'message' => 'Jornada cerrada y puntos calculados.',
-            'eventos_creados' => $totalEventos,
+            'message' => "Recalculado. {$creados} usuario(s) recibieron puntos de goleadores con los eventos disponibles ahora mismo.",
         ]);
     }
 

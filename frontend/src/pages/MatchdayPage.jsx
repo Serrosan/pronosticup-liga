@@ -35,7 +35,7 @@ function MatchdayPage() {
     queryKey: ['partidos', jornada],
     queryFn: async () => {
       const respuesta = await client.get(`/api/v1/jornadas/${jornada}/partidos`)
-      return { partidos: respuesta.data.data, ultimaActualizacion: respuesta.data.meta?.ultima_actualizacion }
+      return { partidos: respuesta.data.data, ultimaActualizacion: respuesta.data.meta?.ultima_actualizacion, jornadaBloqueada: respuesta.data.meta?.jornada_bloqueada }
     },
     placeholderData: (datosAnteriores) => datosAnteriores,
   })
@@ -116,13 +116,13 @@ function MatchdayPage() {
           {partidosDelDia.length === 1 ? (
             <div className="flex justify-center">
               <div className="w-full max-w-md">
-                <MatchCard partido={{ ...partidosDelDia[0], jornada }} />
+                <MatchCard partido={{ ...partidosDelDia[0], jornada }} jornadaBloqueada={data?.jornadaBloqueada} />
               </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 max-w-4xl mx-auto">
               {partidosDelDia.map((partido) => (
-                <MatchCard key={partido.id} partido={{ ...partido, jornada }} />
+                <MatchCard key={partido.id} partido={{ ...partido, jornada }} jornadaBloqueada={data?.jornadaBloqueada} />
               ))}
             </div>
           )}

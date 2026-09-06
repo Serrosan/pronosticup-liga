@@ -27,8 +27,13 @@ class PronosticoController extends Controller
 
         $partido = CalendarioPartido::findOrFail($validated['id_partido']);
 
-        if ($partido->estado !== 'Programado') {
-            return response()->json(['message' => 'Este partido ya no admite pronósticos.'], 422);
+        $jornadaBloqueada = CalendarioPartido::where('id_temporada', $liga->id_temporada)
+            ->where('jornada', $partido->jornada)
+            ->where('estado', '!=', 'Programado')
+            ->exists();
+
+        if ($jornadaBloqueada) {
+            return response()->json(['message' => 'Esta jornada ya no admite pronósticos: ya ha empezado al menos un partido.'], 422);
         }
 
         $resultado1x2 = $this->calcularResultado($validated['goles_local_predicho'], $validated['goles_visitante_predicho']);

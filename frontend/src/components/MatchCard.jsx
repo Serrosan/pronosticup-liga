@@ -29,7 +29,7 @@ function EquipoEnlace({ equipo, alinear }) {
   )
 }
 
-function MatchCard({ partido }) {
+function MatchCard({ partido, jornadaBloqueada = false }) {
   const navigate = useNavigate()
   const [golesLocal, setGolesLocal] = useState(partido.mi_pronostico?.goles_local_predicho ?? '')
   const [golesVisitante, setGolesVisitante] = useState(partido.mi_pronostico?.goles_visitante_predicho ?? '')
@@ -60,6 +60,7 @@ function MatchCard({ partido }) {
   }
 
   const hora = partido.horario_estimado?.slice(11, 16)
+  const puedePronosticar = partido.estado === 'Programado' && !jornadaBloqueada
 
   return (
     <div
@@ -72,7 +73,6 @@ function MatchCard({ partido }) {
         </span>
         {hora && <span className="font-marcador text-sm text-texto tabular-nums">{hora}</span>}
       </div>
-
       <div className="flex items-center justify-between gap-2 mb-1">
         <EquipoEnlace equipo={partido.equipo_local} alinear="derecha" />
         {(partido.estado === 'Jugado' || partido.estado === 'En juego') ? (
@@ -84,14 +84,13 @@ function MatchCard({ partido }) {
         )}
         <EquipoEnlace equipo={partido.equipo_visitante} />
       </div>
-
       {partido.estado === 'Jugado' && partido.mi_pronostico && (
         <p className="text-center font-body text-sm text-borde mt-1">
           Tu pronóstico: {partido.mi_pronostico.goles_local_predicho}-{partido.mi_pronostico.goles_visitante_predicho}
         </p>
       )}
 
-      {partido.estado === 'Programado' && (
+      {puedePronosticar && (
         <div onClick={(e) => e.stopPropagation()} className="mt-3 pt-3 border-t border-borde/40 cursor-default">
           {!editando && partido.mi_pronostico ? (
             <div className="flex items-center justify-between bg-acento/10 rounded px-3 py-2">
@@ -125,6 +124,12 @@ function MatchCard({ partido }) {
             </>
           )}
         </div>
+      )}
+
+      {partido.estado === 'Programado' && jornadaBloqueada && !partido.mi_pronostico && (
+        <p className="mt-3 pt-3 border-t border-borde/40 text-center font-body text-xs text-borde">
+          Ya no admite pronósticos — otro partido de la jornada ya ha empezado.
+        </p>
       )}
 
       {(partido.estadio || partido.arbitro) && (

@@ -24,6 +24,8 @@ class PartidoController extends Controller
             ->orderBy('horario_estimado')
             ->get();
 
+        $jornadaBloqueada = $partidos->contains(fn ($p) => $p->estado !== 'Programado');
+
         $misPronosticos = Pronostico::where('id_usuario', $request->user()->id)
             ->where('id_liga', $liga->id)
             ->whereIn('id_partido', $partidos->pluck('id'))
@@ -53,7 +55,10 @@ class PartidoController extends Controller
 
         return response()->json([
             'data' => $datos,
-            'meta' => ['ultima_actualizacion' => $partidos->max('updated_at')?->toIso8601String()],
+            'meta' => [
+                'ultima_actualizacion' => $partidos->max('updated_at')?->toIso8601String(),
+                'jornada_bloqueada' => $jornadaBloqueada,
+            ],
         ]);
     }
 

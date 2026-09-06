@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import client from '../api/client'
 import MatchCard from '../components/MatchCard'
@@ -29,7 +29,6 @@ function MatchdayPage() {
   const { jornada } = useParams()
   const navigate = useNavigate()
   const numeroJornada = Number(jornada)
-
   useTitulo(`Jornada ${numeroJornada}`)
 
   const { data } = useQuery({
@@ -50,7 +49,6 @@ function MatchdayPage() {
 
   const grupos = partidos ? agruparPorDia(partidos) : []
   const sinPronosticar = partidos ? partidos.filter((p) => p.estado === 'Programado' && !p.mi_pronostico) : []
-
   const minutosDesdeActualizacion = data?.ultimaActualizacion
     ? Math.max(0, Math.round((Date.now() - new Date(data.ultimaActualizacion)) / 60000))
     : null
@@ -75,6 +73,15 @@ function MatchdayPage() {
         >
           →
         </button>
+      </div>
+
+      <div className="flex justify-center mb-1">
+        <Link
+          to={`/jornadas/${numeroJornada}/goleadores`}
+          className="font-body text-xs text-premio border border-premio/40 rounded-full px-3 py-1 hover:bg-premio/10"
+        >
+          ⚽ Elegir tus 5 goleadores
+        </Link>
       </div>
 
       {grupos.length > 0 && (
@@ -106,7 +113,6 @@ function MatchdayPage() {
             <p className="font-display text-base text-texto tracking-wide whitespace-nowrap">{formatearFecha(fecha)}</p>
             <div className="h-px bg-borde/20 flex-1" />
           </div>
-
           {partidosDelDia.length === 1 ? (
             <div className="flex justify-center">
               <div className="w-full max-w-md">

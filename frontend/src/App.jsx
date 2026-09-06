@@ -45,6 +45,7 @@ import StadiumsPage from './pages/StadiumsPage'
 import PlayerDetailPage from './pages/PlayerDetailPage'
 import BotonVolverArriba from './components/BotonVolverArriba'
 import AdminConfiguracionPuntosPage from './pages/AdminConfiguracionPuntosPage'
+import SeleccionGoleadoresPage from './pages/SeleccionGoleadoresPage'
 
 function RutaProtegida() {
   const { usuario, cargando } = useAuth()
@@ -101,6 +102,7 @@ function App() {
                 <Route path="/pronosticos" element={<MyPredictionsPage />} />
                 <Route path="/calendario" element={<CalendarPage />} />
                 <Route path="/jugadores/:idJugador" element={<PlayerDetailPage />} />
+                <Route path="/jornadas/:jornada/goleadores" element={<SeleccionGoleadoresPage />} />
                 <Route path="/chat" element={<ChatPage />} />
                 <Route path="/estadios" element={<StadiumsPage />} />
                 <Route path="/perfil" element={<ProfilePage />} />

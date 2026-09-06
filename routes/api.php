@@ -26,6 +26,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/clasificacion', [\App\Http\Controllers\Api\V1\ClasificacionController::class, 'index']);
     Route::get('/dashboard', [\App\Http\Controllers\Api\V1\DashboardController::class, 'index']);
     Route::post('/jornadas/{jornada}/cerrar', [\App\Http\Controllers\Api\V1\JornadaController::class, 'cerrar']);
+    Route::get('/jugadores-buscables', [\App\Http\Controllers\Api\V1\JugadorBuscableController::class, 'index']);
     Route::patch('/liga-activa', [\App\Http\Controllers\Api\V1\LigaActivaController::class, 'set']);
     Route::patch('/profile', [\App\Http\Controllers\Api\V1\ProfileController::class, 'update']);
     Route::post('/chat/subir-imagen', [\App\Http\Controllers\Api\V1\ChatAdjuntoController::class, 'subirImagen']);
@@ -38,6 +39,8 @@ Route::prefix('v1')->group(function () {
     Route::post('/chat/{mensajeChat}/reaccionar', [\App\Http\Controllers\Api\V1\ChatController::class, 'reaccionar']);
     Route::get('/estadios', [\App\Http\Controllers\Api\V1\EstadioController::class, 'index']);
     Route::get('/calendario', [\App\Http\Controllers\Api\V1\CalendarioController::class, 'mes']);
+    Route::get('/jornadas/{jornada}/goleadores', [\App\Http\Controllers\Api\V1\GoleadoresController::class, 'show']);
+    Route::post('/jornadas/{jornada}/goleadores', [\App\Http\Controllers\Api\V1\GoleadoresController::class, 'store']);
     Route::get('/equipos/{equipo}/partidos', [\App\Http\Controllers\Api\V1\EquipoPartidosController::class, 'index']);
     Route::post('/cuenta/desactivar', [\App\Http\Controllers\Api\V1\CuentaController::class, 'desactivar']);
     Route::get('/jugadores/{jugador}', [\App\Http\Controllers\Api\V1\JugadorController::class, 'show']);

@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\CalendarioPartido;
 use App\Models\CierreJornada;
 use App\Models\ConfiguracionPuntos;
+use App\Models\EventoPartido;
 use App\Models\EventoPuntos;
+use App\Models\GoleadorJornada;
 use App\Models\Pronostico;
 use App\Notifications\JornadaCerradaConPuntos;
 use Illuminate\Http\Request;
@@ -114,6 +116,34 @@ class JornadaController extends Controller
                     ]);
 
                     $puntosPorUsuario[$idUsuario] = ($puntosPorUsuario[$idUsuario] ?? 0) + $bonus;
+                }
+            }
+
+            $golesPorJugador = EventoPartido::whereIn('id_partido', $idsPartidos)
+                ->where('tipo_evento', 'gol')
+                ->get()
+                ->countBy('id_jugador');
+
+            $seleccionesGoleadores = GoleadorJornada::where('id_liga', $liga->id)
+                ->where('jornada', $jornada)
+                ->get();
+
+            foreach ($seleccionesGoleadores as $seleccion) {
+                $golesDeEseJugador = $golesPorJugador->get($seleccion->id_jugador, 0);
+
+                if ($golesDeEseJugador > 0) {
+                    $puntosGoleador = $golesDeEseJugador * $config->puntos_gol_goleador;
+
+                    EventoPuntos::create([
+                        'id_usuario' => $seleccion->id_usuario,
+                        'id_liga' => $liga->id,
+                        'id_partido' => null,
+                        'jornada' => $jornada,
+                        'tipo_evento' => 'GolesGoleadorElegido',
+                        'puntos' => $puntosGoleador,
+                    ]);
+
+                    $puntosPorUsuario[$seleccion->id_usuario] = ($puntosPorUsuario[$seleccion->id_usuario] ?? 0) + $puntosGoleador;
                 }
             }
 

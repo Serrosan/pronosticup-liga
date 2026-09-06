@@ -44,6 +44,7 @@ import AdminRegistroActividadPage from './pages/AdminRegistroActividadPage'
 import StadiumsPage from './pages/StadiumsPage'
 import PlayerDetailPage from './pages/PlayerDetailPage'
 import BotonVolverArriba from './components/BotonVolverArriba'
+import AdminConfiguracionPuntosPage from './pages/AdminConfiguracionPuntosPage'
 
 function RutaProtegida() {
   const { usuario, cargando } = useAuth()
@@ -111,6 +112,7 @@ function App() {
                 <Route index element={<Navigate to="usuarios" replace />} />
                 <Route path="usuarios" element={<AdminUsersPage />} />
                 <Route path="ligas" element={<AdminLigasPage />} />
+                <Route path="configuracion-puntos" element={<AdminConfiguracionPuntosPage />} />
                 <Route path="calendario" element={<AdminCalendarioPage />} />
                 <Route path="eventos-partido" element={<AdminEventosPartidoPage />} />
                 <Route path="entrenadores" element={<AdminEntrenadoresPage />} />

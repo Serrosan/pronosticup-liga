@@ -78,6 +78,11 @@ Route::prefix('v1')->group(function () {
         Route::post('/subir-imagen', [\App\Http\Controllers\Api\V1\Admin\ImagenAdminController::class, 'subir']);
         Route::apiResource('trofeos', \App\Http\Controllers\Api\V1\Admin\TrofeoAdminController::class)->except('show');
         Route::get('/usuarios', [\App\Http\Controllers\Api\V1\Admin\UsuarioAdminController::class, 'index']);
+        Route::get('/configuracion-puntos/global', [\App\Http\Controllers\Api\V1\Admin\ConfiguracionPuntosAdminController::class, 'global']);
+        Route::put('/configuracion-puntos/global', [\App\Http\Controllers\Api\V1\Admin\ConfiguracionPuntosAdminController::class, 'actualizarGlobal']);
+        Route::get('/configuracion-puntos/liga/{liga}', [\App\Http\Controllers\Api\V1\Admin\ConfiguracionPuntosAdminController::class, 'paraLiga']);
+        Route::put('/configuracion-puntos/liga/{liga}', [\App\Http\Controllers\Api\V1\Admin\ConfiguracionPuntosAdminController::class, 'actualizarParaLiga']);
+        Route::delete('/configuracion-puntos/liga/{liga}', [\App\Http\Controllers\Api\V1\Admin\ConfiguracionPuntosAdminController::class, 'restaurarGlobal']);
         Route::patch('/usuarios/{user}/rol', [\App\Http\Controllers\Api\V1\Admin\UsuarioAdminController::class, 'actualizarRol']);
         Route::get('/ligas', [\App\Http\Controllers\Api\V1\Admin\LigaAdminController::class, 'index']);
         Route::get('/ligas/{liga}', [\App\Http\Controllers\Api\V1\Admin\LigaAdminController::class, 'show']);

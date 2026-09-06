@@ -40,9 +40,7 @@ function DashboardPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
       <h1 className="font-display text-2xl text-texto mb-4">{saludoSegunHora()}, {primerNombre} ⚽</h1>
-
       <PermisoNotificaciones />
-
       <TickerNovedades novedades={data.novedades} />
 
       <div className="bg-fondo border border-borde/30 rounded-lg px-6 py-3 flex items-center justify-around mb-6">
@@ -107,7 +105,6 @@ function DashboardPage() {
             )}
           </div>
         </div>
-
         <div className="bg-fondo border border-borde/30 rounded-lg overflow-hidden">
           <TicketHeader titulo={data.ultima_jornada_jugada ? `Jornada ${data.ultima_jornada_jugada} — Resultados` : 'Últimos resultados'} />
           <div className="px-4">

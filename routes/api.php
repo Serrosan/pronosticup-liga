@@ -36,6 +36,8 @@ Route::prefix('v1')->group(function () {
     Route::get('/clasificacion-liga', [\App\Http\Controllers\Api\V1\LaLigaStandingsController::class, 'index']);
     Route::get('/chat', [\App\Http\Controllers\Api\V1\ChatController::class, 'index']);
     Route::post('/chat', [\App\Http\Controllers\Api\V1\ChatController::class, 'store']);
+    Route::get('/quinielas/{tipo}', [\App\Http\Controllers\Api\V1\QuinielaController::class, 'show']);
+    Route::post('/quinielas/{tipo}', [\App\Http\Controllers\Api\V1\QuinielaController::class, 'guardar']);
     Route::post('/chat/{mensajeChat}/reaccionar', [\App\Http\Controllers\Api\V1\ChatController::class, 'reaccionar']);
     Route::get('/estadios', [\App\Http\Controllers\Api\V1\EstadioController::class, 'index']);
     Route::get('/calendario', [\App\Http\Controllers\Api\V1\CalendarioController::class, 'mes']);
@@ -81,6 +83,10 @@ Route::prefix('v1')->group(function () {
         Route::post('/subir-imagen', [\App\Http\Controllers\Api\V1\Admin\ImagenAdminController::class, 'subir']);
         Route::apiResource('trofeos', \App\Http\Controllers\Api\V1\Admin\TrofeoAdminController::class)->except('show');
         Route::get('/usuarios', [\App\Http\Controllers\Api\V1\Admin\UsuarioAdminController::class, 'index']);
+        Route::get('/quinielas', [\App\Http\Controllers\Api\V1\Admin\QuinielaAdminController::class, 'index']);
+        Route::post('/quinielas/{quiniela}/abrir', [\App\Http\Controllers\Api\V1\Admin\QuinielaAdminController::class, 'abrir']);
+        Route::post('/quinielas/{quiniela}/cerrar', [\App\Http\Controllers\Api\V1\Admin\QuinielaAdminController::class, 'cerrarSinResolver']);
+        Route::post('/quinielas/{quiniela}/resolver', [\App\Http\Controllers\Api\V1\Admin\QuinielaAdminController::class, 'resolver']);
         Route::get('/configuracion-puntos/global', [\App\Http\Controllers\Api\V1\Admin\ConfiguracionPuntosAdminController::class, 'global']);
         Route::put('/configuracion-puntos/global', [\App\Http\Controllers\Api\V1\Admin\ConfiguracionPuntosAdminController::class, 'actualizarGlobal']);
         Route::get('/configuracion-puntos/liga/{liga}', [\App\Http\Controllers\Api\V1\Admin\ConfiguracionPuntosAdminController::class, 'paraLiga']);

@@ -28,6 +28,7 @@ const GRUPOS = [
       { to: '/admin/eventos-partido', label: 'Eventos' },
       { to: '/admin/eventos-calendario', label: 'Calendario' },
       { to: '/admin/configuracion-puntos', label: 'Puntos' },
+      { to: '/admin/quinielas', label: 'Quinielas' },
     ],
   },
 ]

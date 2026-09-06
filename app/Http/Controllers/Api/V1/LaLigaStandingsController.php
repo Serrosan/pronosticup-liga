@@ -17,26 +17,53 @@ class LaLigaStandingsController extends Controller
             return response()->json(['message' => 'No tienes ninguna liga activa.'], 409);
         }
 
-        $idTemporada = $liga->id_temporada;
+        $partidos = CalendarioPartido::where('id_temporada', $liga->id_temporada)
+            ->where('estado', 'Jugado')
+            ->orderBy('horario_estimado')
+            ->get();
 
+        [$general, $casa, $fuera] = $this->calcularTablas($partidos);
+
+        return response()->json([
+            'data' => [
+                'general' => $general,
+                'casa' => $casa,
+                'fuera' => $fuera,
+            ],
+            'meta' => ['ultima_actualizacion' => $partidos->max('updated_at')?->toIso8601String()],
+        ]);
+    }
+
+    public static function clasificacionGeneral(int $idTemporada, ?int $hastaJornada = null)
+    {
+        $consulta = CalendarioPartido::where('id_temporada', $idTemporada)->where('estado', 'Jugado');
+
+        if ($hastaJornada) {
+            $consulta->where('jornada', '<=', $hastaJornada);
+        }
+
+        $partidos = $consulta->orderBy('horario_estimado')->get();
+
+        [$general] = (new self)->calcularTablas($partidos);
+
+        return $general;
+    }
+
+    private function calcularTablas($partidos)
+    {
         $vacio = fn () => ['pj' => 0, 'pg' => 0, 'pe' => 0, 'pp' => 0, 'gf' => 0, 'gc' => 0, 'pts' => 0, 'forma' => []];
-
         $equipos = Equipo::all(['id', 'nombre', 'nombre_corto', 'escudo_url']);
 
         $general = [];
         $casa = [];
         $fuera = [];
+
         foreach ($equipos as $equipo) {
             $base = ['id' => $equipo->id, 'nombre' => $equipo->nombre_corto ?? $equipo->nombre, 'escudo_url' => $equipo->escudo_url];
             $general[$equipo->id] = array_merge($base, $vacio());
             $casa[$equipo->id] = array_merge($base, $vacio());
             $fuera[$equipo->id] = array_merge($base, $vacio());
         }
-
-        $partidos = CalendarioPartido::where('id_temporada', $idTemporada)
-            ->where('estado', 'Jugado')
-            ->orderBy('horario_estimado')
-            ->get();
 
         foreach ($partidos as $p) {
             $local = $p->id_equipo_local;
@@ -70,13 +97,6 @@ class LaLigaStandingsController extends Controller
             ->sortBy([['pts', 'desc'], ['dg', 'desc'], ['gf', 'desc']])
             ->values();
 
-        return response()->json([
-            'data' => [
-                'general' => $ordenar($general),
-                'casa' => $ordenar($casa),
-                'fuera' => $ordenar($fuera),
-            ],
-            'meta' => ['ultima_actualizacion' => $partidos->max('updated_at')?->toIso8601String()],
-        ]);
+        return [$ordenar($general), $ordenar($casa), $ordenar($fuera)];
     }
 }

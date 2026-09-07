@@ -10,6 +10,11 @@ services:
     environment:
       APP_ENV: production
       APP_DEBUG: 'false'
+    networks:
+      - coolify
 volumes:
   storage-app:
     driver: local
+networks:
+  coolify:
+    external: true

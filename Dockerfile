@@ -33,7 +33,8 @@ RUN apt-get update && apt-get install -y \
     && curl -sLS https://getcomposer.org/installer | php -- --install-dir=/usr/bin/ --filename=composer \
     && apt-get -y autoremove && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-RUN groupadd --force -g 1000 sail \
+RUN userdel -r ubuntu 2>/dev/null || true \
+    && groupadd --force -g 1000 sail \
     && useradd -ms /bin/bash --no-user-group -g 1000 -u 1000 sail
 
 COPY . /var/www/html

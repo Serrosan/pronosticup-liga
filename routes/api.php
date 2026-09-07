@@ -56,6 +56,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/estadisticas-jugadores/goleadores', [\App\Http\Controllers\Api\V1\EstadisticasJugadoresController::class, 'goleadores']);
     Route::get('/estadisticas-jugadores/asistencias', [\App\Http\Controllers\Api\V1\EstadisticasJugadoresController::class, 'asistencias']);
     Route::get('/estadisticas-jugadores/tarjetas', [\App\Http\Controllers\Api\V1\EstadisticasJugadoresController::class, 'tarjetas']);
+    Route::get('/jornadas/{jornada}/momento-decisivo', [\App\Http\Controllers\Api\V1\MomentoDecisivoController::class, 'show']);
 
     Route::middleware('admin')->prefix('admin')->group(function () {
         Route::get('/equipos/{equipo}', [\App\Http\Controllers\Api\V1\Admin\EquipoAdminController::class, 'show']);

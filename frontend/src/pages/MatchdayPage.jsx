@@ -4,6 +4,7 @@ import client from '../api/client'
 import MatchCard from '../components/MatchCard'
 import useTitulo from '../hooks/useTitulo'
 import SkeletonJornada from '../components/SkeletonJornada'
+import MomentoDecisivo from '../components/MomentoDecisivo'
 
 const TOTAL_JORNADAS = 38
 const DIAS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
@@ -95,7 +96,7 @@ function MatchdayPage() {
           Actualizado hace {minutosDesdeActualizacion} min
         </p>
       )}
-
+      <MomentoDecisivo jornada={numeroJornada} />
       {sinPronosticar.length > 0 && (
         <div className="max-w-md mx-auto mb-6 bg-premio/10 border border-premio/30 rounded-lg px-4 py-3 text-center">
           <p className="font-body text-sm text-premio font-semibold">

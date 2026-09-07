@@ -2,7 +2,7 @@
 set -e
 
 echo "Esperando a que MySQL esté listo en ${DB_HOST}:${DB_PORT}..."
-until (echo > /dev/tcp/${DB_HOST}/${DB_PORT}) 2>/dev/null; do
+until mysqladmin ping -h "${DB_HOST}" -P "${DB_PORT}" -u "${DB_USERNAME}" -p"${DB_PASSWORD}" --silent 2>/dev/null; do
     echo "MySQL aún no responde, reintentando en 2 segundos..."
     sleep 2
 done

@@ -34,6 +34,14 @@ function SeleccionGoleadoresPage() {
     queryFn: async () => (await client.get(`/api/v1/jornadas/${jornada}/goleadores`)).data.data,
   })
 
+  const { data: infoJornada, isLoading: cargandoInfoJornada } = useQuery({
+    queryKey: ['partidos', jornada],
+    queryFn: async () => {
+      const respuesta = await client.get(`/api/v1/jornadas/${jornada}/partidos`)
+      return { jornadaBloqueada: respuesta.data.meta?.jornada_bloqueada ?? false }
+    },
+  })
+
   useEffect(() => {
     if (actual) setSeleccionados(actual)
   }, [actual])
@@ -67,7 +75,8 @@ function SeleccionGoleadoresPage() {
       }).slice(0, 8)
     : []
 
-  const cargando = cargandoJugadores || cargandoActual
+  const cargando = cargandoJugadores || cargandoActual || cargandoInfoJornada
+  const jornadaBloqueada = infoJornada?.jornadaBloqueada ?? false
 
   return (
     <div className="max-w-lg mx-auto px-4 py-8">
@@ -82,6 +91,17 @@ function SeleccionGoleadoresPage() {
         <p className="font-body text-texto p-4">Cargando...</p>
       ) : (
         <>
+          {jornadaBloqueada && (
+            <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 mb-4">
+              <p className="font-body text-sm text-red-500 font-semibold">
+                🔒 Esta jornada ya no admite cambios
+              </p>
+              <p className="font-body text-xs text-red-500/80 mt-1">
+                Ya ha empezado al menos un partido de esta jornada.
+              </p>
+            </div>
+          )}
+
           <div className="bg-fondo border border-borde/30 rounded-lg p-5 mb-4">
             <p className="font-body text-xs uppercase tracking-widest text-borde mb-3">
               Elegidos ({seleccionados.length}/{MAXIMO_GOLEADORES})
@@ -95,16 +115,18 @@ function SeleccionGoleadoresPage() {
                   <div key={j.id} className="flex items-center gap-3 bg-borde/5 rounded-lg p-2">
                     <FotoJugador url={j.foto_url} nombre={j.nombre} />
                     <p className="font-body text-sm text-texto flex-1 truncate">{j.nombre}</p>
-                    <button onClick={() => quitar(j.id)} className="font-body text-xs text-red-500 hover:underline shrink-0">
-                      Quitar
-                    </button>
+                    {!jornadaBloqueada && (
+                      <button onClick={() => quitar(j.id)} className="font-body text-xs text-red-500 hover:underline shrink-0">
+                        Quitar
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
             )}
           </div>
 
-          {seleccionados.length < MAXIMO_GOLEADORES && (
+          {!jornadaBloqueada && seleccionados.length < MAXIMO_GOLEADORES && (
             <div className="relative mb-6">
               <input
                 value={busqueda}
@@ -132,13 +154,15 @@ function SeleccionGoleadoresPage() {
             </div>
           )}
 
-          <button
-            onClick={() => guardar.mutate()}
-            disabled={seleccionados.length !== MAXIMO_GOLEADORES || guardar.isPending}
-            className="w-full font-body text-sm font-semibold bg-acento text-fondo rounded py-2.5 hover:brightness-110 disabled:opacity-50"
-          >
-            {guardar.isPending ? 'Guardando...' : `Guardar (${seleccionados.length}/${MAXIMO_GOLEADORES})`}
-          </button>
+          {!jornadaBloqueada && (
+            <button
+              onClick={() => guardar.mutate()}
+              disabled={seleccionados.length !== MAXIMO_GOLEADORES || guardar.isPending}
+              className="w-full font-body text-sm font-semibold bg-acento text-fondo rounded py-2.5 hover:brightness-110 disabled:opacity-50"
+            >
+              {guardar.isPending ? 'Guardando...' : `Guardar (${seleccionados.length}/${MAXIMO_GOLEADORES})`}
+            </button>
+          )}
         </>
       )}
     </div>

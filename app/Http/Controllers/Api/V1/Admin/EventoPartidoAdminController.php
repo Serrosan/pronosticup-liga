@@ -21,8 +21,10 @@ class EventoPartidoAdminController extends Controller
 
         $partido = CalendarioPartido::with(['equipoLocal', 'equipoVisitante'])->findOrFail($validated['id_partido']);
 
-        $jugadoresLocal = $this->jugadoresDeEquipo($partido->id_equipo_local);
-        $jugadoresVisitante = $this->jugadoresDeEquipo($partido->id_equipo_visitante);
+        $fechaPartido = $partido->horario_estimado?->toDateString() ?? now()->toDateString();
+
+        $jugadoresLocal = $this->jugadoresDeEquipoEnFecha($partido->id_equipo_local, $fechaPartido);
+        $jugadoresVisitante = $this->jugadoresDeEquipoEnFecha($partido->id_equipo_visitante, $fechaPartido);
 
         $eventos = $parser->parse($validated['texto']);
 
@@ -68,11 +70,17 @@ class EventoPartidoAdminController extends Controller
         return response()->json(['message' => count($validated['eventos']).' eventos guardados.']);
     }
 
-    private function jugadoresDeEquipo(int $idEquipo)
+    private function jugadoresDeEquipoEnFecha(int $idEquipo, string $fecha)
     {
-        return Jugador::whereHas('plantillasTemporada', fn ($q) => $q->where('id_equipo', $idEquipo)->whereNull('fecha_salida'))
-            ->whereNull('dado_de_baja_en')
-            ->get(['id', 'nombre', 'apellidos', 'nombre_camiseta']);
+        return Jugador::whereHas('plantillasTemporada', function ($q) use ($idEquipo, $fecha) {
+            $q->where('id_equipo', $idEquipo)
+                ->where(function ($q2) use ($fecha) {
+                    $q2->whereNull('fecha_incorporacion')->orWhere('fecha_incorporacion', '<=', $fecha);
+                })
+                ->where(function ($q2) use ($fecha) {
+                    $q2->whereNull('fecha_salida')->orWhere('fecha_salida', '>=', $fecha);
+                });
+        })->get(['id', 'nombre', 'apellidos', 'nombre_camiseta']);
     }
 
     private function coincideEquipo(string $textoParseado, string $nombreCompleto, ?string $nombreCorto): bool
@@ -86,7 +94,6 @@ class EventoPartidoAdminController extends Controller
     {
         $normalizado = Str::of($textoParseado)->lower()->ascii()->toString();
 
-        // Intento 1: coincidencia exacta (nombre completo o nombre de camiseta)
         foreach ($pool as $jugador) {
             $nombreCompleto = Str::of("{$jugador->nombre} {$jugador->apellidos}")->lower()->ascii()->toString();
             $nombreCamiseta = Str::of($jugador->nombre_camiseta ?? '')->lower()->ascii()->toString();
@@ -96,7 +103,6 @@ class EventoPartidoAdminController extends Controller
             }
         }
 
-        // Intento 2: coincidencia parcial por apellido
         foreach ($pool as $jugador) {
             $nombreCompleto = Str::of("{$jugador->nombre} {$jugador->apellidos}")->lower()->ascii()->toString();
             $apellido = Str::of($jugador->apellidos ?? '')->lower()->ascii()->toString();
@@ -106,7 +112,6 @@ class EventoPartidoAdminController extends Controller
             }
         }
 
-        // Intento 3: similitud de texto (para apodos/nombres cortos tipo "Mario Martín")
         $mejorId = null;
         $mejorPorcentaje = 0.0;
 

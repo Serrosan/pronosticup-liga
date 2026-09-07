@@ -15,7 +15,6 @@ function diasDelMes(anio, mes) {
   const primerDia = new Date(anio, mes - 1, 1)
   const ultimoDia = new Date(anio, mes, 0)
   const inicioSemana = (primerDia.getDay() + 6) % 7
-
   const dias = []
   for (let i = 0; i < inicioSemana; i++) dias.push(null)
   for (let d = 1; d <= ultimoDia.getDate(); d++) dias.push(d)
@@ -74,7 +73,6 @@ function CalendarPage() {
         <h1 className="font-display text-xl text-texto w-48 text-center">{MESES[mes - 1]} {anio}</h1>
         <button onClick={() => cambiarMes(1)} className="font-body text-texto hover:text-acento text-xl px-2">→</button>
       </div>
-
       {!data ? (
         <p className="font-body text-texto text-center">Cargando...</p>
       ) : (
@@ -95,7 +93,6 @@ function CalendarPage() {
               const fechaDia = dia ? new Date(anio, mes - 1, dia) : null
               const yaPaso = fechaDia && fechaDia < new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate())
               const tieneContenido = jornadas.length > 0 || eventos.length > 0
-
               return (
                 <button
                   key={i}
@@ -135,18 +132,15 @@ function CalendarPage() {
           <p className="font-body text-sm font-semibold text-texto mb-3">
             {diaSeleccionado} de {MESES[mes - 1]}
           </p>
-
           {eventosSeleccionados.map((e) => (
             <div key={e.id} className="flex items-center gap-2 mb-3 rounded px-3 py-2" style={{ backgroundColor: `${e.color}1A` }}>
               <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: e.color }} />
               <span className="font-body text-sm text-texto">{e.titulo}</span>
             </div>
           ))}
-
           {partidosSeleccionados.length === 0 && eventosSeleccionados.length === 0 && (
             <p className="font-body text-sm text-borde">Sin partidos ni eventos este día.</p>
           )}
-
           {partidosSeleccionados.map((p) => (
             <Link
               key={p.id}
@@ -158,12 +152,15 @@ function CalendarPage() {
                 <p className="font-body text-sm text-texto truncate">{p.equipo_local} <span className="text-borde">vs</span> {p.equipo_visitante}</p>
                 <Escudo url={p.escudo_visitante} alt={p.equipo_visitante} />
               </div>
-              <span className="font-marcador text-xs text-borde shrink-0">{p.hora}</span>
+              {p.estado === 'Jugado' ? (
+                <span className="font-marcador text-sm font-bold text-texto shrink-0">{p.goles_casa}-{p.goles_fuera}</span>
+              ) : (
+                <span className="font-marcador text-xs text-borde shrink-0">{p.hora}</span>
+              )}
             </Link>
           ))}
         </div>
       )}
-
       {data?.eventos.length > 0 && (
         <div className="mt-4 flex flex-wrap gap-2">
           {data.eventos.map((e) => (

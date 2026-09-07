@@ -50,7 +50,7 @@ class EquipoPartidosController extends Controller
             ->sortBy(fn ($j) => $j['dorsal'] ?? 99)
             ->values();
 
-        $edades = $plantilla->map(fn ($j) => $j['fecha_nacimiento'] ? now()->diffInYears($j['fecha_nacimiento']) : null)->filter();
+        $edades = $plantilla->map(fn ($j) => $j['fecha_nacimiento'] ? now()->diffInYears($j['fecha_nacimiento'], true) : null)->filter();
 
         return response()->json([
             'data' => [

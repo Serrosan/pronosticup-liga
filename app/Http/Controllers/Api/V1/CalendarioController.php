@@ -41,6 +41,8 @@ class CalendarioController extends Controller
                 'escudo_visitante' => $p->equipoVisitante->escudo_url,
                 'hora' => $p->horario_estimado->format('H:i'),
                 'estado' => $p->estado,
+                'goles_casa' => $p->goles_casa,
+                'goles_fuera' => $p->goles_fuera,
             ])->values());
 
         $jornadasPorDia = $partidos->groupBy(fn ($p) => $p->horario_estimado->format('Y-m-d'))

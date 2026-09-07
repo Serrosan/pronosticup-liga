@@ -55,9 +55,16 @@ class ForzarResincronizacionJornada extends Command
                 ]);
                 $actualizados++;
             } elseif (in_array($estadoApi, ['SCHEDULED', 'TIMED'])) {
-                if ($partido->estado !== 'Programado') {
-                    $this->line("  CORRIGIENDO estado a Programado: {$partidoApi['homeTeam']['name']} vs {$partidoApi['awayTeam']['name']}");
-                    $partido->update(['estado' => 'Programado', 'goles_casa' => null, 'goles_fuera' => null]);
+                $horarioNuevo = \Carbon\Carbon::parse($partidoApi['utcDate'])->setTimezone(config('app.timezone'));
+
+                if ($partido->estado !== 'Programado' || ! $partido->horario_estimado?->equalTo($horarioNuevo)) {
+                    $this->line("  CORRIGIENDO horario: {$partidoApi['homeTeam']['name']} vs {$partidoApi['awayTeam']['name']} → {$horarioNuevo->format('d/m/Y H:i')}");
+                    $partido->update([
+                        'estado' => 'Programado',
+                        'goles_casa' => null,
+                        'goles_fuera' => null,
+                        'horario_estimado' => $horarioNuevo,
+                    ]);
                     $actualizados++;
                 } else {
                     $sinCambios++;

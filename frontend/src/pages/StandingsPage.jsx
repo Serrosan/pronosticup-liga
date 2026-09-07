@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import TicketHeader from '../components/TicketHeader'
 import EstadoVacio from '../components/EstadoVacio'
 import SkeletonLista from '../components/SkeletonLista'
+import CompartirClasificacion from '../components/CompartirClasificacion'
 import useTitulo from '../hooks/useTitulo'
 
 const MEDALLAS = ['🥇', '🥈', '🥉']
@@ -45,9 +46,17 @@ function StandingsPage() {
   if (error) return <p className="font-body text-red-500 p-4">{error.response?.data?.message ?? 'Error al cargar.'}</p>
 
   const puntosLider = clasificacion[0]?.puntos_totales ?? 0
+  const indiceMio = clasificacion.findIndex((f) => f.id_usuario === usuario?.id)
+  const filaMia = indiceMio >= 0 ? { ...clasificacion[indiceMio], posicion: indiceMio + 1 } : null
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
+      {filaMia && (
+        <div className="flex justify-end mb-3">
+          <CompartirClasificacion fila={filaMia} ligaNombre={usuario?.liga_activa?.nombre ?? 'PronostiCup Liga'} totalParticipantes={clasificacion.length} />
+        </div>
+      )}
+
       <div className="bg-fondo border border-borde/30 rounded-lg overflow-hidden">
         <TicketHeader titulo="Clasificación de la liga" />
 

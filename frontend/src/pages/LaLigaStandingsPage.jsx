@@ -6,11 +6,11 @@ import SkeletonLista from '../components/SkeletonLista'
 
 function Escudo({ url, alt }) {
   if (!url) return <span className="w-5 h-5 rounded-full bg-borde/15 flex items-center justify-center text-xs shrink-0">⚽</span>
-  return <img src={url} alt={alt} className="w-5 h-5 object-contain shrink-0" />
+  return <img src={url} alt={alt} loading="lazy" className="w-5 h-5 object-contain shrink-0" />
 }
 
 function FotoJugador({ url, nombre }) {
-  if (url) return <img src={url} alt={nombre} className="w-8 h-8 rounded-full object-cover shrink-0" />
+  if (url) return <img src={url} alt={nombre} loading="lazy" className="w-8 h-8 rounded-full object-cover shrink-0" />
   return (
     <span className="w-8 h-8 rounded-full bg-acento/10 border border-acento/20 flex items-center justify-center text-xs font-semibold shrink-0 text-acento">
       {nombre?.[0]}
@@ -118,7 +118,7 @@ function TablaGoleadores({ jugadores, campo, etiqueta }) {
           <div className="min-w-0 flex-1">
             <p className="font-body text-sm font-medium text-texto truncate">{j.nombre}</p>
             <div className="flex items-center gap-1.5">
-              {j.escudo_url && <img src={j.escudo_url} alt={j.equipo} className="w-3.5 h-3.5 object-contain" />}
+              {j.escudo_url && <img src={j.escudo_url} alt={j.equipo} loading="lazy" className="w-3.5 h-3.5 object-contain" />}
               <p className="font-body text-[11px] text-borde truncate">{j.equipo}</p>
             </div>
           </div>
@@ -144,7 +144,7 @@ function TablaTarjetas({ jugadores }) {
           <div className="min-w-0 flex-1">
             <p className="font-body text-sm font-medium text-texto truncate">{j.nombre}</p>
             <div className="flex items-center gap-1.5">
-              {j.escudo_url && <img src={j.escudo_url} alt={j.equipo} className="w-3.5 h-3.5 object-contain" />}
+              {j.escudo_url && <img src={j.escudo_url} alt={j.equipo} loading="lazy" className="w-3.5 h-3.5 object-contain" />}
               <p className="font-body text-[11px] text-borde truncate">{j.equipo}</p>
             </div>
           </div>

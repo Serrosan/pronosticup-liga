@@ -15,13 +15,13 @@ try {
 done
 echo "MySQL está listo."
 
-chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
-chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
-
 php artisan storage:link || true
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache || true
 php artisan migrate --force
+
+chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf

@@ -120,8 +120,20 @@ Route::prefix('v1')->group(function () {
 
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:3,1');
     Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:5,1');
-    Route::get('/verify-email/{id}/{hash}', function (\Illuminate\Foundation\Auth\EmailVerificationRequest $request) {
-    $request->fulfill();
-    return response()->json(['message' => 'Email verificado y cuenta activada.']);
-    })->middleware(['auth:sanctum', 'signed'])->name('verification.verify');
+    Route::get('/verify-email/{id}/{hash}', function (Request $request, $id, $hash) {
+        $usuario = \App\Models\User::findOrFail($id);
+
+        if (! hash_equals((string) $hash, sha1($usuario->getEmailForVerification()))) {
+            return response()->json(['message' => 'El enlace de verificación no es válido.'], 403);
+        }
+
+        if (! $usuario->hasVerifiedEmail()) {
+            $usuario->markEmailAsVerified();
+        }
+
+        $usuario->activado_en = now();
+        $usuario->save();
+
+        return response()->json(['message' => 'Email verificado y cuenta activada.']);
+    })->middleware('signed')->name('verification.verify');
 });

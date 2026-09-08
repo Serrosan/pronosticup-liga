@@ -43,4 +43,9 @@ class User extends Authenticatable implements MustVerifyEmailContract
     {
         return $this->belongsTo(Liga::class, 'liga_activa_id');
     }
+
+    public function sendEmailVerificationNotification()
+    {
+        $this->notify(new \App\Notifications\VerificarEmailPersonalizado);
+    }
 }

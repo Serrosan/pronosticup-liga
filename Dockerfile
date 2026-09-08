@@ -40,6 +40,12 @@ RUN userdel -r ubuntu 2>/dev/null || true \
 COPY . /var/www/html
 COPY --from=frontend-build /app/frontend/dist /var/www/html/public
 
+RUN mkdir -p /var/www/html/storage/framework/cache/data \
+    /var/www/html/storage/framework/sessions \
+    /var/www/html/storage/framework/views \
+    /var/www/html/storage/framework/testing \
+    /var/www/html/storage/logs
+
 RUN composer install --no-dev --optimize-autoloader --no-interaction \
     && chown -R sail:sail /var/www/html \
     && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache

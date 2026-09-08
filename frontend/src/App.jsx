@@ -48,6 +48,7 @@ import AdminConfiguracionPuntosPage from './pages/AdminConfiguracionPuntosPage'
 import SeleccionGoleadoresPage from './pages/SeleccionGoleadoresPage'
 import QuinielaPage from './pages/QuinielaPage'
 import AdminQuinielasPage from './pages/AdminQuinielasPage'
+import VerifyEmailPage from './pages/VerifyEmailPage'
 
 function RutaProtegida() {
   const { usuario, cargando } = useAuth()
@@ -103,6 +104,7 @@ function App() {
                 <Route path="/clasificacion-liga" element={<LaLigaStandingsPage />} />
                 <Route path="/pronosticos" element={<MyPredictionsPage />} />
                 <Route path="/calendario" element={<CalendarPage />} />
+                <Route path="/verificar-email/:id/:hash" element={<VerifyEmailPage />} />
                 <Route path="/jugadores/:idJugador" element={<PlayerDetailPage />} />
                 <Route path="/jornadas/:jornada/goleadores" element={<SeleccionGoleadoresPage />} />
                 <Route path="/chat" element={<ChatPage />} />

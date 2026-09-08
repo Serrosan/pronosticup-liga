@@ -102,6 +102,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/ligas/{liga}', [\App\Http\Controllers\Api\V1\Admin\LigaAdminController::class, 'show']);
         Route::put('/ligas/{liga}', [\App\Http\Controllers\Api\V1\Admin\LigaAdminController::class, 'update']);
         Route::delete('/ligas/{liga}', [\App\Http\Controllers\Api\V1\Admin\LigaAdminController::class, 'destroy']);
+        Route::post('/ligas', [\App\Http\Controllers\Api\V1\Admin\LigaAdminController::class, 'store']);
         Route::get('/eventos-calendario', [\App\Http\Controllers\Api\V1\Admin\EventoCalendarioAdminController::class, 'index']);
         Route::post('/eventos-calendario', [\App\Http\Controllers\Api\V1\Admin\EventoCalendarioAdminController::class, 'store']);
         Route::get('/eventos-calendario/{eventoCalendario}', [\App\Http\Controllers\Api\V1\Admin\EventoCalendarioAdminController::class, 'show']);

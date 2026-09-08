@@ -8,6 +8,7 @@ const GRUPOS = [
       { to: '/admin/ligas', label: 'Ligas' },
       { to: '/admin/novedades', label: 'Novedades' },
       { to: '/admin/registro-actividad', label: 'Actividad' },
+      { to: '/admin/importar-historico', label: 'Importar histórico' },
     ],
   },
   {

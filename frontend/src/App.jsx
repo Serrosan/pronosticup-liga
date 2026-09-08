@@ -49,6 +49,7 @@ import SeleccionGoleadoresPage from './pages/SeleccionGoleadoresPage'
 import QuinielaPage from './pages/QuinielaPage'
 import AdminQuinielasPage from './pages/AdminQuinielasPage'
 import VerifyEmailPage from './pages/VerifyEmailPage'
+import AdminImportarHistoricoPage from './pages/AdminImportarHistoricoPage'
 
 function RutaProtegida() {
   const { usuario, cargando } = useAuth()
@@ -131,6 +132,7 @@ function App() {
                 <Route path="arbitros" element={<AdminArbitrosPage />} />
                 <Route path="trofeos" element={<AdminTrofeosPage />} />
                 <Route path="eventos-calendario" element={<AdminEventosCalendarioPage />} />
+                <Route path="importar-historico" element={<AdminImportarHistoricoPage />} />
                 <Route path="novedades" element={<AdminNovedadesPage />} />
                 <Route path=":resource/detalle/:id" element={<AdminResourceDetailPage />} />
               </Route>

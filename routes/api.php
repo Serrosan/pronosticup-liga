@@ -116,6 +116,9 @@ Route::prefix('v1')->group(function () {
         Route::post('/eventos-partido/interpretar', [\App\Http\Controllers\Api\V1\Admin\EventoPartidoAdminController::class, 'interpretar']);
         Route::post('/eventos-partido/guardar', [\App\Http\Controllers\Api\V1\Admin\EventoPartidoAdminController::class, 'guardar']);
         Route::post('/jornadas/{jornada}/recalcular-eventos', [\App\Http\Controllers\Api\V1\JornadaController::class, 'recalcularEventos']);
+        Route::post('/importar-historico/interpretar', [\App\Http\Controllers\Api\V1\Admin\HistoricoImportController::class, 'interpretar']);
+        Route::post('/importar-historico/guardar', [\App\Http\Controllers\Api\V1\Admin\HistoricoImportController::class, 'guardar']);
+        Route::post('/importar-historico', [\App\Http\Controllers\Api\V1\Admin\HistoricoImportController::class, 'importar']);
     });
     });
 

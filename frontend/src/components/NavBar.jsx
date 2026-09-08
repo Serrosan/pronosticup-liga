@@ -13,6 +13,7 @@ const ENLACES = [
   { to: '/calendario', match: '/calendario', label: 'Calendario' },
   { to: '/estadios', match: '/estadios', label: 'Estadios' },
   { to: '/chat', match: '/chat', label: 'Chat' },
+  { to: '/puntuaciones', match: '/puntuaciones', label: 'Puntuaciones' },
 ]
 
 const QUINIELAS = [

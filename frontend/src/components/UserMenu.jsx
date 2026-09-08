@@ -52,7 +52,14 @@ function UserMenu() {
       {abierto && (
         <>
           <div className="fixed inset-0 z-30" onClick={() => setAbierto(false)} />
-          <div className="absolute right-0 mt-2 w-72 bg-fondo border border-borde/30 rounded-lg shadow-lg z-40 overflow-hidden">
+
+          <div
+            className="
+              fixed left-1/2 top-20 -translate-x-1/2 w-[calc(100vw-2rem)] max-w-sm
+              sm:absolute sm:left-auto sm:right-0 sm:top-full sm:translate-x-0 sm:mt-2 sm:w-72 sm:max-w-none
+              bg-fondo border border-borde/30 rounded-lg shadow-lg z-40 overflow-hidden
+            "
+          >
             <div className="px-4 py-3.5 flex items-center gap-3 bg-borde/5">
               <Avatar url={usuario?.avatar_url} nombre={usuario?.nombre} tamano="w-11 h-11" />
               <div className="min-w-0">

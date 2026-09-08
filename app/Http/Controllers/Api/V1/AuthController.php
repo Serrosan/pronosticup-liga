@@ -33,6 +33,7 @@ class AuthController extends Controller
             $liga = Liga::where('codigo_acceso', strtoupper($validated['codigo_liga']))->first();
             if ($liga) {
                 $liga->usuarios()->attach($user->id, ['rol' => 'Miembro']);
+                $user->update(['liga_activa_id' => $liga->id]);
             }
         }
 

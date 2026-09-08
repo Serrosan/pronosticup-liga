@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const client = axios.create({
-  baseURL: '',
+  baseURL: import.meta.env.PROD ? '' : 'http://localhost',
   withCredentials: true,
   withXSRFToken: true,
 })

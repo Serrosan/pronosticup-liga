@@ -7,15 +7,13 @@ function JoinByLinkPage() {
   const { codigo } = useParams()
   const { usuario } = useAuth()
   const [estado, setEstado] = useState('procesando')
-  const [ligaId, setLigaId] = useState(null)
   const [mensaje, setMensaje] = useState(null)
 
   useEffect(() => {
     if (!usuario) return
 
     client.post('/api/v1/ligas/unirse', { codigo_acceso: codigo })
-      .then((respuesta) => {
-        setLigaId(respuesta.data.data.id)
+      .then(() => {
         setEstado('exito')
       })
       .catch((err) => {
@@ -25,7 +23,7 @@ function JoinByLinkPage() {
   }, [usuario, codigo])
 
   if (!usuario) return <Navigate to={`/register?codigo=${codigo}`} replace />
-  if (estado === 'exito') return <Navigate to={`/ligas/${ligaId}/jornadas/1`} replace />
+  if (estado === 'exito') return <Navigate to="/jornadas/1" replace />
 
   return (
     <div className="min-h-screen bg-fondo flex items-center justify-center px-4">

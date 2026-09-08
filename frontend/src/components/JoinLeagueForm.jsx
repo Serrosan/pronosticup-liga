@@ -13,8 +13,8 @@ function JoinLeagueForm() {
     setEnviando(true)
     setError(null)
     try {
-      const respuesta = await client.post('/api/v1/ligas/unirse', { codigo_acceso: codigo })
-      navigate(`/ligas/${respuesta.data.data.id}/jornadas/1`)
+      await client.post('/api/v1/ligas/unirse', { codigo_acceso: codigo })
+      navigate('/jornadas/1')
     } catch (err) {
       setError(err.response?.data?.message ?? 'Código no válido.')
     } finally {

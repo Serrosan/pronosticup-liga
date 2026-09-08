@@ -38,7 +38,6 @@ class AuthController extends Controller
 
         event(new Registered($user));
         Auth::login($user);
-        $user->sendEmailVerificationNotification();
 
         return (new UserResource($user))
             ->additional(['message' => 'Cuenta creada. Revisa tu email para activarla.'])

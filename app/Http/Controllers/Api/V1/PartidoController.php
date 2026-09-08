@@ -24,7 +24,7 @@ class PartidoController extends Controller
             ->orderBy('horario_estimado')
             ->get();
 
-        $jornadaBloqueada = $partidos->contains(fn ($p) => $p->estado !== 'Programado');
+        $jornadaBloqueada = CalendarioPartido::jornadaBloqueada($liga->id_temporada, $jornada);
 
         $misPronosticos = Pronostico::where('id_usuario', $request->user()->id)
             ->where('id_liga', $liga->id)

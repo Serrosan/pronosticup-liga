@@ -45,4 +45,44 @@ class CalendarioPartido extends Model
             'horario_oficial' => 'datetime',
         ];
     }
+
+    /**
+     * Comprueba si una jornada está bloqueada para pronósticos/goleadores.
+     * Ignora partidos "atípicos" (adelantados o aplazados) que caigan muy lejos
+     * en el tiempo del grueso principal de la jornada, usando la mediana de
+     * horarios como referencia — así un partido jugado 2 semanas antes que el
+     * resto no bloquea al resto de la jornada.
+     */
+    public static function jornadaBloqueada(int $idTemporada, int $jornada): bool
+    {
+        $partidos = self::where('id_temporada', $idTemporada)
+            ->where('jornada', $jornada)
+            ->get();
+
+        if ($partidos->isEmpty()) {
+            return false;
+        }
+
+        $timestamps = $partidos->pluck('horario_estimado')
+            ->filter()
+            ->map(fn ($h) => $h->timestamp)
+            ->sort()
+            ->values();
+
+        if ($timestamps->isEmpty()) {
+            return $partidos->contains(fn ($p) => $p->estado !== 'Programado');
+        }
+
+        $medianTimestamp = $timestamps[intdiv($timestamps->count(), 2)];
+        $ventanaSegundos = 5 * 24 * 60 * 60; // 5 días de margen
+
+        $partidosPrincipales = $partidos->filter(function ($p) use ($medianTimestamp, $ventanaSegundos) {
+            if (! $p->horario_estimado) {
+                return true;
+            }
+            return abs($p->horario_estimado->timestamp - $medianTimestamp) <= $ventanaSegundos;
+        });
+
+        return $partidosPrincipales->contains(fn ($p) => $p->estado !== 'Programado');
+    }
 }

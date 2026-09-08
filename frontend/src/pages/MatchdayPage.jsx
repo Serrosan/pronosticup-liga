@@ -5,6 +5,7 @@ import MatchCard from '../components/MatchCard'
 import useTitulo from '../hooks/useTitulo'
 import SkeletonJornada from '../components/SkeletonJornada'
 import MomentoDecisivo from '../components/MomentoDecisivo'
+import { formatearActualizacion } from '../utils/tiempo'
 
 const TOTAL_JORNADAS = 38
 const DIAS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
@@ -50,9 +51,8 @@ function MatchdayPage() {
 
   const grupos = partidos ? agruparPorDia(partidos) : []
   const sinPronosticar = partidos ? partidos.filter((p) => p.estado === 'Programado' && !p.mi_pronostico) : []
-  const minutosDesdeActualizacion = data?.ultimaActualizacion
-    ? Math.max(0, Math.round((Date.now() - new Date(data.ultimaActualizacion)) / 60000))
-    : null
+  const todosJugados = partidos && partidos.length > 0 && partidos.every((p) => p.estado === 'Jugado')
+  const textoActualizacion = !todosJugados ? formatearActualizacion(data?.ultimaActualizacion) : null
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-4">
@@ -91,12 +91,14 @@ function MatchdayPage() {
         </p>
       )}
 
-      {minutosDesdeActualizacion !== null && (
+      {textoActualizacion && (
         <p className="font-body text-[11px] text-borde text-center mb-4">
-          Actualizado hace {minutosDesdeActualizacion} min
+          {textoActualizacion}
         </p>
       )}
+
       <MomentoDecisivo jornada={numeroJornada} />
+
       {sinPronosticar.length > 0 && (
         <div className="max-w-md mx-auto mb-6 bg-premio/10 border border-premio/30 rounded-lg px-4 py-3 text-center">
           <p className="font-body text-sm text-premio font-semibold">

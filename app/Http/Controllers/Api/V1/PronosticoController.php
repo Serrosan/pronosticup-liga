@@ -30,12 +30,7 @@ class PronosticoController extends Controller
 
         $partido = CalendarioPartido::findOrFail($validated['id_partido']);
 
-        $jornadaBloqueada = CalendarioPartido::where('id_temporada', $liga->id_temporada)
-            ->where('jornada', $partido->jornada)
-            ->where('estado', '!=', 'Programado')
-            ->exists();
-
-        if ($jornadaBloqueada) {
+        if (CalendarioPartido::jornadaBloqueada($liga->id_temporada, $partido->jornada)) {
             return response()->json(['message' => 'Esta jornada ya no admite pronósticos: ya ha empezado al menos un partido.'], 422);
         }
 
@@ -132,10 +127,7 @@ class PronosticoController extends Controller
         $jornadas = $numerosJornada->map(function ($jornada) use ($liga, $userId, $filasPorPartido, $bonusPlenoPorJornada, $config) {
             $partidosDeEstaJornada = $filasPorPartido->where('jornada', $jornada)->sortBy('horario_estimado')->values();
 
-            $bloqueada = CalendarioPartido::where('id_temporada', $liga->id_temporada)
-                ->where('jornada', $jornada)
-                ->where('estado', '!=', 'Programado')
-                ->exists();
+            $bloqueada = CalendarioPartido::jornadaBloqueada($liga->id_temporada, $jornada);
 
             $idsPartidosJornada = $partidosDeEstaJornada->pluck('id_partido');
 

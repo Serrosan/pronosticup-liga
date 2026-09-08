@@ -45,12 +45,7 @@ class GoleadoresController extends Controller
             'jugadores.*' => ['required', 'integer', 'distinct', 'exists:jugadores,id'],
         ]);
 
-        $jornadaBloqueada = CalendarioPartido::where('id_temporada', $liga->id_temporada)
-            ->where('jornada', $jornada)
-            ->where('estado', '!=', 'Programado')
-            ->exists();
-
-        if ($jornadaBloqueada) {
+        if (CalendarioPartido::jornadaBloqueada($liga->id_temporada, $jornada)) {
             return response()->json(['message' => 'Esta jornada ya no admite cambios en tus goleadores elegidos.'], 422);
         }
 

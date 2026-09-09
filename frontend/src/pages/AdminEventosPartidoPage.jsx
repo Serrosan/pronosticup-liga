@@ -50,7 +50,7 @@ function AdminEventosPartidoPage() {
   })
 
   const recalcularPuntos = useMutation({
-    mutationFn: () => client.post(`/api/v1/jornadas/${jornada}/recalcular-puntos`),
+    mutationFn: () => client.post(`/api/v1/admin/jornadas/${jornada}/recalcular-puntos`),
     onSuccess: (respuesta) => toast.exito(respuesta.data.message),
     onError: (err) => toast.error(err.response?.data?.message ?? 'No se pudo recalcular.'),
   })

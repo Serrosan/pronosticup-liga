@@ -43,8 +43,14 @@ function AdminEventosPartidoPage() {
     onError: (err) => setMensaje({ tipo: 'error', texto: err.response?.data?.message ?? 'Error al guardar.' }),
   })
 
-  const recalcular = useMutation({
+  const recalcularEventos = useMutation({
     mutationFn: () => client.post(`/api/v1/admin/jornadas/${jornada}/recalcular-eventos`),
+    onSuccess: (respuesta) => toast.exito(respuesta.data.message),
+    onError: (err) => toast.error(err.response?.data?.message ?? 'No se pudo recalcular.'),
+  })
+
+  const recalcularPuntos = useMutation({
+    mutationFn: () => client.post(`/api/v1/jornadas/${jornada}/recalcular-puntos`),
     onSuccess: (respuesta) => toast.exito(respuesta.data.message),
     onError: (err) => toast.error(err.response?.data?.message ?? 'No se pudo recalcular.'),
   })
@@ -57,20 +63,34 @@ function AdminEventosPartidoPage() {
     <div>
       <h2 className="font-display text-xl text-texto mb-4">Eventos de partido (goles/tarjetas/sustituciones)</h2>
 
-      <div className="bg-premio/10 border border-premio/30 rounded-lg p-4 mb-4 max-w-xl flex items-center justify-between gap-3 flex-wrap">
-        <div>
-          <p className="font-body text-sm font-semibold text-premio">Recalcular puntos de goleadores</p>
-          <p className="font-body text-xs text-borde mt-0.5">
-            Ejecútalo cuando termines de cargar los eventos de esta jornada — puedes repetirlo tantas veces como añadas eventos nuevos.
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 max-w-3xl">
+        <div className="bg-premio/10 border border-premio/30 rounded-lg p-4">
+          <p className="font-body text-sm font-semibold text-premio">⚽ Recalcular puntos de goleadores</p>
+          <p className="font-body text-xs text-borde mt-0.5 mb-3">
+            Úsalo después de cargar los eventos de esta jornada (goles). Puedes repetirlo cuantas veces añadas eventos nuevos.
           </p>
+          <button
+            onClick={() => recalcularEventos.mutate()}
+            disabled={recalcularEventos.isPending}
+            className="font-body text-sm font-semibold bg-premio text-fondo rounded px-4 py-2 hover:brightness-110 disabled:opacity-50 w-full"
+          >
+            {recalcularEventos.isPending ? 'Recalculando...' : `Recalcular goleadores J${jornada}`}
+          </button>
         </div>
-        <button
-          onClick={() => recalcular.mutate()}
-          disabled={recalcular.isPending}
-          className="font-body text-sm font-semibold bg-premio text-fondo rounded px-4 py-2 hover:brightness-110 disabled:opacity-50 shrink-0"
-        >
-          {recalcular.isPending ? 'Recalculando...' : `Recalcular jornada ${jornada}`}
-        </button>
+
+        <div className="bg-acento/10 border border-acento/30 rounded-lg p-4">
+          <p className="font-body text-sm font-semibold text-acento">🎯 Recalcular puntos de pronósticos</p>
+          <p className="font-body text-xs text-borde mt-0.5 mb-3">
+            Úsalo solo si cambiaste una regla de puntuación (ej. signo/diferencia/exacto) después de haber cerrado esta jornada. Vuelve a calcular todo desde cero con la configuración actual.
+          </p>
+          <button
+            onClick={() => recalcularPuntos.mutate()}
+            disabled={recalcularPuntos.isPending}
+            className="font-body text-sm font-semibold bg-acento text-fondo rounded px-4 py-2 hover:brightness-110 disabled:opacity-50 w-full"
+          >
+            {recalcularPuntos.isPending ? 'Recalculando...' : `Recalcular pronósticos J${jornada}`}
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-col gap-3 mb-4 max-w-xl">

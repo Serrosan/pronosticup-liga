@@ -113,6 +113,9 @@ function UserMenu() {
               <Link to="/perfil" onClick={() => setAbierto(false)} className="block font-body text-sm text-texto px-4 py-2.5 hover:bg-borde/10">
                 Mi perfil
               </Link>
+              <Link to="/puntuaciones" onClick={() => setAbierto(false)} className="block font-body text-sm text-texto px-4 py-2.5 hover:bg-borde/10">
+                Puntuaciones
+              </Link>
               <Link to="/privacidad" onClick={() => setAbierto(false)} className="block font-body text-sm text-texto px-4 py-2.5 hover:bg-borde/10">
                 Privacidad
               </Link>

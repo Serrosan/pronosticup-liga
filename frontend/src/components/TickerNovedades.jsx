@@ -16,7 +16,7 @@ function TituloConEnlaces({ texto }) {
         if (esUrl) {
           return (
             
-              key={i}
+              <a key={i}
               href={parte}
               target="_blank"
               rel="noopener noreferrer"

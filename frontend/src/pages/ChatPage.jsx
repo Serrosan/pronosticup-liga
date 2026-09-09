@@ -48,7 +48,22 @@ function agruparPorFechaYAutor(mensajes) {
   return grupos
 }
 
-function TextoConEnlaces({ texto, esMio }) {
+function resaltarCoincidencia(texto, termino) {
+  if (!termino) return texto
+  const normalizar = (t) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  const indice = normalizar(texto).indexOf(normalizar(termino))
+  if (indice === -1) return texto
+
+  return (
+    <>
+      {texto.slice(0, indice)}
+      <mark className="bg-premio/40 text-inherit rounded px-0.5">{texto.slice(indice, indice + termino.length)}</mark>
+      {texto.slice(indice + termino.length)}
+    </>
+  )
+}
+
+function TextoConEnlaces({ texto, esMio, terminoBusqueda }) {
   const partes = texto.split(PATRON_URL)
 
   return (
@@ -69,23 +84,23 @@ function TextoConEnlaces({ texto, esMio }) {
             </a>
           )
         }
-        return <span key={i}>{parte}</span>
+        return <span key={i}>{resaltarCoincidencia(parte, terminoBusqueda)}</span>
       })}
     </p>
   )
 }
 
-function ContenidoMensaje({ mensaje, esMio }) {
+function ContenidoMensaje({ mensaje, esMio, terminoBusqueda }) {
   if (mensaje.tipo === 'imagen') {
     return <img src={mensaje.adjunto_url} alt="Imagen enviada" className="rounded-xl max-w-full max-h-64 object-cover" />
   }
   if (mensaje.tipo === 'audio') {
     return <ReproductorAudio src={mensaje.adjunto_url} />
   }
-  return <TextoConEnlaces texto={mensaje.texto} esMio={esMio} />
+  return <TextoConEnlaces texto={mensaje.texto} esMio={esMio} terminoBusqueda={terminoBusqueda} />
 }
 
-function GrupoMensajes({ grupo, esMio, miId }) {
+function GrupoMensajes({ grupo, esMio, miId, terminoBusqueda, mensajeIdResaltado, registrarRef }) {
   const queryClient = useQueryClient()
   const [selectorAbierto, setSelectorAbierto] = useState(null)
 
@@ -108,14 +123,25 @@ function GrupoMensajes({ grupo, esMio, miId }) {
           const tieneReacciones = Object.entries(mensaje.reacciones).some(([, ids]) => ids.length > 0)
           const esMultimedia = mensaje.tipo !== 'texto'
           const esSticker = mensaje.tipo === 'imagen' && mensaje.adjunto_url?.startsWith('/stickers/')
+          const estaResaltado = mensajeIdResaltado === mensaje.id
 
           return (
-            <div key={mensaje.id} className="w-full">
-              <div className={esMultimedia ? '' : `rounded-2xl px-3.5 py-2 ${esMio ? 'bg-acento text-fondo rounded-tr-sm' : 'bg-borde/10 text-texto rounded-tl-sm'}`}>
+            <div
+              key={mensaje.id}
+              ref={(el) => registrarRef(mensaje.id, el)}
+              className="w-full"
+            >
+              <div
+                className={`
+                  rounded-2xl transition
+                  ${esMultimedia ? '' : `px-3.5 py-2 ${esMio ? 'bg-acento text-fondo rounded-tr-sm' : 'bg-borde/10 text-texto rounded-tl-sm'}`}
+                  ${estaResaltado ? 'ring-2 ring-premio' : ''}
+                `}
+              >
                 {esSticker ? (
                   <img src={mensaje.adjunto_url} alt="Sticker" className="w-28 h-28 object-contain" />
                 ) : (
-                  <ContenidoMensaje mensaje={mensaje} esMio={esMio} />
+                  <ContenidoMensaje mensaje={mensaje} esMio={esMio} terminoBusqueda={terminoBusqueda} />
                 )}
               </div>
 
@@ -209,6 +235,33 @@ function useGrabadorAudio(onGrabado) {
   return { grabando, empezar, parar }
 }
 
+function BarraBusqueda({ termino, onCambiar, resultados, indiceActual, onIrA, onCerrar }) {
+  return (
+    <div className="bg-fondo border-x border-borde/30 px-4 py-2.5 flex items-center gap-2">
+      <span className="text-borde text-sm shrink-0">🔍</span>
+      <input
+        autoFocus
+        value={termino}
+        onChange={(e) => onCambiar(e.target.value)}
+        placeholder="Buscar en el chat..."
+        className="flex-1 font-body text-sm bg-transparent text-texto placeholder:text-borde/60 focus:outline-none"
+      />
+      {termino && (
+        <span className="font-body text-xs text-borde shrink-0 whitespace-nowrap">
+          {resultados.length === 0 ? 'Sin resultados' : `${indiceActual + 1}/${resultados.length}`}
+        </span>
+      )}
+      {resultados.length > 0 && (
+        <div className="flex gap-1 shrink-0">
+          <button onClick={() => onIrA(-1)} className="font-body text-borde hover:text-texto px-1">↑</button>
+          <button onClick={() => onIrA(1)} className="font-body text-borde hover:text-texto px-1">↓</button>
+        </div>
+      )}
+      <button onClick={onCerrar} className="font-body text-borde hover:text-texto shrink-0">✕</button>
+    </div>
+  )
+}
+
 function ChatPage() {
   const { usuario } = useAuth()
   const toast = useToast()
@@ -218,10 +271,16 @@ function ChatPage() {
   const [mensajePendiente, setMensajePendiente] = useState(null)
   const [segundosRestantes, setSegundosRestantes] = useState(SEGUNDOS_PARA_DESHACER)
   const [imagenPreview, setImagenPreview] = useState(null)
+  const [busquedaAbierta, setBusquedaAbierta] = useState(false)
+  const [terminoBusqueda, setTerminoBusqueda] = useState('')
+  const [indiceResultado, setIndiceResultado] = useState(0)
   const finRef = useRef(null)
   const inputImagenRef = useRef(null)
   const timeoutEnvioRef = useRef(null)
   const intervaloCuentaRef = useRef(null)
+  const refsMensajes = useRef({})
+  const idUltimoMensajeVisto = useRef(null)
+  const primeraCargaRef = useRef(true)
   const queryClient = useQueryClient()
 
   const { data } = useQuery({
@@ -275,8 +334,36 @@ function ChatPage() {
   })
 
   useEffect(() => {
-    finRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [data, mensajePendiente])
+    if (!busquedaAbierta) {
+      finRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [data, mensajePendiente, busquedaAbierta])
+
+  // Sonido de notificación al llegar un mensaje nuevo de otra persona
+  useEffect(() => {
+    if (!data?.mensajes?.length) return
+
+    const ultimoMensaje = data.mensajes[data.mensajes.length - 1]
+
+    if (primeraCargaRef.current) {
+      primeraCargaRef.current = false
+      idUltimoMensajeVisto.current = ultimoMensaje.id
+      return
+    }
+
+    if (ultimoMensaje.id !== idUltimoMensajeVisto.current) {
+      idUltimoMensajeVisto.current = ultimoMensaje.id
+
+      const esDeOtroUsuario = ultimoMensaje.usuario.id !== usuario?.id
+      const pestanaOculta = document.hidden
+
+      if (esDeOtroUsuario && pestanaOculta) {
+        const sonido = new Audio('/sounds/notificacion.mp3')
+        sonido.volume = 0.5
+        sonido.play().catch(() => {})
+      }
+    }
+  }, [data, usuario])
 
   useEffect(() => {
     return () => {
@@ -331,7 +418,42 @@ function ChatPage() {
     setImagenPreview(null)
   }
 
+  function registrarRef(id, el) {
+    if (el) refsMensajes.current[id] = el
+  }
+
+  function abrirBusqueda() {
+    setBusquedaAbierta(true)
+  }
+
+  function cerrarBusqueda() {
+    setBusquedaAbierta(false)
+    setTerminoBusqueda('')
+    setIndiceResultado(0)
+  }
+
+  function cambiarTermino(valor) {
+    setTerminoBusqueda(valor)
+    setIndiceResultado(0)
+  }
+
+  function irAResultado(delta) {
+    if (resultadosBusqueda.length === 0) return
+    const nuevoIndice = (indiceResultado + delta + resultadosBusqueda.length) % resultadosBusqueda.length
+    setIndiceResultado(nuevoIndice)
+    const mensajeId = resultadosBusqueda[nuevoIndice].id
+    refsMensajes.current[mensajeId]?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
+
   const grupos = data ? agruparPorFechaYAutor(data.mensajes) : []
+
+  const normalizar = (t) => String(t ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+
+  const resultadosBusqueda = terminoBusqueda && data
+    ? data.mensajes.filter((m) => m.tipo === 'texto' && normalizar(m.texto).includes(normalizar(terminoBusqueda)))
+    : []
+
+  const mensajeIdResaltado = resultadosBusqueda[indiceResultado]?.id ?? null
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 flex flex-col" style={{ height: 'calc(100vh - 5rem)' }}>
@@ -339,14 +461,34 @@ function ChatPage() {
         <TicketHeader
           titulo="Chat de la liga"
           accion={
-            data?.totalMiembros && (
-              <span className="font-body text-[11px] text-acento bg-acento/10 rounded-full px-2.5 py-1 font-semibold">
-                {data.totalMiembros} miembros
-              </span>
-            )
+            <div className="flex items-center gap-2">
+              <button
+                onClick={abrirBusqueda}
+                className="font-body text-borde hover:text-texto text-sm"
+                title="Buscar en el chat"
+              >
+                🔍
+              </button>
+              {data?.totalMiembros && (
+                <span className="font-body text-[11px] text-acento bg-acento/10 rounded-full px-2.5 py-1 font-semibold">
+                  {data.totalMiembros} miembros
+                </span>
+              )}
+            </div>
           }
         />
       </div>
+
+      {busquedaAbierta && (
+        <BarraBusqueda
+          termino={terminoBusqueda}
+          onCambiar={cambiarTermino}
+          resultados={resultadosBusqueda}
+          indiceActual={indiceResultado}
+          onIrA={irAResultado}
+          onCerrar={cerrarBusqueda}
+        />
+      )}
 
       <div className="flex-1 overflow-y-auto bg-fondo border-x border-borde/30 p-4">
         {!data ? (
@@ -370,7 +512,14 @@ function ChatPage() {
                     <div className="h-px bg-borde/20 flex-1" />
                   </div>
                 )}
-                <GrupoMensajes grupo={grupo} esMio={grupo.usuarioId === usuario?.id} miId={usuario?.id} />
+                <GrupoMensajes
+                  grupo={grupo}
+                  esMio={grupo.usuarioId === usuario?.id}
+                  miId={usuario?.id}
+                  terminoBusqueda={terminoBusqueda}
+                  mensajeIdResaltado={mensajeIdResaltado}
+                  registrarRef={registrarRef}
+                />
               </div>
             )
           })

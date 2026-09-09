@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import client from '../api/client'
 import TicketHeader from '../components/TicketHeader'
 import SkeletonLista from '../components/SkeletonLista'
+import { formatearActualizacion } from '../utils/tiempo'
 
 function Escudo({ url, alt }) {
   if (!url) return <span className="w-5 h-5 rounded-full bg-borde/15 flex items-center justify-center text-xs shrink-0">⚽</span>
@@ -193,10 +194,6 @@ function LaLigaStandingsPage() {
     enabled: vista === 'tarjetas',
   })
 
-  const minutosDesdeActualizacion = data?.ultimaActualizacion
-    ? Math.max(0, Math.round((Date.now() - new Date(data.ultimaActualizacion)) / 60000))
-    : null
-
   const tituloVista = VISTAS.find((v) => v.key === vista)?.label
 
   return (
@@ -215,8 +212,8 @@ function LaLigaStandingsPage() {
             </button>
           ))}
         </div>
-        {esVistaDeEquipos && minutosDesdeActualizacion !== null && (
-          <p className="font-body text-[11px] text-borde">Actualizado hace {minutosDesdeActualizacion} min</p>
+        {esVistaDeEquipos && data?.ultimaActualizacion && (
+          <p className="font-body text-[11px] text-borde">{formatearActualizacion(data.ultimaActualizacion)}</p>
         )}
       </div>
 

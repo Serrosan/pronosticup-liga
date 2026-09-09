@@ -208,7 +208,17 @@ class JornadaController extends Controller
 
             $diferenciaReal = $partido->goles_casa - $partido->goles_fuera;
             $diferenciaPredicha = $pronostico->goles_local_predicho - $pronostico->goles_visitante_predicho;
-            $aciertaDiferencia = $aciertaSigno && $resultadoReal !== 'Empate' && $diferenciaReal === $diferenciaPredicha;
+
+            if ($resultadoReal === 'Empate') {
+                // En empates no existe "diferencia" real (siempre es 0) — premiamos en su lugar
+                // predecir un empate "vecino" (ej. predicho 1-1, real 0-0 o 2-2). El 0-0 es un caso
+                // especial: no tiene vecino "por debajo", así que solo cuenta como vecino el salto
+                // de exactamente 1 gol hacia arriba desde el más bajo de los dos (0-0 ↔ 1-1).
+                $margen = abs($pronostico->goles_local_predicho - $partido->goles_casa);
+                $aciertaDiferencia = $aciertaSigno && ! $exactoReal && $margen === 1;
+            } else {
+                $aciertaDiferencia = $aciertaSigno && $diferenciaReal === $diferenciaPredicha;
+            }
 
             if ($exactoReal) {
                 $tipo = 'AciertoExacto';

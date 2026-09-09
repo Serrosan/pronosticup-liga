@@ -59,13 +59,27 @@ function PuntuacionesPage() {
 
       <Seccion icono="⚽" titulo="Pronóstico de cada partido">
         <FilaPuntos etiqueta="Aciertas el signo (gana local / empate / gana visitante)" puntos={config.puntos_signo} />
-        <FilaPuntos etiqueta="Aciertas el signo + la diferencia exacta de goles" puntos={config.puntos_diferencia} color="text-premio" />
+        <FilaPuntos etiqueta="Aciertas el signo + la diferencia exacta de goles (o un empate muy cercano)" puntos={config.puntos_diferencia} color="text-premio" />
         <FilaPuntos etiqueta="Aciertas el resultado exacto" puntos={config.puntos_exacto} color="text-premio" />
 
         <Ejemplo>
           El partido acaba <strong>3-1</strong>. Si predijiste "gana el local" (sin más), <strong>{config.puntos_signo}pt</strong>.
           Si predijiste cualquier marcador con 2 goles de diferencia a favor del local (ej. 2-0, 4-2), <strong>{config.puntos_diferencia}pt</strong>.
           Si predijiste exactamente 3-1, <strong>{config.puntos_exacto}pt</strong>.
+        </Ejemplo>
+
+        <div className="bg-borde/5 rounded-lg px-4 py-3 mt-3">
+          <p className="font-body text-xs text-borde">
+            <strong>Un empate no tiene "diferencia" de goles</strong> (siempre es 0, sea 0-0 o 5-5) — así que ahí premiamos otra cosa en su lugar: predecir un empate <em>cercano</em> al real. Si predijiste 1-1 y el partido acaba 0-0 o 2-2, cuenta igual que acertar la diferencia.
+          </p>
+        </div>
+
+        <Ejemplo>
+          El partido acaba <strong>1-1</strong>. Si predijiste "empate" (sin más, por ejemplo con un 3-3), <strong>{config.puntos_signo}pt</strong>.
+          Si predijiste 0-0 o 2-2 (un empate cercano al real), <strong>{config.puntos_diferencia}pt</strong>.
+          Si predijiste exactamente 1-1, <strong>{config.puntos_exacto}pt</strong>.
+          <br /><br />
+          <span className="text-borde">Nota: el 0-0 es un caso especial — como no existen goles negativos, su único empate "cercano" posible es el 1-1 (no tiene ningún resultado por debajo).</span>
         </Ejemplo>
       </Seccion>
 

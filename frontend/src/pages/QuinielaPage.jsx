@@ -73,7 +73,7 @@ function QuinielaPage() {
 
   const { data: equipos } = useQuery({
     queryKey: ['equipos-lista'],
-    queryFn: async () => (await client.get('/api/v1/admin/equipos')).data.data,
+    queryFn: async () => (await client.get('/api/v1/equipos-lista')).data.data,
   })
 
   const { data: quiniela, isLoading } = useQuery({

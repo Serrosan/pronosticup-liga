@@ -7,6 +7,7 @@ import TicketHeader from '../components/TicketHeader'
 import SkeletonLista from '../components/SkeletonLista'
 import TickerNovedades from '../components/TickerNovedades'
 import PermisoNotificaciones from '../components/PermisoNotificaciones'
+import { formatearFechaHora } from '../utils/tiempo'
 
 function Escudo({ url, alt }) {
   if (!url) return <span className="w-6 h-6 rounded-full bg-borde/15 flex items-center justify-center text-xs shrink-0">⚽</span>
@@ -97,7 +98,7 @@ function DashboardPage() {
                       <Escudo url={p.escudo_visitante} alt={p.equipo_visitante} />
                     </div>
                     <span className="font-marcador text-xs text-borde tabular-nums shrink-0 ml-2">
-                      {p.estado === 'Aplazado' ? 'Aplazado' : p.horario_estimado?.slice(5, 16).replace('T', ' · ')}
+                      {p.estado === 'Aplazado' ? 'Aplazado' : formatearFechaHora(p.horario_estimado)}
                     </span>
                   </div>
                 ))}

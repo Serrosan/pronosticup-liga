@@ -15,3 +15,12 @@ export function formatearActualizacion(fechaISO) {
   const horaStr = fecha.toTimeString().slice(0, 5)
   return `Actualizado el ${dia}/${mes} a las ${horaStr}`
 }
+
+export function formatearFechaHora(fechaISO) {
+  if (!fechaISO) return ''
+  const fecha = new Date(fechaISO)
+  const dia = String(fecha.getDate()).padStart(2, '0')
+  const mes = String(fecha.getMonth() + 1).padStart(2, '0')
+  const hora = fecha.toTimeString().slice(0, 5)
+  return `${dia}-${mes} · ${hora}`
+}

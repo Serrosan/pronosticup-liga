@@ -31,7 +31,7 @@ const ESTILO_TIPO = {
   AciertoExacto: { color: 'var(--color-premio)', fondo: 'bg-premio/10', borde: 'border-premio/40' },
   AciertoDiferencia: { color: 'var(--color-acento)', fondo: 'bg-acento/10', borde: 'border-acento/40' },
   Acierto1x2: { color: 'var(--color-acento)', fondo: 'bg-acento/5', borde: 'border-acento/25' },
-  Fallo: { color: '#EF4444', fondo: 'bg-red-500/5', borde: 'border-red-500/25' },
+  Fallo: { color: 'var(--color-borde)', fondo: 'bg-borde/5', borde: 'border-borde/20' },
 }
 
 function ResultadoComparado({ prediccion, golesCasa, golesFuera, tipoEvento, puntos, estadoPartido }) {

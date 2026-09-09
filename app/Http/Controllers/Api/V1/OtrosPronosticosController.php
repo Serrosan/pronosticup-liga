@@ -17,12 +17,7 @@ class OtrosPronosticosController extends Controller
             return response()->json(['message' => 'No tienes ninguna liga activa.'], 409);
         }
 
-        $bloqueada = CalendarioPartido::where('id_temporada', $liga->id_temporada)
-            ->where('jornada', $jornada)
-            ->where('estado', '!=', 'Programado')
-            ->exists();
-
-        if (! $bloqueada) {
+        if (! CalendarioPartido::jornadaBloqueada($liga->id_temporada, $jornada)) {
             return response()->json(['message' => 'Los pronósticos de esta jornada aún no se pueden ver.'], 403);
         }
 

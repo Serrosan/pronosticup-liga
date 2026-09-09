@@ -26,4 +26,9 @@ class Pronostico extends Model
     {
         return $this->belongsTo(CalendarioPartido::class, 'id_partido');
     }
+
+    public function usuario()
+    {
+        return $this->belongsTo(User::class, 'id_usuario');
+    }
 }

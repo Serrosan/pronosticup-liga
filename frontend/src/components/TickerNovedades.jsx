@@ -1,7 +1,36 @@
+const PATRON_URL = /(https?:\/\/[^\s]+)/g
+
 function esReciente(fechaCreacion) {
   if (!fechaCreacion) return false
   const horas = (Date.now() - new Date(fechaCreacion)) / 3600000
   return horas < 48
+}
+
+function TituloConEnlaces({ texto }) {
+  const partes = texto.split(PATRON_URL)
+
+  return (
+    <>
+      {partes.map((parte, i) => {
+        const esUrl = /^https?:\/\//.test(parte)
+        if (esUrl) {
+          return (
+            
+              key={i}
+              href={parte}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:brightness-125"
+              onClick={(evento) => evento.stopPropagation()}
+            >
+              {parte}
+            </a>
+          )
+        }
+        return <span key={i}>{parte}</span>
+      })}
+    </>
+  )
 }
 
 function TickerNovedades({ novedades }) {
@@ -34,7 +63,7 @@ function TickerNovedades({ novedades }) {
                     : '0 0 3px var(--color-acento)55',
                 }}
               >
-                {n.titulo}
+                <TituloConEnlaces texto={n.titulo} />
               </p>
               {reciente && (
                 <span className="font-body text-[8px] font-bold text-fondo bg-acento rounded-full px-1.5 py-0.5 shrink-0">

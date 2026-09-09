@@ -27,6 +27,31 @@ function formatearFecha(fechaISO) {
   return `${DIAS[fecha.getDay()]} ${dia}/${mes}/${anio}`
 }
 
+function EstadoGoleadores({ jornada }) {
+  const { data: seleccion } = useQuery({
+    queryKey: ['goleadores', jornada],
+    queryFn: async () => (await client.get(`/api/v1/jornadas/${jornada}/goleadores`)).data.data,
+  })
+
+  const total = seleccion?.length ?? 0
+  const completo = total === 5
+
+  return (
+    <div className="flex justify-center mb-1">
+      <Link
+        to={`/jornadas/${jornada}/goleadores`}
+        className={`font-body text-xs rounded-full px-3 py-1 border transition ${
+          completo
+            ? 'text-acento border-acento/40 bg-acento/10 hover:bg-acento/20'
+            : 'text-premio border-premio/40 hover:bg-premio/10'
+        }`}
+      >
+        {completo ? `✓ Tus 5 goleadores elegidos` : `⚽ Elegir tus 5 goleadores${total > 0 ? ` (${total}/5)` : ''}`}
+      </Link>
+    </div>
+  )
+}
+
 function MatchdayPage() {
   const { jornada } = useParams()
   const navigate = useNavigate()
@@ -76,14 +101,7 @@ function MatchdayPage() {
         </button>
       </div>
 
-      <div className="flex justify-center mb-1">
-        <Link
-          to={`/jornadas/${numeroJornada}/goleadores`}
-          className="font-body text-xs text-premio border border-premio/40 rounded-full px-3 py-1 hover:bg-premio/10"
-        >
-          ⚽ Elegir tus 5 goleadores
-        </Link>
-      </div>
+      <EstadoGoleadores jornada={numeroJornada} />
 
       {grupos.length > 0 && (
         <p className="font-body text-sm font-semibold text-acento text-center whitespace-nowrap mb-1">

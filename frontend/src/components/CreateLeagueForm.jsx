@@ -15,7 +15,7 @@ function CreateLeagueForm() {
     setError(null)
     try {
       await client.post('/api/v1/ligas', { nombre, tipo })
-      navigate('/jornadas/1')
+      navigate('/jornadas')
     } catch (err) {
       setError(err.response?.data?.message ?? 'Error al crear la liga.')
     } finally {

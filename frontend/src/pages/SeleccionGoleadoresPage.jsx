@@ -157,7 +157,7 @@ function SeleccionGoleadoresPage() {
           {!jornadaBloqueada && (
             <button
               onClick={() => guardar.mutate()}
-              disabled={seleccionados.length !== MAXIMO_GOLEADORES || guardar.isPending}
+              disabled={seleccionados.length === 0 || guardar.isPending}
               className="w-full font-body text-sm font-semibold bg-acento text-fondo rounded py-2.5 hover:brightness-110 disabled:opacity-50"
             >
               {guardar.isPending ? 'Guardando...' : `Guardar (${seleccionados.length}/${MAXIMO_GOLEADORES})`}

@@ -116,10 +116,7 @@ class ClasificacionController extends Controller
         $filasPorPartido = $pronosticos->map(function ($p) use ($eventos, $esUnoMismo) {
             $evento = $eventos->get($p->id_partido);
 
-            $jornadaBloqueada = CalendarioPartido::where('id_temporada', $p->partido->id_temporada)
-                ->where('jornada', $p->partido->jornada)
-                ->where('estado', '!=', 'Programado')
-                ->exists();
+            $jornadaBloqueada = CalendarioPartido::jornadaBloqueada($p->partido->id_temporada, $p->partido->jornada);
 
             $puedeVerse = $esUnoMismo || $jornadaBloqueada;
 
@@ -144,13 +141,11 @@ class ClasificacionController extends Controller
 
         $numerosJornada = $filasPorPartido->pluck('jornada')->unique()->sortDesc()->values();
 
-        $jornadas = $numerosJornada->map(function ($jornada) use ($liga, $usuario, $filasPorPartido, $bonusPlenoPorJornada, $config) {
+        $jornadas = $numerosJornada->map(function ($jornada) use ($liga, $usuario, $filasPorPartido, $bonusPlenoPorJornada, $config, $esUnoMismo) {
             $partidosDeEstaJornada = $filasPorPartido->where('jornada', $jornada)->values();
 
-            $bloqueada = CalendarioPartido::where('id_temporada', $liga->id_temporada)
-                ->where('jornada', $jornada)
-                ->where('estado', '!=', 'Programado')
-                ->exists();
+            $bloqueada = CalendarioPartido::jornadaBloqueada($liga->id_temporada, $jornada);
+            $goleadoresVisibles = $esUnoMismo || $bloqueada;
 
             $idsPartidosJornada = $partidosDeEstaJornada->pluck('id_partido');
 
@@ -165,15 +160,17 @@ class ClasificacionController extends Controller
                 ->get()
                 ->countBy('id_jugador');
 
-            $goleadores = $seleccionGoleadores->map(function ($seleccion) use ($golesRealesPorJugador, $config) {
+            $goleadores = $seleccionGoleadores->map(function ($seleccion) use ($golesRealesPorJugador, $config, $goleadoresVisibles) {
                 $goles = $golesRealesPorJugador->get($seleccion->id_jugador, 0);
+                $puntos = $goles * $config->puntos_gol_goleador;
 
                 return [
-                    'id' => $seleccion->id_jugador,
-                    'nombre' => $seleccion->jugador->nombre_camiseta ?? trim("{$seleccion->jugador->nombre} {$seleccion->jugador->apellidos}"),
-                    'foto_url' => $seleccion->jugador->foto_url,
-                    'goles' => $goles,
-                    'puntos' => $goles * $config->puntos_gol_goleador,
+                    'id' => $goleadoresVisibles ? $seleccion->id_jugador : null,
+                    'nombre' => $goleadoresVisibles ? ($seleccion->jugador->nombre_camiseta ?? trim("{$seleccion->jugador->nombre} {$seleccion->jugador->apellidos}")) : null,
+                    'foto_url' => $goleadoresVisibles ? $seleccion->jugador->foto_url : null,
+                    'goles' => $goleadoresVisibles ? $goles : null,
+                    'puntos' => $puntos,
+                    'oculto' => ! $goleadoresVisibles,
                 ];
             });
 

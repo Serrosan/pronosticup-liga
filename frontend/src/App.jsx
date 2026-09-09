@@ -51,6 +51,7 @@ import AdminQuinielasPage from './pages/AdminQuinielasPage'
 import VerifyEmailPage from './pages/VerifyEmailPage'
 import AdminImportarHistoricoPage from './pages/AdminImportarHistoricoPage'
 import PuntuacionesPage from './pages/PuntuacionesPage'
+import RedirectJornadaActual from './pages/RedirectJornadaActual'
 
 function RutaProtegida() {
   const { usuario, cargando } = useAuth()
@@ -99,6 +100,7 @@ function App() {
                 <Route path="/" element={<HomePage />} />
                 <Route path="/onboarding" element={<OnboardingPage />} />
                 <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/jornadas" element={<RedirectJornadaActual />} />
                 <Route path="/jornadas/:jornada" element={<MatchdayPage />} />
                 <Route path="/partidos/:id" element={<MatchDetailPage />} />
                 <Route path="/clasificacion" element={<StandingsPage />} />

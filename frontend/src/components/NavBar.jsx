@@ -6,7 +6,7 @@ import CampanaNotificaciones from './CampanaNotificaciones'
 
 const ENLACES = [
   { to: '/dashboard', match: '/dashboard', label: 'Inicio' },
-  { to: '/jornadas/1', match: '/jornadas', label: 'Jornada' },
+  { to: '/jornadas', match: '/jornadas', label: 'Jornada' },
   { to: '/pronosticos', match: '/pronosticos', label: 'Pronósticos' },
   { to: '/clasificacion', match: '/clasificacion', label: 'Clasificación' },
   { to: '/chat', match: '/chat', label: 'Chat' },

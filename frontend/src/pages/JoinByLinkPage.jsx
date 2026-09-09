@@ -23,7 +23,7 @@ function JoinByLinkPage() {
   }, [usuario, codigo])
 
   if (!usuario) return <Navigate to={`/register?codigo=${codigo}`} replace />
-  if (estado === 'exito') return <Navigate to="/jornadas/1" replace />
+  if (estado === 'exito') return <Navigate to="/jornadas" replace />
 
   return (
     <div className="min-h-screen bg-fondo flex items-center justify-center px-4">

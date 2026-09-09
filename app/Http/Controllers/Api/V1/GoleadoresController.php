@@ -41,7 +41,7 @@ class GoleadoresController extends Controller
         }
 
         $validated = $request->validate([
-            'jugadores' => ['required', 'array', 'size:5'],
+            'jugadores' => ['required', 'array', 'min:1', 'max:5'],
             'jugadores.*' => ['required', 'integer', 'distinct', 'exists:jugadores,id'],
         ]);
 

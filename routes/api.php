@@ -58,6 +58,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/estadisticas-jugadores/tarjetas', [\App\Http\Controllers\Api\V1\EstadisticasJugadoresController::class, 'tarjetas']);
     Route::get('/jornadas/{jornada}/momento-decisivo', [\App\Http\Controllers\Api\V1\MomentoDecisivoController::class, 'show']);
     Route::get('/configuracion-puntos', [\App\Http\Controllers\Api\V1\ConfiguracionPuntosPublicaController::class, 'show']);
+    Route::get('/equipos-lista', [\App\Http\Controllers\Api\V1\EquipoListaController::class, 'index']);
 
     Route::middleware('admin')->prefix('admin')->group(function () {
         Route::get('/equipos/{equipo}', [\App\Http\Controllers\Api\V1\Admin\EquipoAdminController::class, 'show']);
@@ -117,6 +118,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/eventos-partido/interpretar', [\App\Http\Controllers\Api\V1\Admin\EventoPartidoAdminController::class, 'interpretar']);
         Route::post('/eventos-partido/guardar', [\App\Http\Controllers\Api\V1\Admin\EventoPartidoAdminController::class, 'guardar']);
         Route::post('/jornadas/{jornada}/recalcular-eventos', [\App\Http\Controllers\Api\V1\JornadaController::class, 'recalcularEventos']);
+        Route::post('/jornadas/{jornada}/recalcular-puntos', [\App\Http\Controllers\Api\V1\JornadaController::class, 'recalcularPuntos']);
         Route::post('/importar-historico/interpretar', [\App\Http\Controllers\Api\V1\Admin\HistoricoImportController::class, 'interpretar']);
         Route::post('/importar-historico/guardar', [\App\Http\Controllers\Api\V1\Admin\HistoricoImportController::class, 'guardar']);
         Route::post('/importar-historico', [\App\Http\Controllers\Api\V1\Admin\HistoricoImportController::class, 'importar']);

@@ -10,7 +10,7 @@
     <meta name="robots" content="noindex, nofollow">
     <meta http-equiv="Content-Security-Policy" content="
       default-src 'self';
-      script-src 'self' http://localhost:3001;
+      script-src 'self' http://localhost:3001 https://cdn.jsdelivr.net;
       style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
       font-src 'self' https://fonts.gstatic.com;
       img-src 'self' data: https: http://localhost:* blob:;
@@ -36,5 +36,13 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+        <script>
+      if (window.location.search.includes('debug=1')) {
+        const script = document.createElement('script')
+        script.src = 'https://cdn.jsdelivr.net/npm/eruda'
+        script.onload = () => eruda.init()
+        document.body.appendChild(script)
+      }
+    </script>
   </body>
 </html>

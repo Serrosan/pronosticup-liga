@@ -313,6 +313,7 @@ class JornadaController extends Controller
                 $jornada,
                 $puntosPorUsuario[$usuario->id],
                 $posicion === false ? null : $posicion + 1,
+                $liga->nombre,
             ));
         }
     }

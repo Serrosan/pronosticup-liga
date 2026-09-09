@@ -14,6 +14,7 @@ class JornadaCerradaConPuntos extends Notification
         public int $jornada,
         public int $puntos,
         public ?int $posicion,
+        public string $nombreLiga,
     ) {}
 
     public function via($notifiable): array
@@ -26,7 +27,7 @@ class JornadaCerradaConPuntos extends Notification
         return [
             'tipo' => 'jornada_cerrada',
             'titulo' => "Jornada {$this->jornada} cerrada",
-            'mensaje' => "Has conseguido {$this->puntos} puntos".($this->posicion ? " · vas #{$this->posicion} en tu liga" : ''),
+            'mensaje' => "Has conseguido {$this->puntos} puntos en {$this->nombreLiga}".($this->posicion ? " · vas #{$this->posicion}" : ''),
             'jornada' => $this->jornada,
             'importante' => true,
         ];
@@ -35,10 +36,13 @@ class JornadaCerradaConPuntos extends Notification
     public function toMail($notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject("📊 Resultados de la Jornada {$this->jornada}")
+            ->subject("📊 Resultados de la Jornada {$this->jornada} — {$this->nombreLiga}")
             ->greeting('¡Ya está todo resuelto!')
-            ->line("Has conseguido **{$this->puntos} puntos** en la Jornada {$this->jornada}.")
-            ->when($this->posicion, fn ($mail) => $mail->line("Vas en la posición #{$this->posicion} de tu liga."))
-            ->action('Ver clasificación', url('/clasificacion'));
+            ->line("Se ha cerrado la **Jornada {$this->jornada}** en tu liga **{$this->nombreLiga}**.")
+            ->line("Has conseguido **{$this->puntos} puntos** con tus pronósticos de esta jornada.")
+            ->when($this->posicion, fn ($mail) => $mail->line("Ahora mismo vas en la posición **#{$this->posicion}** de esa liga."))
+            ->action('Ver clasificación', url('/clasificacion'))
+            ->line('Sigue así para la próxima jornada — cada pronóstico cuenta.')
+            ->salutation('¡Nos vemos en la próxima jornada! ⚽');
     }
 }

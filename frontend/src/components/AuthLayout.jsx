@@ -21,12 +21,7 @@ function AuthLayout({ children }) {
 
       <div className="relative w-full max-w-md z-10">
         <div className="bg-acento/10 border-b border-acento/20 border border-borde/30 rounded-t-2xl px-6 pt-6 pb-5 text-center backdrop-blur-sm">
-          <div className="flex items-center justify-center gap-2">
-            <span className="font-display text-2xl text-texto tracking-wide">PronostiCup</span>
-            <span className="font-body font-bold text-[10px] bg-acento text-fondo rounded px-1.5 py-0.5 tracking-widest">
-              LIGA
-            </span>
-          </div>
+          <img src="/logo.png" alt="PronostiCup Liga" className="h-24 w-auto mx-auto" />
           <p className="font-body text-xs text-borde mt-1">Jornada tras jornada, con tu grupo</p>
         </div>
 

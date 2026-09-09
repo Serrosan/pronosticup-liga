@@ -60,6 +60,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/configuracion-puntos', [\App\Http\Controllers\Api\V1\ConfiguracionPuntosPublicaController::class, 'show']);
     Route::get('/equipos-lista', [\App\Http\Controllers\Api\V1\EquipoListaController::class, 'index']);
     Route::get('/jornada-actual', [\App\Http\Controllers\Api\V1\JornadaActualController::class, 'show']);
+    Route::post('/jornadas/{jornada}/copiar-pronosticos', [\App\Http\Controllers\Api\V1\CopiarPronosticosController::class, 'copiar']);
 
     Route::middleware('admin')->prefix('admin')->group(function () {
         Route::get('/equipos/{equipo}', [\App\Http\Controllers\Api\V1\Admin\EquipoAdminController::class, 'show']);

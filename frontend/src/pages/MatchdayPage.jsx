@@ -1,10 +1,13 @@
+import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import client from '../api/client'
 import MatchCard from '../components/MatchCard'
 import useTitulo from '../hooks/useTitulo'
 import SkeletonJornada from '../components/SkeletonJornada'
 import MomentoDecisivo from '../components/MomentoDecisivo'
+import { useAuth } from '../context/AuthContext'
+import { useToast } from '../context/ToastContext'
 import { formatearActualizacion } from '../utils/tiempo'
 
 const TOTAL_JORNADAS = 38
@@ -48,6 +51,63 @@ function EstadoGoleadores({ jornada }) {
       >
         {completo ? `✓ Tus 5 goleadores elegidos` : `⚽ Elegir tus 5 goleadores${total > 0 ? ` (${total}/5)` : ''}`}
       </Link>
+    </div>
+  )
+}
+
+function CopiarDeOtraLiga({ jornada, jornadaBloqueada }) {
+  const { usuario } = useAuth()
+  const toast = useToast()
+  const queryClient = useQueryClient()
+  const [abierto, setAbierto] = useState(false)
+
+  const { data: ligas } = useQuery({
+    queryKey: ['mis-ligas'],
+    queryFn: async () => (await client.get('/api/v1/ligas')).data.data,
+  })
+
+  const copiar = useMutation({
+    mutationFn: (idLigaOrigen) => client.post(`/api/v1/jornadas/${jornada}/copiar-pronosticos`, { id_liga_origen: idLigaOrigen }),
+    onSuccess: (respuesta) => {
+      toast.exito(respuesta.data.message)
+      setAbierto(false)
+      queryClient.invalidateQueries({ queryKey: ['partidos', String(jornada)] })
+      queryClient.invalidateQueries({ queryKey: ['goleadores', jornada] })
+    },
+    onError: (err) => toast.error(err.response?.data?.message ?? 'No se pudo copiar.'),
+  })
+
+  const otrasLigas = ligas?.filter((l) => l.id !== usuario?.liga_activa?.id) ?? []
+
+  if (jornadaBloqueada || otrasLigas.length === 0) return null
+
+  return (
+    <div className="flex justify-center mb-1">
+      {!abierto ? (
+        <button
+          onClick={() => setAbierto(true)}
+          className="font-body text-xs text-borde border border-borde/30 rounded-full px-3 py-1 hover:bg-borde/10"
+        >
+          📋 Copiar desde otra liga
+        </button>
+      ) : (
+        <div className="bg-fondo border border-borde/30 rounded-lg px-3 py-2 flex items-center gap-2 flex-wrap justify-center">
+          <span className="font-body text-xs text-borde">Copiar desde:</span>
+          {otrasLigas.map((liga) => (
+            <button
+              key={liga.id}
+              onClick={() => copiar.mutate(liga.id)}
+              disabled={copiar.isPending}
+              className="font-body text-xs font-semibold text-acento border border-acento/40 rounded-full px-3 py-1 hover:bg-acento/10 disabled:opacity-50"
+            >
+              {liga.nombre}
+            </button>
+          ))}
+          <button onClick={() => setAbierto(false)} className="font-body text-xs text-borde hover:text-texto">
+            Cancelar
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -100,8 +160,8 @@ function MatchdayPage() {
           →
         </button>
       </div>
-
       <EstadoGoleadores jornada={numeroJornada} />
+      <CopiarDeOtraLiga jornada={numeroJornada} jornadaBloqueada={data?.jornadaBloqueada} />
 
       {grupos.length > 0 && (
         <p className="font-body text-sm font-semibold text-acento text-center whitespace-nowrap mb-1">

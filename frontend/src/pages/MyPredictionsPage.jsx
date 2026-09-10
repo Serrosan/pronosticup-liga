@@ -28,10 +28,16 @@ function AvatarPequeno({ url, nombre }) {
 }
 
 const ESTILO_TIPO = {
-  AciertoExacto: { color: 'var(--color-premio)' },
-  AciertoDiferencia: { color: 'var(--color-acento)' },
+  AciertoExacto: { color: '#22C55E' },
+  AciertoDiferencia: { color: '#F59E0B' },
   Acierto1x2: { color: 'var(--color-acento)' },
-  Fallo: { color: 'var(--color-borde)' },
+  Fallo: { color: '#EF4444' },
+}
+
+function calcularResultado1x2(golesLocal, golesVisitante) {
+  if (golesLocal > golesVisitante) return 'Local'
+  if (golesLocal < golesVisitante) return 'Visitante'
+  return 'Empate'
 }
 
 function ResultadoComparado({ prediccion, golesCasa, golesFuera, tipoEvento, puntos, estadoPartido }) {
@@ -50,36 +56,64 @@ function ResultadoComparado({ prediccion, golesCasa, golesFuera, tipoEvento, pun
   const estilo = ESTILO_TIPO[tipoEvento] ?? ESTILO_TIPO.Fallo
 
   return (
-    <div className="flex items-center gap-2.5 shrink-0">
-      <div className="flex flex-col items-center">
+    <div className="flex items-stretch gap-2.5 shrink-0">
+      <div className="flex flex-col items-center justify-center">
         <p className="font-body text-[8px] uppercase tracking-widest text-borde">Tú</p>
         <p className="font-marcador text-lg font-bold" style={{ color: estilo.color }}>{prediccion}</p>
       </div>
 
-      <div className="w-px h-8 bg-borde/20" />
+      <div className="w-px bg-borde/20" />
 
-      <div className="flex flex-col items-center">
+      <div className="flex flex-col items-center justify-center">
         <p className="font-body text-[8px] uppercase tracking-widest text-borde">Real</p>
         <p className="font-marcador text-lg text-texto">{golesCasa}-{golesFuera}</p>
       </div>
 
-      <span
-        className="font-marcador text-xs font-bold rounded-full px-2 py-1 ml-0.5"
-        style={{ backgroundColor: `${estilo.color}1F`, color: estilo.color }}
-      >
-        +{puntos}
-      </span>
+      <div className="flex items-center">
+        <span
+          className="font-marcador text-xs font-bold rounded-full px-2 py-1"
+          style={{ backgroundColor: `${estilo.color}1F`, color: estilo.color }}
+        >
+          +{puntos}
+        </span>
+      </div>
     </div>
   )
 }
 
-function OtrosPronosticos({ jornada, idPartido }) {
+function OtrosPronosticos({ jornada, idPartido, golesCasa, golesFuera, estadoPartido }) {
   const { data, isLoading } = useQuery({
     queryKey: ['otros-pronosticos', jornada],
     queryFn: async () => (await client.get(`/api/v1/jornadas/${jornada}/otros-pronosticos`)).data.data,
   })
 
   const otros = data?.[idPartido] ?? []
+  const resuelto = estadoPartido === 'Jugado' && golesCasa !== null && golesFuera !== null
+  const resultadoReal = resuelto ? calcularResultado1x2(golesCasa, golesFuera) : null
+
+  function colorDe(pronostico) {
+    if (!resuelto) return 'var(--color-texto)'
+
+    const [golesLocalPred, golesVisitantePred] = pronostico.split('-').map(Number)
+
+    if (golesLocalPred === golesCasa && golesVisitantePred === golesFuera) {
+      return ESTILO_TIPO.AciertoExacto.color
+    }
+
+    const resultadoPredicho = calcularResultado1x2(golesLocalPred, golesVisitantePred)
+    if (resultadoPredicho !== resultadoReal) {
+      return ESTILO_TIPO.Fallo.color
+    }
+
+    if (resultadoReal === 'Empate') {
+      const margen = Math.abs(golesLocalPred - golesCasa)
+      return margen === 1 ? ESTILO_TIPO.AciertoDiferencia.color : ESTILO_TIPO.Acierto1x2.color
+    }
+
+    const diferenciaReal = golesCasa - golesFuera
+    const diferenciaPredicha = golesLocalPred - golesVisitantePred
+    return diferenciaReal === diferenciaPredicha ? ESTILO_TIPO.AciertoDiferencia.color : ESTILO_TIPO.Acierto1x2.color
+  }
 
   return (
     <div className="mx-4 mb-3 bg-borde/5 border border-borde/10 rounded-lg overflow-hidden">
@@ -92,15 +126,21 @@ function OtrosPronosticos({ jornada, idPartido }) {
         <p className="font-body text-xs text-borde px-3 pb-2.5">Nadie más pronosticó este partido.</p>
       ) : (
         <div className="flex flex-col divide-y divide-borde/10">
-          {otros.map((o, i) => (
-            <div key={i} className="flex items-center gap-2.5 px-3 py-2">
-              <AvatarPequeno url={o.avatar_url} nombre={o.usuario} />
-              <p className="font-body text-xs text-texto flex-1 truncate">{o.usuario}</p>
-              <span className="font-marcador text-xs font-bold text-texto bg-fondo border border-borde/20 rounded px-2 py-0.5">
-                {o.pronostico}
-              </span>
-            </div>
-          ))}
+          {otros.map((o, i) => {
+            const color = colorDe(o.pronostico)
+            return (
+              <div key={i} className="flex items-center gap-2.5 px-3 py-2">
+                <AvatarPequeno url={o.avatar_url} nombre={o.usuario} />
+                <p className="font-body text-xs text-texto flex-1 truncate">{o.usuario}</p>
+                <span
+                  className="font-marcador text-xs font-bold rounded px-2 py-0.5"
+                  style={{ backgroundColor: `${color}1F`, color }}
+                >
+                  {o.pronostico}
+                </span>
+              </div>
+            )
+          })}
         </div>
       )}
     </div>
@@ -143,7 +183,15 @@ function FilaPartido({ partido, jornada, jornadaBloqueada }) {
         </div>
       )}
 
-      {mostrarOtros && <OtrosPronosticos jornada={jornada} idPartido={partido.id_partido} />}
+      {mostrarOtros && (
+        <OtrosPronosticos
+          jornada={jornada}
+          idPartido={partido.id_partido}
+          golesCasa={partido.goles_casa}
+          golesFuera={partido.goles_fuera}
+          estadoPartido={partido.estado_partido}
+        />
+      )}
     </div>
   )
 }

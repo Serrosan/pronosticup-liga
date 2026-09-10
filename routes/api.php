@@ -51,6 +51,8 @@ Route::prefix('v1')->group(function () {
     Route::get('/notificaciones/no-leidas', [\App\Http\Controllers\Api\V1\NotificacionController::class, 'noLeidas']);
     Route::post('/notificaciones/{id}/leer', [\App\Http\Controllers\Api\V1\NotificacionController::class, 'marcarLeida']);
     Route::post('/notificaciones/leer-todas', [\App\Http\Controllers\Api\V1\NotificacionController::class, 'marcarTodasLeidas']);
+    Route::delete('/notificaciones/leidas', [\App\Http\Controllers\Api\V1\NotificacionController::class, 'borrarLeidas']);
+    Route::delete('/notificaciones/{id}', [\App\Http\Controllers\Api\V1\NotificacionController::class, 'destroy']);
     Route::get('/clasificacion/usuarios/{usuario}/detalle', [\App\Http\Controllers\Api\V1\ClasificacionController::class, 'detalle']);
     Route::get('/jornadas/{jornada}/otros-pronosticos', [\App\Http\Controllers\Api\V1\OtrosPronosticosController::class, 'show']);
     Route::get('/estadisticas-jugadores/goleadores', [\App\Http\Controllers\Api\V1\EstadisticasJugadoresController::class, 'goleadores']);

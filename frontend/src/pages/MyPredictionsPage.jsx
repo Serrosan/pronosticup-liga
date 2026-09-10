@@ -28,30 +28,47 @@ function AvatarPequeno({ url, nombre }) {
 }
 
 const ESTILO_TIPO = {
-  AciertoExacto: { color: 'var(--color-premio)', fondo: 'bg-premio/10', borde: 'border-premio/40' },
-  AciertoDiferencia: { color: 'var(--color-acento)', fondo: 'bg-acento/10', borde: 'border-acento/40' },
-  Acierto1x2: { color: 'var(--color-acento)', fondo: 'bg-acento/5', borde: 'border-acento/25' },
-  Fallo: { color: 'var(--color-borde)', fondo: 'bg-borde/5', borde: 'border-borde/20' },
+  AciertoExacto: { color: 'var(--color-premio)' },
+  AciertoDiferencia: { color: 'var(--color-acento)' },
+  Acierto1x2: { color: 'var(--color-acento)' },
+  Fallo: { color: 'var(--color-borde)' },
 }
 
 function ResultadoComparado({ prediccion, golesCasa, golesFuera, tipoEvento, puntos, estadoPartido }) {
   const resuelto = estadoPartido === 'Jugado'
-  const estilo = resuelto ? (ESTILO_TIPO[tipoEvento] ?? ESTILO_TIPO.Fallo) : null
 
   if (!resuelto) {
     return (
-      <div className="flex flex-col items-center w-20 shrink-0">
-        <p className="font-marcador text-sm text-texto">{prediccion}</p>
-        <p className="font-body text-[9px] text-borde mt-0.5">pendiente</p>
+      <div className="flex flex-col items-center shrink-0">
+        <p className="font-body text-[8px] uppercase tracking-widest text-borde">Tú</p>
+        <p className="font-marcador text-lg text-texto">{prediccion}</p>
+        <span className="font-body text-[9px] text-borde">pendiente</span>
       </div>
     )
   }
 
+  const estilo = ESTILO_TIPO[tipoEvento] ?? ESTILO_TIPO.Fallo
+
   return (
-    <div className={`flex flex-col items-center w-20 shrink-0 rounded-lg border px-2 py-1 ${estilo.fondo} ${estilo.borde}`}>
-      <p className="font-marcador text-sm font-bold" style={{ color: estilo.color }}>{prediccion}</p>
-      <p className="font-body text-[9px] text-borde">real: {golesCasa}-{golesFuera}</p>
-      <p className="font-marcador text-[10px] font-bold" style={{ color: estilo.color }}>+{puntos}pt</p>
+    <div className="flex items-center gap-2.5 shrink-0">
+      <div className="flex flex-col items-center">
+        <p className="font-body text-[8px] uppercase tracking-widest text-borde">Tú</p>
+        <p className="font-marcador text-lg font-bold" style={{ color: estilo.color }}>{prediccion}</p>
+      </div>
+
+      <div className="w-px h-8 bg-borde/20" />
+
+      <div className="flex flex-col items-center">
+        <p className="font-body text-[8px] uppercase tracking-widest text-borde">Real</p>
+        <p className="font-marcador text-lg text-texto">{golesCasa}-{golesFuera}</p>
+      </div>
+
+      <span
+        className="font-marcador text-xs font-bold rounded-full px-2 py-1 ml-0.5"
+        style={{ backgroundColor: `${estilo.color}1F`, color: estilo.color }}
+      >
+        +{puntos}
+      </span>
     </div>
   )
 }
@@ -62,23 +79,30 @@ function OtrosPronosticos({ jornada, idPartido }) {
     queryFn: async () => (await client.get(`/api/v1/jornadas/${jornada}/otros-pronosticos`)).data.data,
   })
 
-  if (isLoading) return <p className="font-body text-[11px] text-borde px-4 py-2">Cargando...</p>
-
   const otros = data?.[idPartido] ?? []
 
-  if (otros.length === 0) {
-    return <p className="font-body text-[11px] text-borde px-4 py-2">Nadie más pronosticó este partido.</p>
-  }
-
   return (
-    <div className="flex flex-col gap-1.5 px-4 py-2 bg-borde/5">
-      {otros.map((o, i) => (
-        <div key={i} className="flex items-center gap-2">
-          <AvatarPequeno url={o.avatar_url} nombre={o.usuario} />
-          <p className="font-body text-xs text-texto flex-1 truncate">{o.usuario}</p>
-          <span className="font-marcador text-xs text-borde">{o.pronostico}</span>
+    <div className="mx-4 mb-3 bg-borde/5 border border-borde/10 rounded-lg overflow-hidden">
+      <p className="font-body text-[10px] uppercase tracking-widest text-borde px-3 pt-2.5 pb-1.5">
+        Pronósticos del grupo
+      </p>
+      {isLoading ? (
+        <p className="font-body text-xs text-borde px-3 pb-2.5">Cargando...</p>
+      ) : otros.length === 0 ? (
+        <p className="font-body text-xs text-borde px-3 pb-2.5">Nadie más pronosticó este partido.</p>
+      ) : (
+        <div className="flex flex-col divide-y divide-borde/10">
+          {otros.map((o, i) => (
+            <div key={i} className="flex items-center gap-2.5 px-3 py-2">
+              <AvatarPequeno url={o.avatar_url} nombre={o.usuario} />
+              <p className="font-body text-xs text-texto flex-1 truncate">{o.usuario}</p>
+              <span className="font-marcador text-xs font-bold text-texto bg-fondo border border-borde/20 rounded px-2 py-0.5">
+                {o.pronostico}
+              </span>
+            </div>
+          ))}
         </div>
-      ))}
+      )}
     </div>
   )
 }
@@ -108,12 +132,13 @@ function FilaPartido({ partido, jornada, jornadaBloqueada }) {
       </div>
 
       {jornadaBloqueada && (
-        <div className="px-4 pb-2 -mt-1">
+        <div className="px-4 pb-2.5 -mt-1">
           <button
             onClick={() => setMostrarOtros(!mostrarOtros)}
-            className="font-body text-[11px] text-acento hover:underline"
+            className="font-body text-[11px] text-borde border border-borde/25 rounded-full px-2.5 py-1 hover:bg-borde/10 hover:text-texto transition inline-flex items-center gap-1"
           >
-            {mostrarOtros ? 'Ocultar' : 'Ver'} qué pronosticaron los demás
+            <span className="text-[9px]">{mostrarOtros ? '▲' : '▼'}</span>
+            {mostrarOtros ? 'Ocultar' : 'Ver'} pronósticos del grupo
           </button>
         </div>
       )}

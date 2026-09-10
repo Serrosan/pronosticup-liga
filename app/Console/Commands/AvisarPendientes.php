@@ -13,9 +13,9 @@ use Illuminate\Console\Command;
 class AvisarPendientes extends Command
 {
     protected $signature = 'liga:avisar-pendientes';
-    protected $description = 'Avisa a usuarios con pronósticos o goleadores pendientes, 24h y 12h antes del inicio de la jornada';
+    protected $description = 'Avisa a usuarios con pronósticos o goleadores pendientes, 24h/6h/2h antes del inicio de la jornada';
 
-    private const VENTANAS = [24, 12];
+    private const VENTANAS = [24, 6, 2];
 
     public function handle(): void
     {
@@ -42,8 +42,14 @@ class AvisarPendientes extends Command
                 }
 
                 foreach ($liga->usuarios as $usuario) {
-                    $avisosEnviados += $this->avisarSiHaceFalta($usuario, $liga, $numeroJornada, $ventana, 'pronosticos');
-                    $avisosEnviados += $this->avisarSiHaceFalta($usuario, $liga, $numeroJornada, $ventana, 'goleadores');
+                    foreach (['pronosticos', 'goleadores'] as $tipo) {
+                        try {
+                            $avisosEnviados += $this->avisarSiHaceFalta($usuario, $liga, $numeroJornada, $ventana, $tipo);
+                        } catch (\Throwable $e) {
+                            $this->error("Fallo avisando a {$usuario->email} ({$tipo}, liga {$liga->id}, J{$numeroJornada}): {$e->getMessage()}");
+                            report($e);
+                        }
+                    }
                 }
             }
         }

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import client from '../api/client'
@@ -29,15 +30,51 @@ function FlechaTendencia({ tendencia }) {
   return <span className="text-red-500 text-xs w-4 text-center shrink-0" title="Ha bajado puesto(s)">▼</span>
 }
 
+function SelectorJornada({ jornadaSeleccionada, onCambiar }) {
+  const { data: jornadas } = useQuery({
+    queryKey: ['jornadas-cerradas'],
+    queryFn: async () => (await client.get('/api/v1/jornadas-cerradas')).data.data,
+  })
+
+  if (!jornadas || jornadas.length === 0) return null
+
+  return (
+    <div className="flex gap-2 flex-wrap mb-4">
+      <button
+        onClick={() => onCambiar(null)}
+        className={`font-body text-sm px-3 py-1.5 rounded-full transition ${
+          jornadaSeleccionada === null ? 'bg-acento text-fondo font-semibold' : 'text-texto border border-borde/40 hover:bg-borde/10'
+        }`}
+      >
+        Total
+      </button>
+      {jornadas.map((j) => (
+        <button
+          key={j}
+          onClick={() => onCambiar(j)}
+          className={`font-body text-sm px-3 py-1.5 rounded-full transition ${
+            jornadaSeleccionada === j ? 'bg-acento text-fondo font-semibold' : 'text-texto border border-borde/40 hover:bg-borde/10'
+          }`}
+        >
+          J{j}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 function StandingsPage() {
   const { usuario } = useAuth()
+  const [jornadaSeleccionada, setJornadaSeleccionada] = useState(null)
 
   useTitulo('Clasificación')
 
   const { data: clasificacion, isLoading, error } = useQuery({
-    queryKey: ['clasificacion'],
+    queryKey: ['clasificacion', jornadaSeleccionada],
     queryFn: async () => {
-      const respuesta = await client.get('/api/v1/clasificacion')
+      const respuesta = await client.get('/api/v1/clasificacion', {
+        params: jornadaSeleccionada ? { hasta_jornada: jornadaSeleccionada } : {},
+      })
       return respuesta.data.data
     },
   })
@@ -51,14 +88,24 @@ function StandingsPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
-      {filaMia && (
+      <SelectorJornada jornadaSeleccionada={jornadaSeleccionada} onCambiar={setJornadaSeleccionada} />
+
+      {jornadaSeleccionada !== null && (
+        <div className="mb-4 bg-premio/10 border border-premio/30 rounded-lg px-4 py-2.5 text-center">
+          <p className="font-body text-sm text-premio font-semibold">
+            📅 Así iba la clasificación tras la Jornada {jornadaSeleccionada}
+          </p>
+        </div>
+      )}
+
+      {jornadaSeleccionada === null && filaMia && (
         <div className="flex justify-end mb-3">
           <CompartirClasificacion fila={filaMia} ligaNombre={usuario?.liga_activa?.nombre ?? 'PronostiCup Liga'} totalParticipantes={clasificacion.length} />
         </div>
       )}
 
       <div className="bg-fondo border border-borde/30 rounded-lg overflow-hidden">
-        <TicketHeader titulo="Clasificación de la liga" />
+        <TicketHeader titulo={jornadaSeleccionada ? `Clasificación tras la Jornada ${jornadaSeleccionada}` : 'Clasificación de la liga'} />
 
         {clasificacion.length === 0 ? (
           <EstadoVacio icono="🏆" titulo="Aún no hay puntos" texto="En cuanto se cierre la primera jornada, aparecerá aquí la clasificación." />

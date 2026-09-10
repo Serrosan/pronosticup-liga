@@ -23,16 +23,26 @@ class ClasificacionController extends Controller
             return response()->json(['message' => 'No tienes ninguna liga activa.'], 409);
         }
 
-        $eventos = EventoPuntos::where('id_liga', $liga->id)->get();
+        $validated = $request->validate([
+            'hasta_jornada' => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        $hastaJornada = $validated['hasta_jornada'] ?? null;
+
+        $consulta = EventoPuntos::where('id_liga', $liga->id);
+
+        if ($hastaJornada) {
+            $consulta->where('jornada', '<=', $hastaJornada);
+        }
+
+        $eventos = $consulta->get();
         $porUsuario = $eventos->groupBy('id_usuario');
 
-        $ultimaJornadaCerrada = CierreJornada::where('id_liga', $liga->id)
-            ->where('cerrada', true)
-            ->max('jornada');
+        $jornadaParaComparar = $hastaJornada ?? CierreJornada::where('id_liga', $liga->id)->where('cerrada', true)->max('jornada');
 
         $posicionesAnteriores = [];
-        if ($ultimaJornadaCerrada) {
-            $eventosAnteriores = $eventos->where('jornada', '<', $ultimaJornadaCerrada);
+        if ($jornadaParaComparar) {
+            $eventosAnteriores = $eventos->where('jornada', '<', $jornadaParaComparar);
             $posicionesAnteriores = $eventosAnteriores->groupBy('id_usuario')
                 ->map(fn ($grupo) => $grupo->sum('puntos'))
                 ->sortDesc()
@@ -76,6 +86,22 @@ class ClasificacionController extends Controller
         return response()->json(['data' => $filas]);
     }
 
+    public function jornadasCerradas(Request $request)
+    {
+        $liga = $request->user()->ligaActiva;
+
+        if (! $liga) {
+            return response()->json(['message' => 'No tienes ninguna liga activa.'], 409);
+        }
+
+        $jornadas = CierreJornada::where('id_liga', $liga->id)
+            ->where('cerrada', true)
+            ->orderByDesc('jornada')
+            ->pluck('jornada');
+
+        return response()->json(['data' => $jornadas]);
+    }
+
     public function detalle(Request $request, User $usuario)
     {
         $liga = $request->user()->ligaActiva;
@@ -117,7 +143,6 @@ class ClasificacionController extends Controller
             $evento = $eventos->get($p->id_partido);
 
             $jornadaBloqueada = CalendarioPartido::jornadaBloqueada($p->partido->id_temporada, $p->partido->jornada);
-
             $puedeVerse = $esUnoMismo || $jornadaBloqueada;
 
             return [

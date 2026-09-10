@@ -18,7 +18,7 @@ class ChatController extends Controller
         }
 
         $mensajes = MensajeChat::where('id_liga', $liga->id)
-            ->with('usuario')
+            ->with(['usuario', 'mensajeRespondido.usuario'])
             ->orderBy('created_at')
             ->limit(100)
             ->get()
@@ -40,6 +40,16 @@ class ChatController extends Controller
 
         $validated = $request->validated();
 
+        if (! empty($validated['id_mensaje_respondido'])) {
+            $perteneceALaLiga = MensajeChat::where('id', $validated['id_mensaje_respondido'])
+                ->where('id_liga', $liga->id)
+                ->exists();
+
+            if (! $perteneceALaLiga) {
+                return response()->json(['message' => 'No puedes responder a ese mensaje.'], 403);
+            }
+        }
+
         $mensaje = MensajeChat::create([
             'id_liga' => $liga->id,
             'id_usuario' => $request->user()->id,
@@ -47,9 +57,10 @@ class ChatController extends Controller
             'tipo' => $validated['tipo'],
             'adjunto_url' => $validated['adjunto_url'] ?? null,
             'reacciones' => [],
+            'id_mensaje_respondido' => $validated['id_mensaje_respondido'] ?? null,
         ]);
 
-        $mensaje->load('usuario');
+        $mensaje->load(['usuario', 'mensajeRespondido.usuario']);
 
         return response()->json(['data' => $this->formatear($mensaje)]);
     }
@@ -81,7 +92,7 @@ class ChatController extends Controller
         $reacciones[$emoji] = $reacciones[$emoji]->values()->all();
 
         $mensajeChat->update(['reacciones' => $reacciones]);
-        $mensajeChat->load('usuario');
+        $mensajeChat->load(['usuario', 'mensajeRespondido.usuario']);
 
         return response()->json(['data' => $this->formatear($mensajeChat)]);
     }
@@ -100,6 +111,13 @@ class ChatController extends Controller
             ],
             'reacciones' => $mensaje->reacciones ?? [],
             'creado_en' => $mensaje->created_at->toIso8601String(),
+            'respondido_a' => $mensaje->mensajeRespondido ? [
+                'id' => $mensaje->mensajeRespondido->id,
+                'usuario' => $mensaje->mensajeRespondido->usuario->nombre_visible ?? $mensaje->mensajeRespondido->usuario->name,
+                'texto' => $mensaje->mensajeRespondido->tipo === 'texto'
+                    ? $mensaje->mensajeRespondido->texto
+                    : ($mensaje->mensajeRespondido->tipo === 'imagen' ? '📷 Imagen' : '🎤 Nota de voz'),
+            ] : null,
         ];
     }
 }

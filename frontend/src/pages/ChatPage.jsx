@@ -37,7 +37,7 @@ function agruparPorFechaYAutor(mensajes) {
   let grupoActual = null
   mensajes.forEach((m) => {
     const fechaDia = new Date(m.creado_en).toDateString()
-    const nuevoGrupo = !grupoActual || grupoActual.fechaDia !== fechaDia || grupoActual.usuarioId !== m.usuario.id
+    const nuevoGrupo = !grupoActual || grupoActual.fechaDia !== fechaDia || grupoActual.usuarioId !== m.usuario.id || m.respondido_a
     if (nuevoGrupo) {
       grupoActual = { fechaDia, usuarioId: m.usuario.id, mensajes: [m] }
       grupos.push(grupoActual)
@@ -100,7 +100,25 @@ function ContenidoMensaje({ mensaje, esMio, terminoBusqueda }) {
   return <TextoConEnlaces texto={mensaje.texto} esMio={esMio} terminoBusqueda={terminoBusqueda} />
 }
 
-function GrupoMensajes({ grupo, esMio, miId, terminoBusqueda, mensajeIdResaltado, registrarRef }) {
+function CitaRespondida({ respondidoA, esMio, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full text-left rounded-lg px-2.5 py-1.5 mb-1.5 border-l-2 ${
+        esMio ? 'bg-fondo/20 border-fondo/50' : 'bg-borde/10 border-acento/60'
+      }`}
+    >
+      <p className={`font-body text-[10px] font-semibold ${esMio ? 'text-fondo/90' : 'text-acento'}`}>
+        {respondidoA.usuario}
+      </p>
+      <p className={`font-body text-xs truncate ${esMio ? 'text-fondo/70' : 'text-borde'}`}>
+        {respondidoA.texto}
+      </p>
+    </button>
+  )
+}
+
+function GrupoMensajes({ grupo, esMio, miId, terminoBusqueda, mensajeIdResaltado, registrarRef, onResponder, onIrAMensaje }) {
   const queryClient = useQueryClient()
   const [selectorAbierto, setSelectorAbierto] = useState(null)
 
@@ -134,10 +152,18 @@ function GrupoMensajes({ grupo, esMio, miId, terminoBusqueda, mensajeIdResaltado
               <div
                 className={`
                   rounded-2xl transition
-                  ${esMultimedia ? '' : `px-3.5 py-2 ${esMio ? 'bg-acento text-fondo rounded-tr-sm' : 'bg-borde/10 text-texto rounded-tl-sm'}`}
+                  ${esMultimedia && !mensaje.respondido_a ? '' : `px-3.5 py-2 ${esMio ? 'bg-acento text-fondo rounded-tr-sm' : 'bg-borde/10 text-texto rounded-tl-sm'}`}
                   ${estaResaltado ? 'ring-2 ring-premio' : ''}
                 `}
               >
+                {mensaje.respondido_a && (
+                  <CitaRespondida
+                    respondidoA={mensaje.respondido_a}
+                    esMio={esMio}
+                    onClick={() => onIrAMensaje(mensaje.respondido_a.id)}
+                  />
+                )}
+
                 {esSticker ? (
                   <img src={mensaje.adjunto_url} alt="Sticker" className="w-28 h-28 object-contain" />
                 ) : (
@@ -147,7 +173,10 @@ function GrupoMensajes({ grupo, esMio, miId, terminoBusqueda, mensajeIdResaltado
 
               <div className="flex items-center gap-1 mt-1 px-1 relative">
                 <span className="font-body text-[10px] text-borde">{hora}</span>
-                <button onClick={() => setSelectorAbierto(selectorAbierto === mensaje.id ? null : mensaje.id)} className="font-body text-xs text-borde hover:text-texto ml-1">
+                <button onClick={() => onResponder(mensaje)} className="font-body text-xs text-borde hover:text-texto ml-1">
+                  ↩
+                </button>
+                <button onClick={() => setSelectorAbierto(selectorAbierto === mensaje.id ? null : mensaje.id)} className="font-body text-xs text-borde hover:text-texto">
                   +
                 </button>
 
@@ -262,6 +291,21 @@ function BarraBusqueda({ termino, onCambiar, resultados, indiceActual, onIrA, on
   )
 }
 
+function BarraRespondiendo({ mensaje, onCancelar }) {
+  const textoPreview = mensaje.tipo === 'texto' ? mensaje.texto : mensaje.tipo === 'imagen' ? '📷 Imagen' : '🎤 Nota de voz'
+
+  return (
+    <div className="bg-borde/10 border-x border-borde/30 px-4 py-2 flex items-center gap-2">
+      <div className="w-1 h-8 bg-acento rounded-full shrink-0" />
+      <div className="min-w-0 flex-1">
+        <p className="font-body text-xs font-semibold text-acento">Respondiendo a {mensaje.usuario.nombre}</p>
+        <p className="font-body text-xs text-borde truncate">{textoPreview}</p>
+      </div>
+      <button onClick={onCancelar} className="font-body text-borde hover:text-texto text-lg shrink-0">✕</button>
+    </div>
+  )
+}
+
 function ChatPage() {
   const { usuario } = useAuth()
   const toast = useToast()
@@ -274,8 +318,10 @@ function ChatPage() {
   const [busquedaAbierta, setBusquedaAbierta] = useState(false)
   const [terminoBusqueda, setTerminoBusqueda] = useState('')
   const [indiceResultado, setIndiceResultado] = useState(0)
+  const [respondiendoA, setRespondiendoA] = useState(null)
   const finRef = useRef(null)
   const inputImagenRef = useRef(null)
+  const inputTextoRef = useRef(null)
   const timeoutEnvioRef = useRef(null)
   const intervaloCuentaRef = useRef(null)
   const refsMensajes = useRef({})
@@ -293,7 +339,7 @@ function ChatPage() {
   })
 
   const enviarTexto = useMutation({
-    mutationFn: (texto) => client.post('/api/v1/chat', { tipo: 'texto', texto }),
+    mutationFn: ({ texto, idMensajeRespondido }) => client.post('/api/v1/chat', { tipo: 'texto', texto, id_mensaje_respondido: idMensajeRespondido }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['chat'] }),
     onError: () => toast.error('No se pudo enviar el mensaje.'),
   })
@@ -339,7 +385,6 @@ function ChatPage() {
     }
   }, [data, mensajePendiente, busquedaAbierta])
 
-  // Sonido de notificación al llegar un mensaje nuevo de otra persona
   useEffect(() => {
     if (!data?.mensajes?.length) return
 
@@ -377,7 +422,10 @@ function ChatPage() {
     const textoAEnviar = texto.trim()
     if (!textoAEnviar) return
 
+    const idMensajeRespondido = respondiendoA?.id ?? null
+
     setTexto('')
+    setRespondiendoA(null)
     setMensajePendiente(textoAEnviar)
     setSegundosRestantes(SEGUNDOS_PARA_DESHACER)
 
@@ -388,7 +436,7 @@ function ChatPage() {
     timeoutEnvioRef.current = setTimeout(() => {
       clearInterval(intervaloCuentaRef.current)
       setMensajePendiente(null)
-      enviarTexto.mutate(textoAEnviar)
+      enviarTexto.mutate({ texto: textoAEnviar, idMensajeRespondido })
     }, SEGUNDOS_PARA_DESHACER * 1000)
   }
 
@@ -443,6 +491,15 @@ function ChatPage() {
     setIndiceResultado(nuevoIndice)
     const mensajeId = resultadosBusqueda[nuevoIndice].id
     refsMensajes.current[mensajeId]?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
+
+  function responderA(mensaje) {
+    setRespondiendoA(mensaje)
+    inputTextoRef.current?.focus()
+  }
+
+  function irAMensajeCitado(id) {
+    refsMensajes.current[id]?.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }
 
   const grupos = data ? agruparPorFechaYAutor(data.mensajes) : []
@@ -519,6 +576,8 @@ function ChatPage() {
                   terminoBusqueda={terminoBusqueda}
                   mensajeIdResaltado={mensajeIdResaltado}
                   registrarRef={registrarRef}
+                  onResponder={responderA}
+                  onIrAMensaje={irAMensajeCitado}
                 />
               </div>
             )
@@ -543,6 +602,8 @@ function ChatPage() {
           </button>
         </div>
       )}
+
+      {respondiendoA && <BarraRespondiendo mensaje={respondiendoA} onCancelar={() => setRespondiendoA(null)} />}
 
       <form onSubmit={handleSubmit} className="bg-fondo border border-borde/30 rounded-b-lg p-3">
         <div className="flex gap-2 items-center relative">
@@ -576,6 +637,7 @@ function ChatPage() {
           </div>
 
           <input
+            ref={inputTextoRef}
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
             placeholder={grabando ? 'Grabando audio...' : 'Escribe un mensaje...'}

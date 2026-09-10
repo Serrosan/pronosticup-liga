@@ -11,7 +11,7 @@ class MensajeChat extends Model
 
     protected $table = 'mensajes_chat';
 
-    protected $fillable = ['id_liga', 'id_usuario', 'texto', 'tipo', 'adjunto_url', 'reacciones'];
+    protected $fillable = ['id_liga', 'id_usuario', 'texto', 'tipo', 'adjunto_url', 'reacciones', 'id_mensaje_respondido'];
 
     protected function casts(): array
     {
@@ -21,5 +21,10 @@ class MensajeChat extends Model
     public function usuario()
     {
         return $this->belongsTo(User::class, 'id_usuario');
+    }
+
+    public function mensajeRespondido()
+    {
+        return $this->belongsTo(MensajeChat::class, 'id_mensaje_respondido');
     }
 }

@@ -17,6 +17,7 @@ class MensajeChatRequest extends FormRequest
             'tipo' => ['required', 'string', 'in:texto,imagen,audio'],
             'texto' => ['required_if:tipo,texto', 'nullable', 'string', 'max:500'],
             'adjunto_url' => ['required_if:tipo,imagen,audio', 'nullable', 'string', 'max:500'],
+            'id_mensaje_respondido' => ['nullable', 'integer', 'exists:mensajes_chat,id'],
         ];
     }
 }

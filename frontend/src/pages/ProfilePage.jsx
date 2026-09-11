@@ -38,7 +38,6 @@ function ProfilePage() {
 
   const guardarPreferenciasEmail = useMutation({
     mutationFn: (datos) => client.patch('/api/v1/profile/preferencias-email', datos),
-    onSuccess: () => refrescar(),
   })
 
   const cambiarPassword = useMutation({
@@ -73,9 +72,13 @@ function ProfilePage() {
   }
 
   function alternarPreferencia(campo) {
-    guardarPreferenciasEmail.mutate({
+    const datos = {
       recibir_email_recordatorios: campo === 'recordatorios' ? !usuario?.recibir_email_recordatorios : usuario?.recibir_email_recordatorios,
       recibir_email_puntos: campo === 'puntos' ? !usuario?.recibir_email_puntos : usuario?.recibir_email_puntos,
+    }
+
+    guardarPreferenciasEmail.mutate(datos, {
+      onSuccess: (respuesta) => refrescar(),
     })
   }
 

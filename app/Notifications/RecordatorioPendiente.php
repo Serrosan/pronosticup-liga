@@ -19,7 +19,7 @@ class RecordatorioPendiente extends Notification
 
     public function via($notifiable): array
     {
-        return ['database', 'mail'];
+        return $notifiable->recibir_email_recordatorios ? ['database', 'mail'] : ['database'];
     }
 
     private function textoTipo(): string

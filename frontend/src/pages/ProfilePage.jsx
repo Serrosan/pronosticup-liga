@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom'
 import client from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import TicketHeader from '../components/TicketHeader'
-import ConfirmModal from '../components/ConfirmModal'
 
 function ProfilePage() {
   const { usuario, refrescar, logout } = useAuth()
@@ -37,6 +36,11 @@ function ProfilePage() {
     onSuccess: () => refrescar(),
   })
 
+  const guardarPreferenciasEmail = useMutation({
+    mutationFn: (datos) => client.patch('/api/v1/profile/preferencias-email', datos),
+    onSuccess: () => refrescar(),
+  })
+
   const cambiarPassword = useMutation({
     mutationFn: () => client.post('/api/v1/profile/password', {
       current_password: passwordActual,
@@ -66,6 +70,13 @@ function ProfilePage() {
   function handleAvatarChange(event) {
     const archivo = event.target.files[0]
     if (archivo) subirAvatar.mutate(archivo)
+  }
+
+  function alternarPreferencia(campo) {
+    guardarPreferenciasEmail.mutate({
+      recibir_email_recordatorios: campo === 'recordatorios' ? !usuario?.recibir_email_recordatorios : usuario?.recibir_email_recordatorios,
+      recibir_email_puntos: campo === 'puntos' ? !usuario?.recibir_email_puntos : usuario?.recibir_email_puntos,
+    })
   }
 
   return (
@@ -119,6 +130,44 @@ function ProfilePage() {
               🏆 {liga.nombre}
             </span>
           ))}
+        </div>
+      </div>
+
+      {/* Preferencias de email */}
+      <div className="bg-fondo border border-borde/30 rounded-lg overflow-hidden">
+        <TicketHeader titulo="Avisos por email" />
+        <div className="p-4 flex flex-col gap-3">
+          <p className="font-body text-xs text-borde">
+            Las notificaciones dentro de la app (🔔) siempre te llegan. Aquí eliges si además quieres recibirlas por email.
+          </p>
+
+          <label className="flex items-center justify-between gap-3 cursor-pointer">
+            <div>
+              <p className="font-body text-sm text-texto">Recordatorios de pronósticos pendientes</p>
+              <p className="font-body text-[11px] text-borde">Avisos antes de que empiece una jornada, si te falta algo</p>
+            </div>
+            <input
+              type="checkbox"
+              checked={usuario?.recibir_email_recordatorios ?? true}
+              onChange={() => alternarPreferencia('recordatorios')}
+              disabled={guardarPreferenciasEmail.isPending}
+              className="w-5 h-5 accent-acento shrink-0"
+            />
+          </label>
+
+          <label className="flex items-center justify-between gap-3 cursor-pointer">
+            <div>
+              <p className="font-body text-sm text-texto">Resultados y puntos de cada jornada</p>
+              <p className="font-body text-[11px] text-borde">Un email cuando se cierra una jornada, con tus puntos</p>
+            </div>
+            <input
+              type="checkbox"
+              checked={usuario?.recibir_email_puntos ?? true}
+              onChange={() => alternarPreferencia('puntos')}
+              disabled={guardarPreferenciasEmail.isPending}
+              className="w-5 h-5 accent-acento shrink-0"
+            />
+          </label>
         </div>
       </div>
 

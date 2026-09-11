@@ -19,7 +19,7 @@ class JornadaCerradaConPuntos extends Notification
 
     public function via($notifiable): array
     {
-        return ['database', 'mail'];
+        return $notifiable->recibir_email_puntos ? ['database', 'mail'] : ['database'];
     }
 
     public function toDatabase($notifiable): array

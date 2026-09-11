@@ -3,6 +3,8 @@ import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import client from '../api/client'
 
+const MAX_GOLES = 15
+
 function Escudo({ url, alt }) {
   if (!url) return <span className="w-9 h-9 rounded-full bg-borde/15 flex items-center justify-center text-sm shrink-0">⚽</span>
   return <img src={url} alt={alt} className="w-9 h-9 object-contain shrink-0" />
@@ -29,10 +31,46 @@ function EquipoEnlace({ equipo, alinear }) {
   )
 }
 
+function SelectorGoles({ valor, onCambiar }) {
+  const numero = valor === '' ? 0 : Number(valor)
+
+  function bajar(e) {
+    e.stopPropagation()
+    onCambiar(String(Math.max(0, numero - 1)))
+  }
+
+  function subir(e) {
+    e.stopPropagation()
+    onCambiar(String(Math.min(MAX_GOLES, numero + 1)))
+  }
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <button
+        type="button"
+        onClick={bajar}
+        disabled={numero <= 0}
+        className="w-9 h-9 rounded-full bg-borde/15 text-texto font-body text-lg font-bold flex items-center justify-center hover:bg-borde/25 active:scale-90 transition disabled:opacity-30 disabled:cursor-not-allowed"
+      >
+        −
+      </button>
+      <span className="font-marcador text-2xl w-10 text-center text-texto tabular-nums">{numero}</span>
+      <button
+        type="button"
+        onClick={subir}
+        disabled={numero >= MAX_GOLES}
+        className="w-9 h-9 rounded-full bg-borde/15 text-texto font-body text-lg font-bold flex items-center justify-center hover:bg-borde/25 active:scale-90 transition disabled:opacity-30 disabled:cursor-not-allowed"
+      >
+        +
+      </button>
+    </div>
+  )
+}
+
 function MatchCard({ partido, jornadaBloqueada = false }) {
   const navigate = useNavigate()
-  const [golesLocal, setGolesLocal] = useState(partido.mi_pronostico?.goles_local_predicho ?? '')
-  const [golesVisitante, setGolesVisitante] = useState(partido.mi_pronostico?.goles_visitante_predicho ?? '')
+  const [golesLocal, setGolesLocal] = useState(String(partido.mi_pronostico?.goles_local_predicho ?? 0))
+  const [golesVisitante, setGolesVisitante] = useState(String(partido.mi_pronostico?.goles_visitante_predicho ?? 0))
   const [editando, setEditando] = useState(!partido.mi_pronostico)
   const queryClient = useQueryClient()
 
@@ -52,10 +90,6 @@ function MatchCard({ partido, jornadaBloqueada = false }) {
   })
 
   function enviar() {
-    if (golesLocal === '' || golesVisitante === '') {
-      alert('Rellena primero el marcador que crees que habrá.')
-      return
-    }
     mutacion.mutate()
   }
 
@@ -73,6 +107,7 @@ function MatchCard({ partido, jornadaBloqueada = false }) {
         </span>
         {hora && <span className="font-marcador text-sm text-texto tabular-nums">{hora}</span>}
       </div>
+
       <div className="flex items-center justify-between gap-2 mb-1">
         <EquipoEnlace equipo={partido.equipo_local} alinear="derecha" />
         {(partido.estado === 'Jugado' || partido.estado === 'En juego') ? (
@@ -84,6 +119,7 @@ function MatchCard({ partido, jornadaBloqueada = false }) {
         )}
         <EquipoEnlace equipo={partido.equipo_visitante} />
       </div>
+
       {partido.estado === 'Jugado' && partido.mi_pronostico && (
         <p className="text-center font-body text-sm text-borde mt-1">
           Tu pronóstico: {partido.mi_pronostico.goles_local_predicho}-{partido.mi_pronostico.goles_visitante_predicho}
@@ -106,12 +142,10 @@ function MatchCard({ partido, jornadaBloqueada = false }) {
             </div>
           ) : (
             <>
-              <div className="flex gap-3 justify-center">
-                <input type="number" min="0" placeholder="0" value={golesLocal} onChange={(e) => setGolesLocal(e.target.value)}
-                  className="font-marcador text-xl w-20 h-14 text-center bg-borde/20 text-texto rounded border border-borde/40" />
-                <span className="font-marcador text-borde self-center text-xl">-</span>
-                <input type="number" min="0" placeholder="0" value={golesVisitante} onChange={(e) => setGolesVisitante(e.target.value)}
-                  className="font-marcador text-xl w-20 h-14 text-center bg-borde/20 text-texto rounded border border-borde/40" />
+              <div className="flex gap-4 justify-center items-center">
+                <SelectorGoles valor={golesLocal} onCambiar={setGolesLocal} />
+                <span className="font-marcador text-borde text-xl">-</span>
+                <SelectorGoles valor={golesVisitante} onCambiar={setGolesVisitante} />
               </div>
               <button
                 onClick={enviar}

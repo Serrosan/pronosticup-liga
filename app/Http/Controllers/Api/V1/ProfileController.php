@@ -50,4 +50,16 @@ class ProfileController extends Controller
 
         return new UserResource($request->user()->fresh());
     }
+
+    public function updatePreferenciasEmail(Request $request)
+    {
+        $validated = $request->validate([
+            'recibir_email_recordatorios' => ['required', 'boolean'],
+            'recibir_email_puntos' => ['required', 'boolean'],
+        ]);
+
+        $request->user()->update($validated);
+
+        return new UserResource($request->user()->fresh());
+    }
 }

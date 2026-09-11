@@ -17,6 +17,8 @@ class UserResource extends JsonResource
             'avatar_url' => $this->avatar_url ? url($this->avatar_url) : null,
             'activado' => ! is_null($this->activado_en),
             'es_superadmin' => (bool) $this->es_superadmin,
+            'recibir_email_recordatorios' => (bool) $this->recibir_email_recordatorios,
+            'recibir_email_puntos' => (bool) $this->recibir_email_puntos,
             'liga_activa' => $this->ligaActiva ? [
                 'id' => $this->ligaActiva->id,
                 'nombre' => $this->ligaActiva->nombre,

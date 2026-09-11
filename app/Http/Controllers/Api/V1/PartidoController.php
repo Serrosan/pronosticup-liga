@@ -56,7 +56,7 @@ class PartidoController extends Controller
         return response()->json([
             'data' => $datos,
             'meta' => [
-                'ultima_actualizacion' => $partidos->max('updated_at')?->toIso8601String(),
+                'ultima_actualizacion' => $partidos->max('sincronizado_en')?->toIso8601String(),
                 'jornada_bloqueada' => $jornadaBloqueada,
             ],
         ]);
@@ -97,7 +97,7 @@ class PartidoController extends Controller
                 'goles_fuera' => $partido->goles_fuera,
                 'eventos' => $eventos,
                 'video_resumen_url' => $partido->video_resumen_url,
-                'actualizado_en' => $partido->updated_at->toIso8601String(),
+                'actualizado_en' => $partido->sincronizado_en?->toIso8601String() ?? $partido->updated_at->toIso8601String(),
             ],
         ]);
     }

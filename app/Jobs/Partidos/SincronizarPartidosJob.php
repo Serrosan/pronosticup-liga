@@ -34,27 +34,30 @@ class SincronizarPartidosJob implements ShouldQueue
                 }
 
                 $estadoApi = $partidoApi['status'];
+                $datosActualizar = ['sincronizado_en' => now()];
 
                 if ($estadoApi === 'FINISHED') {
-                    $partido->update([
+                    $datosActualizar = array_merge($datosActualizar, [
                         'estado' => 'Jugado',
                         'goles_casa' => $partidoApi['score']['fullTime']['home'],
                         'goles_fuera' => $partidoApi['score']['fullTime']['away'],
                     ]);
                 } elseif (in_array($estadoApi, ['IN_PLAY', 'PAUSED'])) {
-                    $partido->update([
+                    $datosActualizar = array_merge($datosActualizar, [
                         'estado' => 'En juego',
                         'goles_casa' => $partidoApi['score']['fullTime']['home'] ?? $partido->goles_casa,
                         'goles_fuera' => $partidoApi['score']['fullTime']['away'] ?? $partido->goles_fuera,
                     ]);
                 } elseif (in_array($estadoApi, ['POSTPONED', 'CANCELLED', 'SUSPENDED'])) {
-                    $partido->update(['estado' => 'Aplazado']);
+                    $datosActualizar['estado'] = 'Aplazado';
                 } elseif (in_array($estadoApi, ['SCHEDULED', 'TIMED'])) {
-                    $partido->update([
+                    $datosActualizar = array_merge($datosActualizar, [
                         'estado' => 'Programado',
                         'horario_estimado' => Carbon::parse($partidoApi['utcDate'])->setTimezone(config('app.timezone')),
                     ]);
                 }
+
+                $partido->update($datosActualizar);
             }
         }
     }

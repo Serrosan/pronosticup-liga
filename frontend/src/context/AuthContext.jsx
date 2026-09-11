@@ -30,8 +30,12 @@ export function AuthProvider({ children }) {
     setUsuario(respuesta.data.data)
   }
 
+  function actualizarUsuario(datosUsuario) {
+    setUsuario(datosUsuario)
+  }
+
   return (
-    <AuthContext.Provider value={{ usuario, login, logout, cargando, refrescar }}>
+    <AuthContext.Provider value={{ usuario, login, logout, cargando, refrescar, actualizarUsuario }}>
       {children}
     </AuthContext.Provider>
   )

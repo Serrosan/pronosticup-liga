@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext'
 import TicketHeader from '../components/TicketHeader'
 
 function ProfilePage() {
-  const { usuario, refrescar, logout } = useAuth()
+  const { usuario, refrescar, logout, actualizarUsuario } = useAuth()
   const navigate = useNavigate()
   const [nombre, setNombre] = useState(usuario?.nombre ?? '')
   const [passwordActual, setPasswordActual] = useState('')
@@ -38,6 +38,7 @@ function ProfilePage() {
 
   const guardarPreferenciasEmail = useMutation({
     mutationFn: (datos) => client.patch('/api/v1/profile/preferencias-email', datos),
+    onSuccess: (respuesta) => actualizarUsuario(respuesta.data.data),
   })
 
   const cambiarPassword = useMutation({

@@ -16,10 +16,33 @@ function FotoJugador({ url, nombre }) {
   )
 }
 
+function normalizar(texto) {
+  return String(texto ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+}
+
+function ordenarPorRelevancia(jugadores, normalizada) {
+  const rango = (nombreNormalizado) => {
+    if (nombreNormalizado === normalizada) return 0
+    if (nombreNormalizado.startsWith(normalizada)) return 1
+    return 2
+  }
+
+  return [...jugadores].sort((a, b) => {
+    const nombreA = normalizar(a.nombre)
+    const nombreB = normalizar(b.nombre)
+    const rangoA = rango(nombreA)
+    const rangoB = rango(nombreB)
+
+    if (rangoA !== rangoB) return rangoA - rangoB
+    return nombreA.length - nombreB.length
+  })
+}
+
 function SeleccionGoleadoresPage() {
   const { jornada } = useParams()
   const toast = useToast()
   const [busqueda, setBusqueda] = useState('')
+  const [equipoFiltro, setEquipoFiltro] = useState('')
   const [seleccionados, setSeleccionados] = useState([])
 
   useTitulo(`Goleadores — Jornada ${jornada}`)
@@ -27,6 +50,11 @@ function SeleccionGoleadoresPage() {
   const { data: jugadores, isLoading: cargandoJugadores } = useQuery({
     queryKey: ['jugadores-buscables'],
     queryFn: async () => (await client.get('/api/v1/jugadores-buscables')).data.data,
+  })
+
+  const { data: equipos } = useQuery({
+    queryKey: ['equipos-lista'],
+    queryFn: async () => (await client.get('/api/v1/equipos-lista')).data.data,
   })
 
   const { data: actual, isLoading: cargandoActual } = useQuery({
@@ -65,15 +93,20 @@ function SeleccionGoleadoresPage() {
     setSeleccionados((prev) => prev.filter((j) => j.id !== idJugador))
   }
 
-  const normalizar = (texto) => String(texto ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  const resultadosBusqueda = (() => {
+    if (busqueda.length < 2 || !jugadores) return []
 
-  const resultadosBusqueda = busqueda.length >= 2 && jugadores
-    ? jugadores.filter((j) => {
-        const yaElegido = seleccionados.some((s) => s.id === j.id)
-        if (yaElegido) return false
-        return normalizar(j.nombre).includes(normalizar(busqueda))
-      }).slice(0, 8)
-    : []
+    const normalizada = normalizar(busqueda)
+
+    const candidatos = jugadores.filter((j) => {
+      const yaElegido = seleccionados.some((s) => s.id === j.id)
+      if (yaElegido) return false
+      if (equipoFiltro && j.equipo !== equipoFiltro) return false
+      return normalizar(j.nombre).includes(normalizada)
+    })
+
+    return ordenarPorRelevancia(candidatos, normalizada).slice(0, 8)
+  })()
 
   const cargando = cargandoJugadores || cargandoActual || cargandoInfoJornada
   const jornadaBloqueada = infoJornada?.jornadaBloqueada ?? false
@@ -127,30 +160,47 @@ function SeleccionGoleadoresPage() {
           </div>
 
           {!jornadaBloqueada && seleccionados.length < MAXIMO_GOLEADORES && (
-            <div className="relative mb-6">
-              <input
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
-                placeholder="Busca un jugador por nombre..."
-                className="w-full font-body bg-borde/10 text-texto rounded border border-borde/40 px-3 py-2.5 focus:outline-none focus:border-acento"
-              />
-              {resultadosBusqueda.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-fondo border border-borde/30 rounded-lg shadow-lg z-10 max-h-64 overflow-y-auto">
-                  {resultadosBusqueda.map((j) => (
-                    <button
-                      key={j.id}
-                      onClick={() => agregar(j)}
-                      className="w-full flex items-center gap-3 px-3 py-2 hover:bg-borde/10 text-left"
-                    >
-                      <FotoJugador url={j.foto_url} nombre={j.nombre} />
-                      <div className="min-w-0">
-                        <p className="font-body text-sm text-texto truncate">{j.nombre}</p>
-                        <p className="font-body text-[11px] text-borde truncate">{j.equipo}</p>
-                      </div>
-                    </button>
+            <div className="mb-6">
+              <div className="flex gap-2 mb-2">
+                <input
+                  value={busqueda}
+                  onChange={(e) => setBusqueda(e.target.value)}
+                  placeholder="Busca un jugador por nombre..."
+                  className="flex-1 font-body bg-borde/10 text-texto rounded border border-borde/40 px-3 py-2.5 focus:outline-none focus:border-acento"
+                />
+                <select
+                  value={equipoFiltro}
+                  onChange={(e) => setEquipoFiltro(e.target.value)}
+                  className="font-body text-sm bg-borde/10 text-texto rounded border border-borde/40 px-2"
+                >
+                  <option value="">Todos</option>
+                  {equipos?.map((eq) => (
+                    <option key={eq.id} value={eq.nombre_corto ?? eq.nombre}>
+                      {eq.nombre_corto ?? eq.nombre}
+                    </option>
                   ))}
-                </div>
-              )}
+                </select>
+              </div>
+
+              <div className="relative">
+                {resultadosBusqueda.length > 0 && (
+                  <div className="bg-fondo border border-borde/30 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+                    {resultadosBusqueda.map((j) => (
+                      <button
+                        key={j.id}
+                        onClick={() => agregar(j)}
+                        className="w-full flex items-center gap-3 px-3 py-2 hover:bg-borde/10 text-left"
+                      >
+                        <FotoJugador url={j.foto_url} nombre={j.nombre} />
+                        <div className="min-w-0">
+                          <p className="font-body text-sm text-texto truncate">{j.nombre}</p>
+                          <p className="font-body text-[11px] text-borde truncate">{j.equipo}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

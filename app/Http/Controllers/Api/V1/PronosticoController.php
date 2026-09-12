@@ -217,4 +217,31 @@ class PronosticoController extends Controller
         if ($golesLocal < $golesVisitante) return 'Visitante';
         return 'Empate';
     }
+
+    public function racha(Request $request)
+    {
+        $liga = $request->user()->ligaActiva;
+
+        if (! $liga) {
+            return response()->json(['message' => 'No tienes ninguna liga activa.'], 409);
+        }
+
+        $eventos = EventoPuntos::where('id_liga', $liga->id)
+            ->where('id_usuario', $request->user()->id)
+            ->whereNotNull('id_partido')
+            ->with('partido')
+            ->get()
+            ->sortByDesc(fn ($e) => $e->partido?->horario_estimado)
+            ->values();
+
+        $racha = 0;
+        foreach ($eventos as $evento) {
+            if ($evento->tipo_evento === 'Fallo') {
+                break;
+            }
+            $racha++;
+        }
+
+        return response()->json(['data' => ['racha' => $racha]]);
+    }
 }

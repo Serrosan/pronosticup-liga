@@ -17,6 +17,19 @@ const BADGE_ESTADO = {
   Programado: 'bg-premio/15 text-premio',
 }
 
+function minutoEstimado(horarioEstimado, minutoOficial) {
+  if (minutoOficial) return `${minutoOficial}'`
+  if (!horarioEstimado) return null
+
+  const transcurridos = Math.floor((Date.now() - new Date(horarioEstimado)) / 60000)
+  if (transcurridos < 0) return null
+  if (transcurridos <= 45) return `~${transcurridos}'`
+  if (transcurridos <= 60) return 'Descanso'
+  const segundaParte = transcurridos - 15
+  if (segundaParte <= 90) return `~${segundaParte}'`
+  return '~90+'
+}
+
 function EquipoEnlace({ equipo, alinear }) {
   return (
     <Link
@@ -95,6 +108,7 @@ function MatchCard({ partido, jornadaBloqueada = false }) {
 
   const hora = partido.horario_estimado?.slice(11, 16)
   const puedePronosticar = partido.estado === 'Programado' && !jornadaBloqueada
+  const minutoMostrado = partido.estado === 'En juego' ? minutoEstimado(partido.horario_estimado, partido.minuto_partido) : null
 
   return (
     <div
@@ -104,8 +118,9 @@ function MatchCard({ partido, jornadaBloqueada = false }) {
       <div className="flex items-center justify-between mb-3">
         <span className={`font-body text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${BADGE_ESTADO[partido.estado] ?? 'bg-borde/15 text-borde'}`}>
           {partido.estado === 'Jugado' ? 'Finalizado' : partido.estado}
+          {minutoMostrado && ` · ${minutoMostrado}`}
         </span>
-        {hora && <span className="font-marcador text-sm text-texto tabular-nums">{hora}</span>}
+        {hora && partido.estado === 'Programado' && <span className="font-marcador text-sm text-texto tabular-nums">{hora}</span>}
       </div>
 
       <div className="flex items-center justify-between gap-2 mb-1">

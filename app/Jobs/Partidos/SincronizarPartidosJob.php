@@ -41,12 +41,14 @@ class SincronizarPartidosJob implements ShouldQueue
                         'estado' => 'Jugado',
                         'goles_casa' => $partidoApi['score']['fullTime']['home'],
                         'goles_fuera' => $partidoApi['score']['fullTime']['away'],
+                        'minuto_partido' => null,
                     ]);
                 } elseif (in_array($estadoApi, ['IN_PLAY', 'PAUSED'])) {
                     $datosActualizar = array_merge($datosActualizar, [
                         'estado' => 'En juego',
                         'goles_casa' => $partidoApi['score']['fullTime']['home'] ?? $partido->goles_casa,
                         'goles_fuera' => $partidoApi['score']['fullTime']['away'] ?? $partido->goles_fuera,
+                        'minuto_partido' => $partidoApi['minute'] ?? null,
                     ]);
                 } elseif (in_array($estadoApi, ['POSTPONED', 'CANCELLED', 'SUSPENDED'])) {
                     $datosActualizar['estado'] = 'Aplazado';

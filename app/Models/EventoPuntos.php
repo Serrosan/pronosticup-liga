@@ -9,4 +9,9 @@ class EventoPuntos extends Model
     protected $table = 'eventos_puntos';
 
     protected $fillable = ['id_usuario', 'id_liga', 'id_partido', 'jornada', 'tipo_evento', 'puntos'];
+
+    public function partido()
+    {
+        return $this->belongsTo(CalendarioPartido::class, 'id_partido');
+    }
 }

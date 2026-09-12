@@ -44,6 +44,7 @@ class PartidoController extends Controller
                 'arbitro' => $p->arbitro ? trim("{$p->arbitro->nombre} {$p->arbitro->apellidos}") : null,
                 'horario_estimado' => $p->horario_estimado?->toIso8601String(),
                 'estado' => $p->estado,
+                'minuto_partido' => $p->minuto_partido,
                 'goles_casa' => $p->goles_casa,
                 'goles_fuera' => $p->goles_fuera,
                 'mi_pronostico' => $pronostico ? [
@@ -82,6 +83,32 @@ class PartidoController extends Controller
             ])
             ->values();
 
+        $enfrentamientosDirectos = CalendarioPartido::where('estado', 'Jugado')
+            ->where(function ($q) use ($partido) {
+                $q->where(function ($q2) use ($partido) {
+                    $q2->where('id_equipo_local', $partido->id_equipo_local)
+                        ->where('id_equipo_visitante', $partido->id_equipo_visitante);
+                })->orWhere(function ($q2) use ($partido) {
+                    $q2->where('id_equipo_local', $partido->id_equipo_visitante)
+                        ->where('id_equipo_visitante', $partido->id_equipo_local);
+                });
+            })
+            ->where('id', '!=', $partido->id)
+            ->with(['equipoLocal', 'equipoVisitante'])
+            ->orderByDesc('horario_estimado')
+            ->limit(5)
+            ->get()
+            ->map(fn ($p) => [
+                'id' => $p->id,
+                'equipo_local' => $p->equipoLocal->nombre_corto ?? $p->equipoLocal->nombre,
+                'equipo_visitante' => $p->equipoVisitante->nombre_corto ?? $p->equipoVisitante->nombre,
+                'escudo_local' => $p->equipoLocal->escudo_url,
+                'escudo_visitante' => $p->equipoVisitante->escudo_url,
+                'goles_casa' => $p->goles_casa,
+                'goles_fuera' => $p->goles_fuera,
+                'fecha' => $p->horario_estimado?->format('d/m/Y'),
+            ]);
+
         return response()->json([
             'data' => [
                 'id' => $partido->id,
@@ -93,11 +120,13 @@ class PartidoController extends Controller
                 'arbitro' => $partido->arbitro ? trim("{$partido->arbitro->nombre} {$partido->arbitro->apellidos}") : null,
                 'horario_estimado' => $partido->horario_estimado?->toIso8601String(),
                 'estado' => $partido->estado,
+                'minuto_partido' => $partido->minuto_partido,
                 'goles_casa' => $partido->goles_casa,
                 'goles_fuera' => $partido->goles_fuera,
                 'eventos' => $eventos,
                 'video_resumen_url' => $partido->video_resumen_url,
                 'actualizado_en' => $partido->sincronizado_en?->toIso8601String() ?? $partido->updated_at->toIso8601String(),
+                'enfrentamientos_directos' => $enfrentamientosDirectos,
             ],
         ]);
     }

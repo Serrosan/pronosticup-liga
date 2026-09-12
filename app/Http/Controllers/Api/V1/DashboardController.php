@@ -45,6 +45,11 @@ class DashboardController extends Controller
                 ->get();
         }
 
+        // --- Hora del primer partido de esta jornada, para la cuenta atrás de cierre ---
+        $cierreEn = $partidosProximaJornada
+            ->where('estado', 'Programado')
+            ->min('horario_estimado');
+
         // --- Avisos: partidos aplazados en la jornada actual o siguiente ---
         $avisos = $partidosProximaJornada
             ->where('estado', 'Aplazado')
@@ -54,9 +59,13 @@ class DashboardController extends Controller
             ])
             ->values();
 
-        // --- Última jornada completa ya jugada ---
+        // --- Última jornada COMPLETA ya jugada (todos sus partidos en 'Jugado') ---
+        // No basta con que la jornada tenga ALGÚN partido jugado: un partido adelantado
+        // aislado (jugado semanas antes que el resto) no debe "adelantar" este bloque.
         $ultimaJornadaJugada = CalendarioPartido::where('id_temporada', $liga->id_temporada)
-            ->where('estado', 'Jugado')
+            ->select('jornada')
+            ->groupBy('jornada')
+            ->havingRaw("SUM(CASE WHEN estado != 'Jugado' THEN 1 ELSE 0 END) = 0")
             ->orderByDesc('jornada')
             ->value('jornada');
 
@@ -120,6 +129,7 @@ class DashboardController extends Controller
 
                 'proxima_jornada' => [
                     'numero' => $proximaJornadaNumero,
+                    'cierre_en' => $cierreEn ? \Illuminate\Support\Carbon::parse($cierreEn)->toIso8601String() : null,
                     'partidos' => $partidosProximaJornada->map(fn ($p) => [
                         'id' => $p->id,
                         'equipo_local' => $p->equipoLocal->nombre_corto ?? $p->equipoLocal->nombre,

@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import client from '../api/client'
@@ -55,6 +56,44 @@ function ProgresoGrupo({ jornada }) {
   return (
     <p className="font-body text-[11px] text-borde mt-1.5 px-1">
       👥 {data.completados}/{data.total_miembros} miembros ya han completado sus pronósticos
+    </p>
+  )
+}
+
+function calcularRestante(cierreEn) {
+  const diferenciaMs = new Date(cierreEn) - Date.now()
+  if (diferenciaMs <= 0) return null
+
+  const horas = Math.floor(diferenciaMs / 3600000)
+  const minutos = Math.floor((diferenciaMs % 3600000) / 60000)
+
+  if (horas >= 24) {
+    const dias = Math.floor(horas / 24)
+    const horasRestantes = horas % 24
+    return `${dias}d ${horasRestantes}h`
+  }
+  if (horas >= 1) return `${horas}h ${minutos}min`
+  return `${minutos}min`
+}
+
+function CuentaAtrasCierre({ cierreEn }) {
+  const [restante, setRestante] = useState(() => cierreEn ? calcularRestante(cierreEn) : null)
+
+  useEffect(() => {
+    if (!cierreEn) return
+
+    setRestante(calcularRestante(cierreEn))
+    const intervalo = setInterval(() => setRestante(calcularRestante(cierreEn)), 60000)
+    return () => clearInterval(intervalo)
+  }, [cierreEn])
+
+  if (!cierreEn || !restante) return null
+
+  const urgente = new Date(cierreEn) - Date.now() < 3 * 3600000
+
+  return (
+    <p className={`font-body text-[11px] mt-1 px-1 ${urgente ? 'text-red-400 font-semibold' : 'text-borde'}`}>
+      ⏱️ Quedan {restante} para que se bloquee esta jornada
     </p>
   )
 }
@@ -125,6 +164,7 @@ function DashboardPage() {
             <div className="px-4 pt-3">
               <ProgresoJornada partidos={data.proxima_jornada.partidos} />
               <ProgresoGrupo jornada={data.proxima_jornada.numero} />
+              <CuentaAtrasCierre cierreEn={data.proxima_jornada.cierre_en} />
             </div>
           )}
           <div className="px-4">

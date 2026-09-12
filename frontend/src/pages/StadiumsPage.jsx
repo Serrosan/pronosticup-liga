@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import client from '../api/client'
 import SkeletonLista from '../components/SkeletonLista'
 import useTitulo from '../hooks/useTitulo'
+import { formatearFechaHora } from '../utils/tiempo'
 
 const MEDALLAS = ['🥇', '🥈', '🥉']
 
@@ -11,6 +12,25 @@ function BarraCapacidad({ capacidad, maxima, color }) {
   return (
     <div className="w-full h-2 bg-borde/10 rounded-full overflow-hidden">
       <div className="h-full rounded-full" style={{ width: `${porcentaje}%`, backgroundColor: color }} />
+    </div>
+  )
+}
+
+function ProximoPartido({ proximoPartido }) {
+  if (!proximoPartido) return null
+
+  return (
+    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-borde/10">
+      <span className="font-body text-[10px] uppercase tracking-widest text-borde shrink-0">Próximo en casa</span>
+      <div className="flex items-center gap-1.5 flex-1 min-w-0">
+        {proximoPartido.escudo_rival && (
+          <img src={proximoPartido.escudo_rival} alt={proximoPartido.rival} className="w-4 h-4 object-contain shrink-0" />
+        )}
+        <p className="font-body text-xs text-texto truncate">vs {proximoPartido.rival}</p>
+      </div>
+      <span className="font-marcador text-[10px] text-borde shrink-0">
+        {formatearFechaHora(proximoPartido.horario_estimado)}
+      </span>
     </div>
   )
 }
@@ -79,6 +99,8 @@ function TarjetaEstadio({ estadio, posicion, capacidadMaxima }) {
             )}
           </div>
         )}
+
+        <ProximoPartido proximoPartido={estadio.proximo_partido} />
       </div>
     </div>
   )

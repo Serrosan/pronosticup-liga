@@ -86,6 +86,9 @@ function StandingsPage() {
   const indiceMio = clasificacion.findIndex((f) => f.id_usuario === usuario?.id)
   const filaMia = indiceMio >= 0 ? { ...clasificacion[indiceMio], posicion: indiceMio + 1 } : null
 
+  const rivalDirecto = indiceMio > 0 ? clasificacion[indiceMio - 1] : null
+  const diferenciaRival = rivalDirecto ? rivalDirecto.puntos_totales - filaMia?.puntos_totales : 0
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       <SelectorJornada jornadaSeleccionada={jornadaSeleccionada} onCambiar={setJornadaSeleccionada} />
@@ -101,6 +104,20 @@ function StandingsPage() {
       {jornadaSeleccionada === null && filaMia && (
         <div className="flex justify-end mb-3">
           <CompartirClasificacion fila={filaMia} ligaNombre={usuario?.liga_activa?.nombre ?? 'PronostiCup Liga'} totalParticipantes={clasificacion.length} />
+        </div>
+      )}
+
+      {jornadaSeleccionada === null && filaMia && (
+        <div className="mb-4 bg-fondo border border-borde/30 rounded-lg px-4 py-3 text-center">
+          {rivalDirecto ? (
+            <p className="font-body text-sm text-texto">
+              🎯 Vas a <strong className="text-premio">{diferenciaRival} pts</strong> de adelantar a <strong>{rivalDirecto.usuario}</strong>
+            </p>
+          ) : (
+            <p className="font-body text-sm text-acento font-semibold">
+              🏆 Vas líder de la clasificación
+            </p>
+          )}
         </div>
       )}
 

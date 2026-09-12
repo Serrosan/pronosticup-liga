@@ -37,18 +37,26 @@ class DashboardController extends Controller
             ->value('jornada');
 
         $partidosProximaJornada = collect();
+        $cierreEn = null;
+
         if ($proximaJornadaNumero) {
             $partidosProximaJornada = CalendarioPartido::where('id_temporada', $liga->id_temporada)
                 ->where('jornada', $proximaJornadaNumero)
                 ->with(['equipoLocal', 'equipoVisitante'])
                 ->orderBy('horario_estimado')
                 ->get();
-        }
 
-        // --- Hora del primer partido de esta jornada, para la cuenta atrás de cierre ---
-        $cierreEn = $partidosProximaJornada
-            ->where('estado', 'Programado')
-            ->min('horario_estimado');
+            // Solo mostramos cuenta atrás si la jornada NO está ya bloqueada.
+            // Un partido adelantado/ya empezado bloquea la jornada entera aunque
+            // otros partidos individuales sigan marcados 'Programado' — en ese caso
+            // no tiene sentido contar hacia el siguiente partido sin jugar, la jornada
+            // ya está cerrada para pronosticar.
+            $yaBloqueada = CalendarioPartido::jornadaBloqueada($liga->id_temporada, $proximaJornadaNumero);
+
+            if (! $yaBloqueada) {
+                $cierreEn = $partidosProximaJornada->min('horario_estimado');
+            }
+        }
 
         // --- Avisos: partidos aplazados en la jornada actual o siguiente ---
         $avisos = $partidosProximaJornada
@@ -60,8 +68,6 @@ class DashboardController extends Controller
             ->values();
 
         // --- Última jornada COMPLETA ya jugada (todos sus partidos en 'Jugado') ---
-        // No basta con que la jornada tenga ALGÚN partido jugado: un partido adelantado
-        // aislado (jugado semanas antes que el resto) no debe "adelantar" este bloque.
         $ultimaJornadaJugada = CalendarioPartido::where('id_temporada', $liga->id_temporada)
             ->select('jornada')
             ->groupBy('jornada')
@@ -138,6 +144,8 @@ class DashboardController extends Controller
                         'escudo_visitante' => $p->equipoVisitante->escudo_url,
                         'horario_estimado' => $p->horario_estimado?->format('Y-m-d H:i'),
                         'estado' => $p->estado,
+                        'goles_casa' => $p->goles_casa,
+                        'goles_fuera' => $p->goles_fuera,
                     ]),
                 ],
 

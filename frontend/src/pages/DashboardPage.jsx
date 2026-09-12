@@ -98,6 +98,31 @@ function CuentaAtrasCierre({ cierreEn }) {
   )
 }
 
+function FilaPartidoProximo({ p }) {
+  const yaJugado = p.estado === 'Jugado' || p.estado === 'En juego'
+
+  return (
+    <div className="flex items-center justify-between py-2.5">
+      <div className="flex items-center gap-2 min-w-0">
+        <Escudo url={p.escudo_local} alt={p.equipo_local} />
+        <p className="font-body text-base text-texto truncate">{p.equipo_local} <span className="text-borde">vs</span> {p.equipo_visitante}</p>
+        <Escudo url={p.escudo_visitante} alt={p.equipo_visitante} />
+      </div>
+      {p.estado === 'Aplazado' ? (
+        <span className="font-marcador text-xs text-borde tabular-nums shrink-0 ml-2">Aplazado</span>
+      ) : yaJugado ? (
+        <span className="font-marcador text-sm font-bold text-texto tabular-nums shrink-0 ml-2">
+          {p.goles_casa}-{p.goles_fuera}
+        </span>
+      ) : (
+        <span className="font-marcador text-xs text-borde tabular-nums shrink-0 ml-2">
+          {formatearFechaHora(p.horario_estimado)}
+        </span>
+      )}
+    </div>
+  )
+}
+
 function DashboardPage() {
   const { usuario } = useAuth()
 
@@ -150,8 +175,8 @@ function DashboardPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-fondo border border-borde/30 rounded-lg overflow-hidden">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
+        <div className="bg-fondo border border-borde/30 rounded-lg overflow-hidden flex flex-col">
           <TicketHeader
             titulo={data.proxima_jornada.numero ? `Jornada ${data.proxima_jornada.numero}` : 'Próxima jornada'}
             accion={data.proxima_jornada.numero && (
@@ -167,30 +192,19 @@ function DashboardPage() {
               <CuentaAtrasCierre cierreEn={data.proxima_jornada.cierre_en} />
             </div>
           )}
-          <div className="px-4">
+          <div className="px-4 flex-1">
             {data.proxima_jornada.partidos.length === 0 ? (
               <p className="font-body text-sm text-borde py-4 text-center">No hay más partidos programados 🎉</p>
             ) : (
               <div className="flex flex-col divide-y divide-borde/10">
-                {data.proxima_jornada.partidos.map((p) => (
-                  <div key={p.id} className="flex items-center justify-between py-2.5">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Escudo url={p.escudo_local} alt={p.equipo_local} />
-                      <p className="font-body text-base text-texto truncate">{p.equipo_local} <span className="text-borde">vs</span> {p.equipo_visitante}</p>
-                      <Escudo url={p.escudo_visitante} alt={p.equipo_visitante} />
-                    </div>
-                    <span className="font-marcador text-xs text-borde tabular-nums shrink-0 ml-2">
-                      {p.estado === 'Aplazado' ? 'Aplazado' : formatearFechaHora(p.horario_estimado)}
-                    </span>
-                  </div>
-                ))}
+                {data.proxima_jornada.partidos.map((p) => <FilaPartidoProximo key={p.id} p={p} />)}
               </div>
             )}
           </div>
         </div>
-        <div className="bg-fondo border border-borde/30 rounded-lg overflow-hidden">
+        <div className="bg-fondo border border-borde/30 rounded-lg overflow-hidden flex flex-col">
           <TicketHeader titulo={data.ultima_jornada_jugada ? `Jornada ${data.ultima_jornada_jugada} — Resultados` : 'Últimos resultados'} />
-          <div className="px-4">
+          <div className="px-4 flex-1">
             {data.ultimos_resultados.length === 0 ? (
               <p className="font-body text-sm text-borde py-4 text-center">Aún no hay resultados.</p>
             ) : (

@@ -22,19 +22,25 @@ function saludoSegunHora() {
   return 'Buenas noches'
 }
 
-function RachaAciertos() {
+function ResumenRendimiento() {
   const { data } = useQuery({
-    queryKey: ['racha-aciertos'],
-    queryFn: async () => (await client.get('/api/v1/racha-aciertos')).data.data,
+    queryKey: ['resumen-rendimiento'],
+    queryFn: async () => (await client.get('/api/v1/resumen-rendimiento')).data.data,
   })
 
-  if (!data || data.racha < 2) return null
+  if (!data || data.mejor_jornada === null) return null
 
   return (
-    <div className="bg-premio/10 border border-premio/30 rounded-lg px-4 py-2.5 mb-6 text-center">
-      <p className="font-body text-sm text-premio font-semibold">
-        🔥 Llevas {data.racha} aciertos seguidos
-      </p>
+    <div className="bg-premio/10 border border-premio/30 rounded-lg px-4 py-3 mb-6 flex items-center justify-around text-center">
+      <div>
+        <p className="font-marcador text-lg font-bold text-premio">{data.mejor_puntos}pt</p>
+        <p className="font-body text-[10px] text-borde">🏆 Tu mejor jornada (J{data.mejor_jornada})</p>
+      </div>
+      <div className="w-px h-8 bg-borde/20" />
+      <div>
+        <p className="font-marcador text-lg font-bold text-premio">{data.media_puntos}pt</p>
+        <p className="font-body text-[10px] text-borde">📊 Media por jornada</p>
+      </div>
     </div>
   )
 }
@@ -181,7 +187,7 @@ function DashboardPage() {
         ))}
       </div>
 
-      <RachaAciertos />
+      <ResumenRendimiento />
 
       {data.avisos.length > 0 && (
         <div className="bg-premio/10 border border-premio/30 rounded-lg p-4 mb-6">

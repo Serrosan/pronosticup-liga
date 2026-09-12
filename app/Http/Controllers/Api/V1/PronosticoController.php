@@ -218,7 +218,7 @@ class PronosticoController extends Controller
         return 'Empate';
     }
 
-    public function racha(Request $request)
+    public function resumenRendimiento(Request $request)
     {
         $liga = $request->user()->ligaActiva;
 
@@ -226,22 +226,25 @@ class PronosticoController extends Controller
             return response()->json(['message' => 'No tienes ninguna liga activa.'], 409);
         }
 
-        $eventos = EventoPuntos::where('id_liga', $liga->id)
+        $porJornada = EventoPuntos::where('id_liga', $liga->id)
             ->where('id_usuario', $request->user()->id)
-            ->whereNotNull('id_partido')
-            ->with('partido')
-            ->get()
-            ->sortByDesc(fn ($e) => $e->partido?->horario_estimado)
-            ->values();
+            ->selectRaw('jornada, SUM(puntos) as puntos')
+            ->groupBy('jornada')
+            ->get();
 
-        $racha = 0;
-        foreach ($eventos as $evento) {
-            if ($evento->tipo_evento === 'Fallo') {
-                break;
-            }
-            $racha++;
+        if ($porJornada->isEmpty()) {
+            return response()->json(['data' => ['mejor_jornada' => null, 'mejor_puntos' => null, 'media_puntos' => null]]);
         }
 
-        return response()->json(['data' => ['racha' => $racha]]);
+        $mejor = $porJornada->sortByDesc('puntos')->first();
+        $media = round($porJornada->avg('puntos'), 1);
+
+        return response()->json([
+            'data' => [
+                'mejor_jornada' => $mejor->jornada,
+                'mejor_puntos' => (int) $mejor->puntos,
+                'media_puntos' => $media,
+            ],
+        ]);
     }
 }

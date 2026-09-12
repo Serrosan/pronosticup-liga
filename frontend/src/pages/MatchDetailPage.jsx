@@ -16,6 +16,11 @@ function Escudo({ url, alt }) {
   )
 }
 
+function EscudoPequeno({ url, alt }) {
+  if (url) return <img src={url} alt={alt} className="w-5 h-5 object-contain shrink-0" />
+  return <span className="w-5 h-5 rounded-full bg-borde/15 flex items-center justify-center text-xs shrink-0">⚽</span>
+}
+
 function FotoJugador({ url, nombre }) {
   if (url) return <img src={url} alt={nombre} className="w-9 h-9 rounded-full object-cover shrink-0 ring-2 ring-borde/20" />
   return (
@@ -82,6 +87,46 @@ function SeccionCompartida({ tipo, titulo, icono, eventosLocal, eventosVisitante
   )
 }
 
+function EnfrentamientosDirectos({ enfrentamientos }) {
+  if (!enfrentamientos || enfrentamientos.length === 0) return null
+
+  return (
+    <div className="bg-fondo border border-borde/30 rounded-lg overflow-hidden mb-4">
+      <div className="px-4 py-3 bg-borde/10">
+        <p className="font-body text-xs uppercase tracking-widest text-borde">📖 Últimos enfrentamientos directos</p>
+      </div>
+      <div className="flex flex-col divide-y divide-borde/10">
+        {enfrentamientos.map((p) => (
+          <div key={p.id} className="flex items-center justify-between gap-2 px-4 py-2.5">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <EscudoPequeno url={p.escudo_local} alt={p.equipo_local} />
+              <p className="font-body text-sm text-texto truncate">{p.equipo_local} <span className="text-borde">vs</span> {p.equipo_visitante}</p>
+              <EscudoPequeno url={p.escudo_visitante} alt={p.equipo_visitante} />
+            </div>
+            <div className="text-right shrink-0">
+              <p className="font-marcador text-sm font-bold text-texto">{p.goles_casa}-{p.goles_fuera}</p>
+              <p className="font-body text-[10px] text-borde">{p.fecha}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function minutoEstimado(horarioEstimado, minutoOficial) {
+  if (minutoOficial) return `${minutoOficial}'`
+  if (!horarioEstimado) return null
+
+  const transcurridos = Math.floor((Date.now() - new Date(horarioEstimado)) / 60000)
+  if (transcurridos < 0) return null
+  if (transcurridos <= 45) return `~${transcurridos}'`
+  if (transcurridos <= 60) return 'Descanso'
+  const segundaParte = transcurridos - 15
+  if (segundaParte <= 90) return `~${segundaParte}'`
+  return '~90+'
+}
+
 function MatchDetailPage() {
   const { id } = useParams()
   const toast = useToast()
@@ -101,6 +146,8 @@ function MatchDetailPage() {
   const minutosDesdeActualizacion = data.actualizado_en
     ? Math.max(0, Math.round((Date.now() - new Date(data.actualizado_en)) / 60000))
     : null
+
+  const minutoMostrado = data.estado === 'En juego' ? minutoEstimado(data.horario_estimado, data.minuto_partido) : null
 
   const idVideo = obtenerIdYoutube(data.video_resumen_url)
 
@@ -140,7 +187,11 @@ function MatchDetailPage() {
                 <span className="font-body text-sm text-borde">{data.estado}</span>
               )}
             </div>
-            {data.estado === 'En juego' && <p className="font-body text-xs text-red-400 font-semibold mt-1.5">● En juego</p>}
+            {data.estado === 'En juego' && (
+              <p className="font-body text-xs text-red-400 font-semibold mt-1.5">
+                ● En juego{minutoMostrado && ` · ${minutoMostrado}`}
+              </p>
+            )}
           </div>
           <div className="flex flex-col items-center gap-3 flex-1">
             <Escudo url={data.equipo_visitante.escudo_url} alt={data.equipo_visitante.nombre} />
@@ -200,6 +251,8 @@ function MatchDetailPage() {
           </div>
         )}
       </div>
+
+      <EnfrentamientosDirectos enfrentamientos={data.enfrentamientos_directos} />
 
       {idVideo ? (
         <a

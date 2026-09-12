@@ -22,6 +22,23 @@ function saludoSegunHora() {
   return 'Buenas noches'
 }
 
+function RachaAciertos() {
+  const { data } = useQuery({
+    queryKey: ['racha-aciertos'],
+    queryFn: async () => (await client.get('/api/v1/racha-aciertos')).data.data,
+  })
+
+  if (!data || data.racha < 2) return null
+
+  return (
+    <div className="bg-premio/10 border border-premio/30 rounded-lg px-4 py-2.5 mb-6 text-center">
+      <p className="font-body text-sm text-premio font-semibold">
+        🔥 Llevas {data.racha} aciertos seguidos
+      </p>
+    </div>
+  )
+}
+
 function ProgresoJornada({ partidos }) {
   if (!partidos || partidos.length === 0) return null
 
@@ -163,6 +180,8 @@ function DashboardPage() {
           </div>
         ))}
       </div>
+
+      <RachaAciertos />
 
       {data.avisos.length > 0 && (
         <div className="bg-premio/10 border border-premio/30 rounded-lg p-4 mb-6">

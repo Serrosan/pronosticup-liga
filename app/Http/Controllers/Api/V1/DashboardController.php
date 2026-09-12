@@ -37,6 +37,7 @@ class DashboardController extends Controller
             ->value('jornada');
 
         $partidosProximaJornada = collect();
+        $misPronosticosProximaJornada = collect();
         $cierreEn = null;
 
         if ($proximaJornadaNumero) {
@@ -46,11 +47,13 @@ class DashboardController extends Controller
                 ->orderBy('horario_estimado')
                 ->get();
 
+            $misPronosticosProximaJornada = Pronostico::where('id_liga', $liga->id)
+                ->where('id_usuario', $userId)
+                ->whereIn('id_partido', $partidosProximaJornada->pluck('id'))
+                ->pluck('id_partido')
+                ->flip();
+
             // Solo mostramos cuenta atrás si la jornada NO está ya bloqueada.
-            // Un partido adelantado/ya empezado bloquea la jornada entera aunque
-            // otros partidos individuales sigan marcados 'Programado' — en ese caso
-            // no tiene sentido contar hacia el siguiente partido sin jugar, la jornada
-            // ya está cerrada para pronosticar.
             $yaBloqueada = CalendarioPartido::jornadaBloqueada($liga->id_temporada, $proximaJornadaNumero);
 
             if (! $yaBloqueada) {
@@ -146,6 +149,7 @@ class DashboardController extends Controller
                         'estado' => $p->estado,
                         'goles_casa' => $p->goles_casa,
                         'goles_fuera' => $p->goles_fuera,
+                        'mi_pronostico' => $misPronosticosProximaJornada->has($p->id),
                     ]),
                 ],
 

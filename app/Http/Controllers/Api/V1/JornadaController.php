@@ -9,7 +9,9 @@ use App\Models\ConfiguracionPuntos;
 use App\Models\EventoPartido;
 use App\Models\EventoPuntos;
 use App\Models\GoleadorJornada;
+use App\Models\Novedad;
 use App\Models\Pronostico;
+use App\Models\User;
 use App\Notifications\JornadaCerradaConPuntos;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -62,6 +64,7 @@ class JornadaController extends Controller
         });
 
         $this->notificarCierre($liga, $jornada, $puntosPorUsuario);
+        $this->generarResumenJornada($liga, $jornada, $puntosPorUsuario);
 
         $totalEventos = EventoPuntos::where('id_liga', $liga->id)->where('jornada', $jornada)->count();
 
@@ -101,7 +104,6 @@ class JornadaController extends Controller
         $totalPartidos = $partidos->count();
 
         [$puntosPorUsuario, $totalRecalculados] = DB::transaction(function () use ($liga, $jornada, $partidos, $config, $totalPartidos) {
-            // Solo tocamos los puntos de pronósticos (no los de goleadores, que viven aparte)
             EventoPuntos::where('id_liga', $liga->id)
                 ->where('jornada', $jornada)
                 ->whereIn('tipo_evento', ['AciertoExacto', 'AciertoDiferencia', 'Acierto1x2', 'Fallo', 'BonusPleno'])
@@ -210,10 +212,6 @@ class JornadaController extends Controller
             $diferenciaPredicha = $pronostico->goles_local_predicho - $pronostico->goles_visitante_predicho;
 
             if ($resultadoReal === 'Empate') {
-                // En empates no existe "diferencia" real (siempre es 0) — premiamos en su lugar
-                // predecir un empate "vecino" (ej. predicho 1-1, real 0-0 o 2-2). El 0-0 es un caso
-                // especial: no tiene vecino "por debajo", así que solo cuenta como vecino el salto
-                // de exactamente 1 gol hacia arriba desde el más bajo de los dos (0-0 ↔ 1-1).
                 $margen = abs($pronostico->goles_local_predicho - $partido->goles_casa);
                 $aciertaDiferencia = $aciertaSigno && ! $exactoReal && $margen === 1;
             } else {
@@ -316,6 +314,83 @@ class JornadaController extends Controller
                 $liga->nombre,
             ));
         }
+    }
+
+    /**
+     * Genera una "Novedad" automática con un resumen breve de la jornada recién cerrada:
+     * quién lideró esa jornada concreta, y quién subió más puestos en la clasificación
+     * general respecto a antes de esta jornada. Se muestra en el TickerNovedades del Dashboard.
+     */
+    private function generarResumenJornada($liga, int $jornada, array $puntosPorUsuario): void
+    {
+        if (empty($puntosPorUsuario)) {
+            return;
+        }
+
+        // --- Líder de esta jornada concreta (no el total acumulado) ---
+        $idLider = array_search(max($puntosPorUsuario), $puntosPorUsuario);
+        $puntosLider = $puntosPorUsuario[$idLider];
+        $lider = User::find($idLider);
+
+        if (! $lider) {
+            return;
+        }
+
+        $nombreLider = $lider->nombre_visible ?? $lider->name;
+        $partes = ["{$nombreLider} lideró con {$puntosLider}pt"];
+
+        // --- Mayor subida de puestos en la clasificación general ---
+        $posicionesAntes = EventoPuntos::where('id_liga', $liga->id)
+            ->where('jornada', '<', $jornada)
+            ->selectRaw('id_usuario, SUM(puntos) as total')
+            ->groupBy('id_usuario')
+            ->orderByDesc('total')
+            ->get()
+            ->pluck('id_usuario')
+            ->values()
+            ->flip();
+
+        $posicionesDespues = EventoPuntos::where('id_liga', $liga->id)
+            ->where('jornada', '<=', $jornada)
+            ->selectRaw('id_usuario, SUM(puntos) as total')
+            ->groupBy('id_usuario')
+            ->orderByDesc('total')
+            ->get()
+            ->pluck('id_usuario')
+            ->values()
+            ->flip();
+
+        $mejorSubidaUsuario = null;
+        $mejorSubidaPuestos = 0;
+
+        foreach ($posicionesDespues as $idUsuario => $posDespues) {
+            $posAntes = $posicionesAntes->get($idUsuario);
+
+            if (is_null($posAntes)) {
+                continue; // no tenía posición previa (recién importado/registrado), no cuenta
+            }
+
+            $subida = $posAntes - $posDespues;
+
+            if ($subida > $mejorSubidaPuestos) {
+                $mejorSubidaPuestos = $subida;
+                $mejorSubidaUsuario = $idUsuario;
+            }
+        }
+
+        if ($mejorSubidaUsuario && $mejorSubidaPuestos >= 1) {
+            $usuarioSubida = User::find($mejorSubidaUsuario);
+            if ($usuarioSubida) {
+                $nombreSubida = $usuarioSubida->nombre_visible ?? $usuarioSubida->name;
+                $partes[] = "{$nombreSubida} subió {$mejorSubidaPuestos} puesto(s)";
+            }
+        }
+
+        Novedad::create([
+            'titulo' => "📊 Jornada {$jornada} cerrada: ".implode(' · ', $partes),
+            'emoji' => '📊',
+            'activa' => true,
+        ]);
     }
 
     private function calcularResultado1x2(int $golesCasa, int $golesFuera): string

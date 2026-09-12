@@ -4,6 +4,7 @@ import { useQuery, useMutation } from '@tanstack/react-query'
 import client from '../api/client'
 import { useToast } from '../context/ToastContext'
 import useTitulo from '../hooks/useTitulo'
+import SelectTema from '../components/SelectTema'
 
 const MAXIMO_GOLEADORES = 5
 
@@ -168,18 +169,13 @@ function SeleccionGoleadoresPage() {
                   placeholder="Busca un jugador por nombre..."
                   className="flex-1 font-body bg-borde/10 text-texto rounded border border-borde/40 px-3 py-2.5 focus:outline-none focus:border-acento"
                 />
-                <select
+                <SelectTema
                   value={equipoFiltro}
                   onChange={(e) => setEquipoFiltro(e.target.value)}
-                  className="font-body text-sm bg-borde/10 text-texto rounded border border-borde/40 px-2"
-                >
-                  <option value="">Todos</option>
-                  {equipos?.map((eq) => (
-                    <option key={eq.id} value={eq.nombre_corto ?? eq.nombre}>
-                      {eq.nombre_corto ?? eq.nombre}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="Todos"
+                  options={equipos?.map((eq) => ({ value: eq.nombre_corto ?? eq.nombre, label: eq.nombre_corto ?? eq.nombre })) ?? []}
+                  className="text-sm"
+                />
               </div>
 
               <div className="relative">

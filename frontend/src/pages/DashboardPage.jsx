@@ -21,6 +21,44 @@ function saludoSegunHora() {
   return 'Buenas noches'
 }
 
+function ProgresoJornada({ partidos }) {
+  if (!partidos || partidos.length === 0) return null
+
+  const total = partidos.length
+  const hechos = partidos.filter((p) => p.mi_pronostico).length
+  const completo = hechos === total
+
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex-1 h-1.5 bg-borde/15 rounded-full overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all ${completo ? 'bg-acento' : 'bg-premio'}`}
+          style={{ width: `${(hechos / total) * 100}%` }}
+        />
+      </div>
+      <span className={`font-marcador text-[10px] font-bold shrink-0 ${completo ? 'text-acento' : 'text-premio'}`}>
+        {hechos}/{total}
+      </span>
+    </div>
+  )
+}
+
+function ProgresoGrupo({ jornada }) {
+  const { data } = useQuery({
+    queryKey: ['progreso-liga', jornada],
+    queryFn: async () => (await client.get(`/api/v1/jornadas/${jornada}/progreso-liga`)).data.data,
+    enabled: !!jornada,
+  })
+
+  if (!data || data.total_miembros === 0) return null
+
+  return (
+    <p className="font-body text-[11px] text-borde mt-1.5 px-1">
+      👥 {data.completados}/{data.total_miembros} miembros ya han completado sus pronósticos
+    </p>
+  )
+}
+
 function DashboardPage() {
   const { usuario } = useAuth()
 
@@ -83,6 +121,12 @@ function DashboardPage() {
               </Link>
             )}
           />
+          {data.proxima_jornada.partidos.length > 0 && (
+            <div className="px-4 pt-3">
+              <ProgresoJornada partidos={data.proxima_jornada.partidos} />
+              <ProgresoGrupo jornada={data.proxima_jornada.numero} />
+            </div>
+          )}
           <div className="px-4">
             {data.proxima_jornada.partidos.length === 0 ? (
               <p className="font-body text-sm text-borde py-4 text-center">No hay más partidos programados 🎉</p>
@@ -144,7 +188,7 @@ function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
-        <Link to="/jornadas/1" className="group bg-fondo border border-borde/30 rounded-lg p-5 hover:border-acento transition flex items-center justify-between">
+        <Link to="/jornadas" className="group bg-fondo border border-borde/30 rounded-lg p-5 hover:border-acento transition flex items-center justify-between">
           <div>
             <p className="font-display text-base text-texto">Pronosticar jornada</p>
             <p className="font-body text-xs text-borde mt-0.5">Marca tus resultados antes del cierre</p>

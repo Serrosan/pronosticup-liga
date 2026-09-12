@@ -69,6 +69,36 @@ class PronosticoController extends Controller
         return PronosticoResource::collection($pronosticos);
     }
 
+    public function progresoLiga(Request $request, int $jornada)
+    {
+        $liga = $request->user()->ligaActiva;
+
+        if (! $liga) {
+            return response()->json(['message' => 'No tienes ninguna liga activa.'], 409);
+        }
+
+        $idsPartidos = CalendarioPartido::where('id_temporada', $liga->id_temporada)
+            ->where('jornada', $jornada)
+            ->pluck('id');
+
+        $totalMiembros = $liga->usuarios()->count();
+        $totalPartidos = $idsPartidos->count();
+
+        if ($totalPartidos === 0) {
+            return response()->json(['data' => ['completados' => 0, 'total_miembros' => $totalMiembros]]);
+        }
+
+        $completados = Pronostico::where('id_liga', $liga->id)
+            ->whereIn('id_partido', $idsPartidos)
+            ->select('id_usuario')
+            ->groupBy('id_usuario')
+            ->havingRaw('COUNT(*) = ?', [$totalPartidos])
+            ->get()
+            ->count();
+
+        return response()->json(['data' => ['completados' => $completados, 'total_miembros' => $totalMiembros]]);
+    }
+
     public function todos(Request $request)
     {
         $liga = $request->user()->ligaActiva;

@@ -103,7 +103,7 @@ function MatchCard({ partido, jornadaBloqueada = false }) {
     >
       <div className="flex items-center justify-between mb-3">
         <span className={`font-body text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${BADGE_ESTADO[partido.estado] ?? 'bg-borde/15 text-borde'}`}>
-          {partido.estado}
+          {partido.estado === 'Jugado' ? 'Finalizado' : partido.estado}
         </span>
         {hora && <span className="font-marcador text-sm text-texto tabular-nums">{hora}</span>}
       </div>

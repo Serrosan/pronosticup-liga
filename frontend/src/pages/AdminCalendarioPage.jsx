@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import client from '../api/client'
+import SelectTema from '../components/SelectTema'
 
 const TOTAL_JORNADAS = 38
 
@@ -44,15 +45,16 @@ function FilaPartido({ partido }) {
           className="font-body text-xs bg-borde/10 text-texto rounded border border-borde/40 px-2 py-1"
         />
 
-        <select
+        <SelectTema
           value={estado}
           onChange={(e) => setEstado(e.target.value)}
-          className="font-body text-xs bg-borde/10 text-texto rounded border border-borde/40 px-2 py-1"
-        >
-          <option value="Programado">Programado</option>
-          <option value="Jugado">Jugado</option>
-          <option value="Aplazado">Aplazado</option>
-        </select>
+          options={[
+            { value: 'Programado', label: 'Programado' },
+            { value: 'Jugado', label: 'Finalizado' },
+            { value: 'Aplazado', label: 'Aplazado' },
+          ]}
+          className="text-xs px-2 py-1"
+        />
 
         <input
           type="number"
@@ -125,15 +127,14 @@ function AdminCalendarioPage() {
     <div>
       <div className="flex items-center gap-3 mb-4 flex-wrap">
         <h2 className="font-display text-xl text-texto">Calendario</h2>
-        <select
+
+        <SelectTema
           value={jornada}
           onChange={(e) => setJornada(Number(e.target.value))}
-          className="font-body text-sm bg-borde/10 text-texto rounded border border-borde/40 px-2 py-1"
-        >
-          {Array.from({ length: TOTAL_JORNADAS }, (_, i) => i + 1).map((j) => (
-            <option key={j} value={j}>Jornada {j}</option>
-          ))}
-        </select>
+          options={Array.from({ length: TOTAL_JORNADAS }, (_, i) => i + 1).map((j) => ({ value: j, label: `Jornada ${j}` }))}
+          className="text-sm px-2 py-1"
+        />
+
         <button
           onClick={() => { setMensajeCierre(null); cerrarJornada.mutate() }}
           disabled={cerrarJornada.isPending}

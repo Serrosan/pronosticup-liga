@@ -63,6 +63,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/equipos-lista', [\App\Http\Controllers\Api\V1\EquipoListaController::class, 'index']);
     Route::get('/jornada-actual', [\App\Http\Controllers\Api\V1\JornadaActualController::class, 'show']);
     Route::post('/jornadas/{jornada}/copiar-pronosticos', [\App\Http\Controllers\Api\V1\CopiarPronosticosController::class, 'copiar']);
+    Route::get('/jornadas/{jornada}/progreso-liga', [\App\Http\Controllers\Api\V1\PronosticoController::class, 'progresoLiga']);
     Route::get('/jornadas-cerradas', [\App\Http\Controllers\Api\V1\ClasificacionController::class, 'jornadasCerradas']);
     Route::patch('/profile/preferencias-email', [\App\Http\Controllers\Api\V1\ProfileController::class, 'updatePreferenciasEmail']);
 

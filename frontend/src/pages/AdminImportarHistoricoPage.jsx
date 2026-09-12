@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import client from '../api/client'
+import SelectTema from '../components/SelectTema'
 
 function AdminImportarHistoricoPage() {
   const [idLiga, setIdLiga] = useState('')
@@ -30,16 +31,13 @@ function AdminImportarHistoricoPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="font-body text-xs text-borde block mb-1">Liga</label>
-            <select
+            <SelectTema
               value={idLiga}
               onChange={(e) => setIdLiga(e.target.value)}
-              className="w-full font-body bg-borde/10 text-texto rounded border border-borde/40 px-3 py-2"
-            >
-              <option value="">Elige una liga...</option>
-              {ligas?.map((l) => (
-                <option key={l.id} value={l.id}>{l.nombre}</option>
-              ))}
-            </select>
+              placeholder="Elige una liga..."
+              options={ligas?.map((l) => ({ value: l.id, label: l.nombre })) ?? []}
+              className="w-full"
+            />
           </div>
 
           <div>

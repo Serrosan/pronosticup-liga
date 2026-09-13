@@ -67,7 +67,8 @@ Route::prefix('v1')->group(function () {
     Route::get('/jornadas-cerradas', [\App\Http\Controllers\Api\V1\ClasificacionController::class, 'jornadasCerradas']);
     Route::patch('/profile/preferencias-email', [\App\Http\Controllers\Api\V1\ProfileController::class, 'updatePreferenciasEmail']);
     Route::get('/resumen-rendimiento', [\App\Http\Controllers\Api\V1\PronosticoController::class, 'resumenRendimiento']);
-    Route::get('/estadisticas-liga', [\App\Http\Controllers\Api\V1\EstadisticasLigaController::class, 'index']);    
+    Route::get('/estadisticas-liga', [\App\Http\Controllers\Api\V1\EstadisticasLigaController::class, 'index']);
+    Route::post('/chat/{mensajeChat}/fijar', [\App\Http\Controllers\Api\V1\ChatController::class, 'fijar']);
 
     Route::middleware('admin')->prefix('admin')->group(function () {
         Route::get('/equipos/{equipo}', [\App\Http\Controllers\Api\V1\Admin\EquipoAdminController::class, 'show']);

@@ -26,9 +26,18 @@ class ChatController extends Controller
             ->get()
             ->map(fn ($m) => $this->formatear($m));
 
+        $mensajeFijado = MensajeChat::where('id_liga', $liga->id)
+            ->where('fijado', true)
+            ->with('usuario')
+            ->latest()
+            ->first();
+
         return response()->json([
             'data' => $mensajes,
-            'meta' => ['total_miembros' => $liga->usuarios()->count()],
+            'meta' => [
+                'total_miembros' => $liga->usuarios()->count(),
+                'mensaje_fijado' => $mensajeFijado ? $this->formatear($mensajeFijado) : null,
+            ],
         ]);
     }
 
@@ -112,6 +121,31 @@ class ChatController extends Controller
         return response()->json(['data' => $this->formatear($mensajeChat)]);
     }
 
+    public function fijar(Request $request, MensajeChat $mensajeChat)
+    {
+        $liga = $request->user()->ligaActiva;
+
+        if (! $liga || $mensajeChat->id_liga !== $liga->id) {
+            return response()->json(['message' => 'No tienes acceso a este mensaje.'], 403);
+        }
+
+        $esAdmin = $liga->usuarios()
+            ->where('id_usuario', $request->user()->id)
+            ->wherePivot('rol', 'Admin')
+            ->exists();
+
+        if (! $esAdmin) {
+            return response()->json(['message' => 'Solo el admin de la liga puede fijar mensajes.'], 403);
+        }
+
+        // Solo puede haber un mensaje fijado a la vez por liga: desfijamos cualquier otro.
+        MensajeChat::where('id_liga', $liga->id)->where('fijado', true)->update(['fijado' => false]);
+
+        $mensajeChat->update(['fijado' => ! $mensajeChat->fijado]);
+
+        return response()->json(['data' => $this->formatear($mensajeChat->fresh())]);
+    }
+
     private function formatear(MensajeChat $mensaje): array
     {
         return [
@@ -119,6 +153,7 @@ class ChatController extends Controller
             'texto' => $mensaje->texto,
             'tipo' => $mensaje->tipo,
             'adjunto_url' => $mensaje->adjunto_url,
+            'fijado' => $mensaje->fijado,
             'usuario' => [
                 'id' => $mensaje->usuario->id,
                 'nombre' => $mensaje->usuario->nombre_visible ?? $mensaje->usuario->name,

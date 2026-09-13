@@ -11,11 +11,11 @@ class MensajeChat extends Model
 
     protected $table = 'mensajes_chat';
 
-    protected $fillable = ['id_liga', 'id_usuario', 'texto', 'tipo', 'adjunto_url', 'reacciones', 'id_mensaje_respondido'];
+    protected $fillable = ['id_liga', 'id_usuario', 'texto', 'tipo', 'adjunto_url', 'reacciones', 'id_mensaje_respondido', 'fijado'];
 
     protected function casts(): array
     {
-        return ['reacciones' => 'array'];
+        return ['reacciones' => 'array', 'fijado' => 'boolean'];
     }
 
     public function usuario()

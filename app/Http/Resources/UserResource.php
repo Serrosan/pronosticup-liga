@@ -9,6 +9,14 @@ class UserResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $rolEnLigaActiva = null;
+
+        if ($this->ligaActiva) {
+            $rolEnLigaActiva = $this->ligaActiva->usuarios()
+                ->where('id_usuario', $this->id)
+                ->first()?->pivot?->rol;
+        }
+
         return [
             'id' => $this->id,
             'nombre' => $this->nombre_visible ?? $this->name,
@@ -23,6 +31,7 @@ class UserResource extends JsonResource
                 'id' => $this->ligaActiva->id,
                 'nombre' => $this->ligaActiva->nombre,
                 'codigo_acceso' => $this->ligaActiva->codigo_acceso,
+                'rol' => $rolEnLigaActiva,
             ] : null,
         ];
     }

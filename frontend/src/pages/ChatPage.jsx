@@ -118,7 +118,7 @@ function CitaRespondida({ respondidoA, esMio, onClick }) {
   )
 }
 
-function GrupoMensajes({ grupo, esMio, miId, terminoBusqueda, mensajeIdResaltado, registrarRef, onResponder, onIrAMensaje }) {
+function GrupoMensajes({ grupo, esMio, miId, esAdmin, terminoBusqueda, mensajeIdResaltado, registrarRef, onResponder, onIrAMensaje, onFijar }) {
   const queryClient = useQueryClient()
   const [selectorAbierto, setSelectorAbierto] = useState(null)
 
@@ -154,6 +154,7 @@ function GrupoMensajes({ grupo, esMio, miId, terminoBusqueda, mensajeIdResaltado
                   rounded-2xl transition
                   ${esMultimedia && !mensaje.respondido_a ? '' : `px-3.5 py-2 ${esMio ? 'bg-acento text-fondo rounded-tr-sm' : 'bg-borde/10 text-texto rounded-tl-sm'}`}
                   ${estaResaltado ? 'ring-2 ring-premio' : ''}
+                  ${mensaje.fijado ? 'ring-2 ring-premio/60' : ''}
                 `}
               >
                 {mensaje.respondido_a && (
@@ -173,9 +174,15 @@ function GrupoMensajes({ grupo, esMio, miId, terminoBusqueda, mensajeIdResaltado
 
               <div className="flex items-center gap-1 mt-1 px-1 relative">
                 <span className="font-body text-[10px] text-borde">{hora}</span>
+                {mensaje.fijado && <span className="text-premio text-[10px]">📌</span>}
                 <button onClick={() => onResponder(mensaje)} className="font-body text-xs text-borde hover:text-texto ml-1">
                   ↩
                 </button>
+                {esAdmin && (
+                  <button onClick={() => onFijar(mensaje.id)} className="font-body text-xs text-borde hover:text-premio">
+                    📌
+                  </button>
+                )}
                 <button onClick={() => setSelectorAbierto(selectorAbierto === mensaje.id ? null : mensaje.id)} className="font-body text-xs text-borde hover:text-texto">
                   +
                 </button>
@@ -306,6 +313,21 @@ function BarraRespondiendo({ mensaje, onCancelar }) {
   )
 }
 
+function MensajeFijado({ mensaje }) {
+  if (!mensaje) return null
+  const textoPreview = mensaje.tipo === 'texto' ? mensaje.texto : mensaje.tipo === 'imagen' ? '📷 Imagen' : '🎤 Nota de voz'
+
+  return (
+    <div className="bg-premio/10 border-x border-borde/30 px-4 py-2.5 flex items-center gap-2">
+      <span className="text-premio shrink-0">📌</span>
+      <div className="min-w-0 flex-1">
+        <p className="font-body text-xs font-semibold text-premio">{mensaje.usuario.nombre}</p>
+        <p className="font-body text-xs text-texto truncate">{textoPreview}</p>
+      </div>
+    </div>
+  )
+}
+
 function ChatPage() {
   const { usuario } = useAuth()
   const toast = useToast()
@@ -329,11 +351,17 @@ function ChatPage() {
   const primeraCargaRef = useRef(true)
   const queryClient = useQueryClient()
 
+  const esAdmin = usuario?.liga_activa?.rol === 'Admin' || usuario?.es_superadmin
+
   const { data } = useQuery({
     queryKey: ['chat'],
     queryFn: async () => {
       const respuesta = await client.get('/api/v1/chat')
-      return { mensajes: respuesta.data.data, totalMiembros: respuesta.data.meta?.total_miembros }
+      return {
+        mensajes: respuesta.data.data,
+        totalMiembros: respuesta.data.meta?.total_miembros,
+        mensajeFijado: respuesta.data.meta?.mensaje_fijado ?? null,
+      }
     },
     refetchInterval: 4000,
   })
@@ -372,6 +400,12 @@ function ChatPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['chat'] }),
     onError: () => toast.error('No se pudo enviar la nota de voz.'),
     onSettled: () => setSubiendo(false),
+  })
+
+  const fijarMensaje = useMutation({
+    mutationFn: (id) => client.post(`/api/v1/chat/${id}/fijar`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['chat'] }),
+    onError: () => toast.error('No se pudo fijar el mensaje.'),
   })
 
   const { grabando, empezar, parar } = useGrabadorAudio((blob) => {
@@ -536,6 +570,8 @@ function ChatPage() {
         />
       </div>
 
+      <MensajeFijado mensaje={data?.mensajeFijado} />
+
       {busquedaAbierta && (
         <BarraBusqueda
           termino={terminoBusqueda}
@@ -573,11 +609,13 @@ function ChatPage() {
                   grupo={grupo}
                   esMio={grupo.usuarioId === usuario?.id}
                   miId={usuario?.id}
+                  esAdmin={esAdmin}
                   terminoBusqueda={terminoBusqueda}
                   mensajeIdResaltado={mensajeIdResaltado}
                   registrarRef={registrarRef}
                   onResponder={responderA}
                   onIrAMensaje={irAMensajeCitado}
+                  onFijar={(id) => fijarMensaje.mutate(id)}
                 />
               </div>
             )

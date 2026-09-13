@@ -116,6 +116,9 @@ function UserMenu() {
               <Link to="/guia" onClick={() => setAbierto(false)} className="block font-body text-sm text-texto px-4 py-2.5 hover:bg-borde/10">
                 Guía rápida
               </Link>
+              <Link to="/logros" onClick={() => setAbierto(false)} className="block font-body text-sm text-texto px-4 py-2.5 hover:bg-borde/10">
+                🏆 Logros
+              </Link>
               <Link to="/puntuaciones" onClick={() => setAbierto(false)} className="block font-body text-sm text-texto px-4 py-2.5 hover:bg-borde/10">
                 Puntuaciones
               </Link>

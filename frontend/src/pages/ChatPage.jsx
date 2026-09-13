@@ -166,7 +166,7 @@ function GrupoMensajes({ grupo, esMio, miId, esAdmin, terminoBusqueda, mensajeId
                 )}
 
                 {esSticker ? (
-                  <img src={mensaje.adjunto_url} alt="Sticker" className="w-28 h-28 object-contain" />
+                  <img src={mensaje.adjunto_url} alt="Sticker" className="max-w-[200px] max-h-32 object-contain" />
                 ) : (
                   <ContenidoMensaje mensaje={mensaje} esMio={esMio} terminoBusqueda={terminoBusqueda} />
                 )}

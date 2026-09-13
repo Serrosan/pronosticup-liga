@@ -32,6 +32,8 @@ class UserResource extends JsonResource
                 'nombre' => $this->ligaActiva->nombre,
                 'codigo_acceso' => $this->ligaActiva->codigo_acceso,
                 'rol' => $rolEnLigaActiva,
+                'logo_url' => $this->ligaActiva->logo_url ? url($this->ligaActiva->logo_url) : null,
+                'lema' => $this->ligaActiva->lema,
             ] : null,
         ];
     }

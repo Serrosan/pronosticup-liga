@@ -29,7 +29,7 @@ class ClasificacionController extends Controller
 
         $hastaJornada = $validated['hasta_jornada'] ?? null;
 
-        $consulta = EventoPuntos::where('id_liga', $liga->id);
+        $consulta = EventoPuntos::where('id_liga', $liga->id)->with('partido');
 
         if ($hastaJornada) {
             $consulta->where('jornada', '<=', $hastaJornada);
@@ -55,14 +55,34 @@ class ClasificacionController extends Controller
         $filas = $porUsuario->map(function ($grupo, $idUsuario) {
             $usuario = User::find($idUsuario);
 
+            // Racha actual: aciertos seguidos contando desde el partido más reciente hacia atrás,
+            // hasta el primer fallo (o hasta acabar la lista, si nunca has fallado).
+            $eventosConPartido = $grupo->filter(fn ($e) => $e->id_partido && $e->partido)
+                ->sortByDesc(fn ($e) => $e->partido->horario_estimado);
+
+            $racha = 0;
+            foreach ($eventosConPartido as $evento) {
+                if ($evento->tipo_evento === 'Fallo') {
+                    break;
+                }
+                $racha++;
+            }
+
+            $aciertos = $grupo->whereIn('tipo_evento', ['AciertoExacto', 'AciertoDiferencia', 'Acierto1x2'])->count();
+            $fallos = $grupo->where('tipo_evento', 'Fallo')->count();
+            $resueltos = $aciertos + $fallos;
+
             return [
                 'id_usuario' => $idUsuario,
                 'usuario' => $usuario->nombre_visible ?? $usuario->name,
                 'avatar_url' => $usuario->avatar_url ? url($usuario->avatar_url) : null,
                 'puntos_totales' => (int) $grupo->sum('puntos'),
-                'aciertos' => $grupo->whereIn('tipo_evento', ['AciertoExacto', 'AciertoDiferencia', 'Acierto1x2'])->count(),
-                'fallos' => $grupo->where('tipo_evento', 'Fallo')->count(),
+                'puntos_goleadores' => (int) $grupo->where('tipo_evento', 'GolesGoleadorElegido')->sum('puntos'),
+                'aciertos' => $aciertos,
+                'fallos' => $fallos,
                 'exactos' => $grupo->where('tipo_evento', 'AciertoExacto')->count(),
+                'porcentaje_exito' => $resueltos > 0 ? round(($aciertos / $resueltos) * 100) : null,
+                'racha_actual' => $racha,
             ];
         })->sortByDesc('puntos_totales')->values();
 

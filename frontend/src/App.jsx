@@ -54,6 +54,7 @@ import PuntuacionesPage from './pages/PuntuacionesPage'
 import RedirectJornadaActual from './pages/RedirectJornadaActual'
 import GuiaPage from './pages/GuiaPage'
 import EstadisticasLigaPage from './pages/EstadisticasLigaPage'
+import LogrosPage from './pages/LogrosPage'
 
 function RutaProtegida() {
   const { usuario, cargando } = useAuth()
@@ -116,6 +117,7 @@ function App() {
                 <Route path="/jugadores/:idJugador" element={<PlayerDetailPage />} />
                 <Route path="/jornadas/:jornada/goleadores" element={<SeleccionGoleadoresPage />} />
                 <Route path="/chat" element={<ChatPage />} />
+                <Route path="/logros" element={<LogrosPage />} />
                 <Route path="/quinielas/:tipo" element={<QuinielaPage />} />
                 <Route path="/estadios" element={<StadiumsPage />} />
                 <Route path="/perfil" element={<ProfilePage />} />

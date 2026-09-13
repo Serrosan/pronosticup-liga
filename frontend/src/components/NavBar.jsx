@@ -16,6 +16,7 @@ const LALIGA = [
   { to: '/clasificacion-liga', label: 'Clasificación de LaLiga', sublabel: 'Tabla real, goleadores, tarjetas' },
   { to: '/calendario', label: 'Calendario', sublabel: 'Todos los partidos de la temporada' },
   { to: '/estadios', label: 'Estadios', sublabel: 'Ranking por capacidad' },
+  { to: '/estadisticas-liga', label: 'Estadísticas de la liga', sublabel: 'Curiosidades de la temporada' },
 ]
 
 const QUINIELAS = [

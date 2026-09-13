@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\MensajeChatRequest;
 use App\Models\MensajeChat;
+use App\Notifications\MensajeReaccionado;
+use App\Notifications\MensajeRespondido;
 use Illuminate\Http\Request;
 
 class ChatController extends Controller
@@ -39,13 +41,14 @@ class ChatController extends Controller
         }
 
         $validated = $request->validated();
+        $mensajeRespondido = null;
 
         if (! empty($validated['id_mensaje_respondido'])) {
-            $perteneceALaLiga = MensajeChat::where('id', $validated['id_mensaje_respondido'])
+            $mensajeRespondido = MensajeChat::where('id', $validated['id_mensaje_respondido'])
                 ->where('id_liga', $liga->id)
-                ->exists();
+                ->first();
 
-            if (! $perteneceALaLiga) {
+            if (! $mensajeRespondido) {
                 return response()->json(['message' => 'No puedes responder a ese mensaje.'], 403);
             }
         }
@@ -57,10 +60,15 @@ class ChatController extends Controller
             'tipo' => $validated['tipo'],
             'adjunto_url' => $validated['adjunto_url'] ?? null,
             'reacciones' => [],
-            'id_mensaje_respondido' => $validated['id_mensaje_respondido'] ?? null,
+            'id_mensaje_respondido' => $mensajeRespondido?->id,
         ]);
 
         $mensaje->load(['usuario', 'mensajeRespondido.usuario']);
+
+        if ($mensajeRespondido && $mensajeRespondido->id_usuario !== $request->user()->id) {
+            $nombreQuienResponde = $mensaje->usuario->nombre_visible ?? $mensaje->usuario->name;
+            $mensajeRespondido->usuario?->notify(new MensajeRespondido($nombreQuienResponde));
+        }
 
         return response()->json(['data' => $this->formatear($mensaje)]);
     }
@@ -82,17 +90,24 @@ class ChatController extends Controller
         $usuarioId = $request->user()->id;
 
         $reacciones[$emoji] = collect($reacciones[$emoji] ?? []);
+        $seAgrego = false;
 
         if ($reacciones[$emoji]->contains($usuarioId)) {
             $reacciones[$emoji] = $reacciones[$emoji]->reject(fn ($id) => $id === $usuarioId)->values();
         } else {
             $reacciones[$emoji] = $reacciones[$emoji]->push($usuarioId);
+            $seAgrego = true;
         }
 
         $reacciones[$emoji] = $reacciones[$emoji]->values()->all();
 
         $mensajeChat->update(['reacciones' => $reacciones]);
         $mensajeChat->load(['usuario', 'mensajeRespondido.usuario']);
+
+        if ($seAgrego && $mensajeChat->id_usuario !== $usuarioId) {
+            $nombreQuienReacciona = $request->user()->nombre_visible ?? $request->user()->name;
+            $mensajeChat->usuario?->notify(new MensajeReaccionado($nombreQuienReacciona, $emoji));
+        }
 
         return response()->json(['data' => $this->formatear($mensajeChat)]);
     }

@@ -53,6 +53,7 @@ import AdminImportarHistoricoPage from './pages/AdminImportarHistoricoPage'
 import PuntuacionesPage from './pages/PuntuacionesPage'
 import RedirectJornadaActual from './pages/RedirectJornadaActual'
 import GuiaPage from './pages/GuiaPage'
+import EstadisticasLigaPage from './pages/EstadisticasLigaPage'
 
 function RutaProtegida() {
   const { usuario, cargando } = useAuth()
@@ -110,6 +111,7 @@ function App() {
                 <Route path="/pronosticos" element={<MyPredictionsPage />} />
                 <Route path="/calendario" element={<CalendarPage />} />
                 <Route path="/puntuaciones" element={<PuntuacionesPage />} />
+                <Route path="/estadisticas-liga" element={<EstadisticasLigaPage />} />
                 <Route path="/verificar-email/:id/:hash" element={<VerifyEmailPage />} />
                 <Route path="/jugadores/:idJugador" element={<PlayerDetailPage />} />
                 <Route path="/jornadas/:jornada/goleadores" element={<SeleccionGoleadoresPage />} />

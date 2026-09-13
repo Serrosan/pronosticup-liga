@@ -21,7 +21,7 @@ const COLOR_TIPO = {
   AciertoExacto: '#22C55E',
   AciertoDiferencia: '#F59E0B',
   Acierto1x2: 'var(--color-acento)',
-  Fallo: 'var(--color-borde)',
+  Fallo: '#EF4444',
 }
 
 function calcularResultado1x2(golesLocal, golesVisitante) {

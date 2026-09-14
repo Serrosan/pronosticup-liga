@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Services\ImagenService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -38,6 +39,7 @@ class LigaPersonalizacionController extends Controller
 
         if ($request->hasFile('logo')) {
             $ruta = $request->file('logo')->store('ligas', 'public');
+            ImagenService::comprimir(Storage::disk('public')->path($ruta));
             $datos['logo_url'] = Storage::url($ruta);
         }
 

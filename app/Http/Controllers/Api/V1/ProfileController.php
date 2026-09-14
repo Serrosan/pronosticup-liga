@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
+use App\Services\ImagenService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -45,6 +46,7 @@ class ProfileController extends Controller
         ]);
 
         $ruta = $request->file('avatar')->store('avatars', 'public');
+        ImagenService::comprimir(Storage::disk('public')->path($ruta));
 
         $request->user()->update(['avatar_url' => Storage::url($ruta)]);
 

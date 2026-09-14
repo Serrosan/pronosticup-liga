@@ -14,7 +14,7 @@ ENV TZ=UTC
 WORKDIR /var/www/html
 
 RUN apt-get update && apt-get install -y \
-    gnupg curl ca-certificates zip unzip git nginx supervisor \
+    gnupg curl ca-certificates zip unzip git nginx supervisor pngquant \
     && mkdir -p /etc/apt/keyrings \
     && curl -sS 'https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xb8dc7e53946656efbce4c1dd71daeaab4ad4cab6' | gpg --dearmor | tee /etc/apt/keyrings/ppa_ondrej_php.gpg > /dev/null \
     && echo "deb [signed-by=/etc/apt/keyrings/ppa_ondrej_php.gpg] https://ppa.launchpadcontent.net/ondrej/php/ubuntu noble main" > /etc/apt/sources.list.d/ppa_ondrej_php.list \

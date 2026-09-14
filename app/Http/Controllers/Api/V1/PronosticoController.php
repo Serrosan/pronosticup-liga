@@ -81,22 +81,72 @@ class PronosticoController extends Controller
             ->where('jornada', $jornada)
             ->pluck('id');
 
-        $totalMiembros = $liga->usuarios()->count();
+        $miembros = $liga->usuarios()->get(['users.id', 'users.name', 'users.nombre_visible']);
         $totalPartidos = $idsPartidos->count();
 
         if ($totalPartidos === 0) {
-            return response()->json(['data' => ['completados' => 0, 'total_miembros' => $totalMiembros]]);
+            return response()->json(['data' => ['completados' => 0, 'total_miembros' => $miembros->count(), 'pendientes' => []]]);
         }
 
-        $completados = Pronostico::where('id_liga', $liga->id)
+        $conteoPorUsuario = Pronostico::where('id_liga', $liga->id)
             ->whereIn('id_partido', $idsPartidos)
-            ->select('id_usuario')
+            ->selectRaw('id_usuario, COUNT(*) as total')
             ->groupBy('id_usuario')
-            ->havingRaw('COUNT(*) = ?', [$totalPartidos])
-            ->get()
-            ->count();
+            ->pluck('total', 'id_usuario');
 
-        return response()->json(['data' => ['completados' => $completados, 'total_miembros' => $totalMiembros]]);
+        $completados = 0;
+        $pendientes = [];
+
+        foreach ($miembros as $miembro) {
+            $hechos = $conteoPorUsuario->get($miembro->id, 0);
+
+            if ($hechos >= $totalPartidos) {
+                $completados++;
+            } else {
+                $pendientes[] = [
+                    'nombre' => $miembro->nombre_visible ?? $miembro->name,
+                    'faltan' => $totalPartidos - $hechos,
+                ];
+            }
+        }
+
+        return response()->json([
+            'data' => [
+                'completados' => $completados,
+                'total_miembros' => $miembros->count(),
+                'pendientes' => $pendientes,
+            ],
+        ]);
+    }
+
+    public function resumenRendimiento(Request $request)
+    {
+        $liga = $request->user()->ligaActiva;
+
+        if (! $liga) {
+            return response()->json(['message' => 'No tienes ninguna liga activa.'], 409);
+        }
+
+        $porJornada = EventoPuntos::where('id_liga', $liga->id)
+            ->where('id_usuario', $request->user()->id)
+            ->selectRaw('jornada, SUM(puntos) as puntos')
+            ->groupBy('jornada')
+            ->get();
+
+        if ($porJornada->isEmpty()) {
+            return response()->json(['data' => ['mejor_jornada' => null, 'mejor_puntos' => null, 'media_puntos' => null]]);
+        }
+
+        $mejor = $porJornada->sortByDesc('puntos')->first();
+        $media = round($porJornada->avg('puntos'), 1);
+
+        return response()->json([
+            'data' => [
+                'mejor_jornada' => $mejor->jornada,
+                'mejor_puntos' => (int) $mejor->puntos,
+                'media_puntos' => $media,
+            ],
+        ]);
     }
 
     public function todos(Request $request)
@@ -216,35 +266,5 @@ class PronosticoController extends Controller
         if ($golesLocal > $golesVisitante) return 'Local';
         if ($golesLocal < $golesVisitante) return 'Visitante';
         return 'Empate';
-    }
-
-    public function resumenRendimiento(Request $request)
-    {
-        $liga = $request->user()->ligaActiva;
-
-        if (! $liga) {
-            return response()->json(['message' => 'No tienes ninguna liga activa.'], 409);
-        }
-
-        $porJornada = EventoPuntos::where('id_liga', $liga->id)
-            ->where('id_usuario', $request->user()->id)
-            ->selectRaw('jornada, SUM(puntos) as puntos')
-            ->groupBy('jornada')
-            ->get();
-
-        if ($porJornada->isEmpty()) {
-            return response()->json(['data' => ['mejor_jornada' => null, 'mejor_puntos' => null, 'media_puntos' => null]]);
-        }
-
-        $mejor = $porJornada->sortByDesc('puntos')->first();
-        $media = round($porJornada->avg('puntos'), 1);
-
-        return response()->json([
-            'data' => [
-                'mejor_jornada' => $mejor->jornada,
-                'mejor_puntos' => (int) $mejor->puntos,
-                'media_puntos' => $media,
-            ],
-        ]);
     }
 }

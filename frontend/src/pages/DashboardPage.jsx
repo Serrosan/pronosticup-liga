@@ -22,6 +22,18 @@ function saludoSegunHora() {
   return 'Buenas noches'
 }
 
+function EmpateLiderato({ empate }) {
+  if (!empate) return null
+
+  return (
+    <div className="bg-acento/10 border border-acento/30 rounded-lg px-4 py-2.5 mb-6 text-center">
+      <p className="font-body text-sm text-acento font-semibold">
+        ⚖️ Empate técnico en el liderato: {empate.usuarios.join(' y ')} con {empate.puntos}pt cada uno
+      </p>
+    </div>
+  )
+}
+
 function ResumenRendimiento() {
   const { data } = useQuery({
     queryKey: ['resumen-rendimiento'],
@@ -68,6 +80,8 @@ function ProgresoJornada({ partidos }) {
 }
 
 function ProgresoGrupo({ jornada }) {
+  const [expandido, setExpandido] = useState(false)
+
   const { data } = useQuery({
     queryKey: ['progreso-liga', jornada],
     queryFn: async () => (await client.get(`/api/v1/jornadas/${jornada}/progreso-liga`)).data.data,
@@ -76,10 +90,28 @@ function ProgresoGrupo({ jornada }) {
 
   if (!data || data.total_miembros === 0) return null
 
+  const hayPendientes = data.pendientes && data.pendientes.length > 0
+
   return (
-    <p className="font-body text-[11px] text-borde mt-1.5 px-1">
-      👥 {data.completados}/{data.total_miembros} miembros ya han completado sus pronósticos
-    </p>
+    <div className="mt-1.5 px-1">
+      <button
+        onClick={() => hayPendientes && setExpandido(!expandido)}
+        className={`font-body text-[11px] text-borde ${hayPendientes ? 'hover:text-texto cursor-pointer' : 'cursor-default'}`}
+      >
+        👥 {data.completados}/{data.total_miembros} miembros ya han completado sus pronósticos
+        {hayPendientes && <span className="ml-1">{expandido ? '▲' : '▼'}</span>}
+      </button>
+
+      {expandido && hayPendientes && (
+        <div className="mt-1.5 flex flex-col gap-1">
+          {data.pendientes.map((p, i) => (
+            <p key={i} className="font-body text-[11px] text-premio">
+              • {p.nombre} — le faltan {p.faltan} partido{p.faltan > 1 ? 's' : ''}
+            </p>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -187,6 +219,7 @@ function DashboardPage() {
         ))}
       </div>
 
+      <EmpateLiderato empate={data.empate_liderato} />
       <ResumenRendimiento />
 
       {data.avisos.length > 0 && (

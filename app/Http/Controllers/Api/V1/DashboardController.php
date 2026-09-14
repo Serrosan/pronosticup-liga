@@ -7,6 +7,7 @@ use App\Models\CalendarioPartido;
 use App\Models\EventoPuntos;
 use App\Models\Novedad;
 use App\Models\Pronostico;
+use App\Models\User;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
@@ -29,6 +30,25 @@ class DashboardController extends Controller
 
         $miFila = $clasificacion->firstWhere('id_usuario', $userId);
         $posicion = $clasificacion->search(fn ($fila) => $fila->id_usuario === $userId);
+
+        // --- Empate técnico en el liderato ---
+        $empateLiderato = null;
+        if ($clasificacion->count() >= 2) {
+            $puntosLider = $clasificacion[0]->puntos_totales;
+            $empatados = $clasificacion->where('puntos_totales', $puntosLider);
+
+            if ($empatados->count() >= 2 && $puntosLider > 0) {
+                $nombresEmpatados = $empatados->map(function ($fila) {
+                    $u = User::find($fila->id_usuario);
+                    return $u->nombre_visible ?? $u->name;
+                })->values();
+
+                $empateLiderato = [
+                    'puntos' => (int) $puntosLider,
+                    'usuarios' => $nombresEmpatados,
+                ];
+            }
+        }
 
         // --- La jornada más próxima con partidos sin jugar ---
         $proximaJornadaNumero = CalendarioPartido::where('id_temporada', $liga->id_temporada)
@@ -53,7 +73,6 @@ class DashboardController extends Controller
                 ->pluck('id_partido')
                 ->flip();
 
-            // Solo mostramos cuenta atrás si la jornada NO está ya bloqueada.
             $yaBloqueada = CalendarioPartido::jornadaBloqueada($liga->id_temporada, $proximaJornadaNumero);
 
             if (! $yaBloqueada) {
@@ -131,6 +150,7 @@ class DashboardController extends Controller
                 'puntos_totales' => (int) ($miFila->puntos_totales ?? 0),
                 'posicion' => $posicion === false ? null : $posicion + 1,
                 'total_participantes' => $clasificacion->count(),
+                'empate_liderato' => $empateLiderato,
 
                 'novedades' => Novedad::where('activa', true)->orderByDesc('id')->limit(5)->get(['titulo', 'emoji', 'created_at']),
 

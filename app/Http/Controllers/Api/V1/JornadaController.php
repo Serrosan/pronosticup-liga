@@ -387,6 +387,7 @@ class JornadaController extends Controller
         }
 
         Novedad::create([
+            'id_liga' => $liga->id,
             'titulo' => "📊 Jornada {$jornada} cerrada: ".implode(' · ', $partes),
             'emoji' => '📊',
             'activa' => true,

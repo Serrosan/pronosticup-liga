@@ -11,10 +11,15 @@ class Novedad extends Model
 
     protected $table = 'novedades';
 
-    protected $fillable = ['titulo', 'emoji', 'activa'];
+    protected $fillable = ['id_liga', 'titulo', 'emoji', 'activa'];
 
     protected function casts(): array
     {
         return ['activa' => 'boolean'];
+    }
+
+    public function liga()
+    {
+        return $this->belongsTo(Liga::class, 'id_liga');
     }
 }

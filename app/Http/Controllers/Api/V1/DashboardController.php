@@ -152,7 +152,13 @@ class DashboardController extends Controller
                 'total_participantes' => $clasificacion->count(),
                 'empate_liderato' => $empateLiderato,
 
-                'novedades' => Novedad::where('activa', true)->orderByDesc('id')->limit(5)->get(['titulo', 'emoji', 'created_at']),
+                'novedades' => Novedad::where('activa', true)
+                    ->where(function ($q) use ($liga) {
+                        $q->whereNull('id_liga')->orWhere('id_liga', $liga->id);
+                    })
+                    ->orderByDesc('id')
+                    ->limit(5)
+                    ->get(['titulo', 'emoji', 'created_at']),
 
                 'avisos' => $avisos,
 

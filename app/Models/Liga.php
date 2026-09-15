@@ -12,7 +12,7 @@ class Liga extends Model
     protected $table = 'ligas';
 
     protected $fillable = [
-        'nombre', 'codigo_acceso', 'id_temporada', 'id_usuario_creador', 'logo_url', 'lema', 'tipo',
+        'nombre', 'codigo_acceso', 'id_temporada', 'id_usuario_creador', 'logo_url', 'lema', 'tipo', 'tope_mano_cartas',
     ];
 
     public function temporada()
@@ -30,5 +30,15 @@ class Liga extends Model
         return $this->belongsToMany(User::class, 'liga_usuario', 'id_liga', 'id_usuario')
             ->withPivot('rol')
             ->withTimestamps();
+    }
+
+    public function configuracionesCartas()
+    {
+        return $this->hasMany(ConfiguracionCartasLiga::class, 'id_liga');
+    }
+
+    public function rarezasProbabilidadCartas()
+    {
+        return $this->hasMany(RarezaProbabilidadLiga::class, 'id_liga');
     }
 }

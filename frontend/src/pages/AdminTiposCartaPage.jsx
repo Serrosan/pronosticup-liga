@@ -31,7 +31,8 @@ function AdminTiposCartaPage() {
     { name: 'rareza', label: 'Rareza', type: 'select', options: RAREZAS },
     { name: 'nombre', label: 'Nombre' },
     { name: 'descripcion', label: 'Descripción' },
-    { name: 'imagen_url', label: 'Imagen', type: 'imagen', carpeta: 'cartas' },
+    { name: 'imagen_url', label: 'Imagen (ilustración central)', type: 'imagen', carpeta: 'cartas' },
+    { name: 'insignia_corta', label: 'Insignia corta (ej. +1, x2 — opcional)' },
     { name: 'codigo_efecto', label: 'Código efecto (identificador técnico)' },
   ]
 

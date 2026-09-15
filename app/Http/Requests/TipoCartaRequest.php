@@ -19,6 +19,7 @@ class TipoCartaRequest extends FormRequest
             'nombre' => ['required', 'string', 'max:100'],
             'descripcion' => ['required', 'string'],
             'imagen_url' => ['nullable', 'string'],
+            'insignia_corta' => ['nullable', 'string', 'max:10'],
             'codigo_efecto' => ['required', 'string', 'max:100'],
             'activa' => ['boolean'],
         ];

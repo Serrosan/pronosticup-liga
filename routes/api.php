@@ -134,6 +134,11 @@ Route::prefix('v1')->group(function () {
         Route::post('/importar-historico/interpretar', [\App\Http\Controllers\Api\V1\Admin\HistoricoImportController::class, 'interpretar']);
         Route::post('/importar-historico/guardar', [\App\Http\Controllers\Api\V1\Admin\HistoricoImportController::class, 'guardar']);
         Route::post('/importar-historico', [\App\Http\Controllers\Api\V1\Admin\HistoricoImportController::class, 'importar']);
+        Route::apiResource('categorias-carta', \App\Http\Controllers\Api\V1\Admin\CategoriaCartaAdminController::class)
+        ->parameters(['categorias-carta' => 'categoriaCarta']);
+
+        Route::apiResource('tipos-carta', \App\Http\Controllers\Api\V1\Admin\TipoCartaAdminController::class)
+        ->parameters(['tipos-carta' => 'tipoCartum']);
     });
     });
 

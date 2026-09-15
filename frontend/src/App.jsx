@@ -55,6 +55,8 @@ import RedirectJornadaActual from './pages/RedirectJornadaActual'
 import GuiaPage from './pages/GuiaPage'
 import EstadisticasLigaPage from './pages/EstadisticasLigaPage'
 import LogrosPage from './pages/LogrosPage'
+import AdminCategoriasCartaPage from './pages/AdminCategoriasCartaPage'
+import AdminTiposCartaPage from './pages/AdminTiposCartaPage'
 
 function RutaProtegida() {
   const { usuario, cargando } = useAuth()
@@ -145,6 +147,8 @@ function App() {
                 <Route path="importar-historico" element={<AdminImportarHistoricoPage />} />
                 <Route path="novedades" element={<AdminNovedadesPage />} />
                 <Route path=":resource/detalle/:id" element={<AdminResourceDetailPage />} />
+                <Route path="/admin/categorias-carta" element={<AdminCategoriasCartaPage />} />
+                <Route path="/admin/tipos-carta" element={<AdminTiposCartaPage />} />
               </Route>
             <Route path="*" element={<NotFoundPage />} />
             </Routes>

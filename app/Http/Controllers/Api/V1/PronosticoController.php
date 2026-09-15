@@ -248,11 +248,13 @@ class PronosticoController extends Controller
             ];
         });
 
+        $puntosGoleadoresTotal = (int) $jornadas->sum(fn ($j) => collect($j['goleadores'])->sum('puntos'));
+
         return response()->json([
             'data' => [
                 'stats' => [
                     'total' => $filasPorPartido->count(),
-                    'puntos_totales' => (int) $filasPorPartido->sum('puntos') + (int) $bonusPlenoPorJornada->sum(),
+                    'puntos_totales' => (int) $filasPorPartido->sum('puntos') + (int) $bonusPlenoPorJornada->sum() + $puntosGoleadoresTotal,
                     'aciertos' => $filasPorPartido->whereIn('tipo_evento', ['AciertoExacto', 'AciertoDiferencia', 'Acierto1x2'])->count(),
                     'exactos' => $filasPorPartido->where('tipo_evento', 'AciertoExacto')->count(),
                 ],

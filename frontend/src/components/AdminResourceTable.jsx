@@ -293,6 +293,7 @@ function AdminResourceTable({ resource, title, columns, fields, irADetalleTrasCr
                     name={field.name}
                     defaultValue={valorParaCampo(field, editando[field.name])}
                     options={field.options}
+                    placeholder={field.placeholder}
                     className="w-full bg-fondo"
                   />
                 ) : field.type === 'color' ? (

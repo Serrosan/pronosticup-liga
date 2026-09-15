@@ -14,6 +14,7 @@ class NovedadRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'id_liga' => ['nullable', 'exists:ligas,id'],
             'titulo' => ['required', 'string', 'max:255'],
             'emoji' => ['nullable', 'string', 'max:10'],
             'activa' => ['boolean'],

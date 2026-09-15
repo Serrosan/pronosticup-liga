@@ -10,7 +10,13 @@ class NovedadAdminController extends Controller
 {
     public function index()
     {
-        return response()->json(['data' => Novedad::orderByDesc('id')->get()]);
+        $novedades = Novedad::with('liga')->orderByDesc('id')->get()->map(function ($novedad) {
+            $datos = $novedad->toArray();
+            $datos['liga_nombre'] = $novedad->liga->nombre ?? 'Global (todas)';
+            return $datos;
+        });
+
+        return response()->json(['data' => $novedades]);
     }
 
     public function show(Novedad $novedad)

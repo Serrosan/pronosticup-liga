@@ -8,7 +8,7 @@ class TipoCarta extends Model
 {
     protected $table = 'tipos_carta';
 
-    protected $fillable = ['id_categoria', 'rareza', 'nombre', 'descripcion', 'codigo_efecto', 'activa'];
+    protected $fillable = ['id_categoria', 'rareza', 'nombre', 'descripcion', 'imagen_url', 'codigo_efecto', 'activa'];
 
     protected function casts(): array
     {

@@ -18,6 +18,7 @@ class TipoCartaRequest extends FormRequest
             'rareza' => ['required', 'in:Comun,PocoComun,Rara,Legendaria'],
             'nombre' => ['required', 'string', 'max:100'],
             'descripcion' => ['required', 'string'],
+            'imagen_url' => ['nullable', 'string'],
             'codigo_efecto' => ['required', 'string', 'max:100'],
             'activa' => ['boolean'],
         ];

@@ -52,7 +52,7 @@ class EventoPartidoAdminController extends Controller
             'eventos.*.id_jugador' => ['required', 'exists:jugadores,id'],
             'eventos.*.id_equipo' => ['required', 'exists:equipos,id'],
             'eventos.*.minuto' => ['required', 'string'],
-            'eventos.*.tipo_evento' => ['required', 'in:gol,tarjeta_amarilla,tarjeta_roja,sustitucion'],
+            'eventos.*.tipo_evento' => ['required', 'in:gol,gol_en_propia,tarjeta_amarilla,tarjeta_roja,sustitucion'],
             'eventos.*.id_jugador_relacionado' => ['nullable', 'exists:jugadores,id'],
         ]);
 

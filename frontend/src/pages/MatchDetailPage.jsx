@@ -52,7 +52,10 @@ function Fila({ evento, mostrarAsistencia }) {
       <span className="font-marcador text-xs text-borde w-7 shrink-0 text-right">{evento.minuto}'</span>
       <FotoJugador url={evento.jugador_foto} nombre={evento.jugador} />
       <div className="min-w-0">
-        <p className="font-body text-sm text-texto truncate">{evento.jugador}</p>
+        <p className="font-body text-sm text-texto truncate">
+          {evento.jugador}
+          {evento.tipo_evento === 'gol_en_propia' && <span className="text-borde"> (p.p.)</span>}
+        </p>
         {mostrarAsistencia && evento.jugador_relacionado && (
           <p className="font-body text-[11px] text-borde truncate">Asistencia: {evento.jugador_relacionado}</p>
         )}
@@ -141,7 +144,7 @@ function MatchDetailPage() {
   const eventosLocal = data.eventos.filter((e) => e.id_equipo === data.equipo_local.id)
   const eventosVisitante = data.eventos.filter((e) => e.id_equipo === data.equipo_visitante.id)
 
-  const porTipo = (tipo, lista) => lista.filter((e) => e.tipo_evento === tipo)
+  const porTipo = (tipo, lista) => lista.filter((e) => e.tipo_evento === tipo || (tipo === 'gol' && e.tipo_evento === 'gol_en_propia'))
 
   const minutosDesdeActualizacion = data.actualizado_en
     ? Math.max(0, Math.round((Date.now() - new Date(data.actualizado_en)) / 60000))

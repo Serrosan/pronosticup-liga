@@ -37,6 +37,7 @@ const GRUPOS = [
     items: [
       { to: '/admin/categorias-carta', label: 'Categorías de Carta' },
       { to: '/admin/tipos-carta', label: 'Tipos de Carta' },
+      { to: '/admin/configuracion-cartas', label: 'Configuración por liga' },
     ],
   },
 ]

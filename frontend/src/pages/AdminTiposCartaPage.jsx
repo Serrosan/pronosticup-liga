@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import client from '../api/client'
 import AdminResourceTable from '../components/AdminResourceTable'
+import CartaJuego from '../components/CartaJuego'
 
 const COLUMNAS = [
   { key: 'nombre', label: 'Nombre' },
@@ -17,10 +19,40 @@ const RAREZAS = [
   { value: 'Legendaria', label: 'Legendaria' },
 ]
 
+function VistaPrevia({ tipos }) {
+  const [mostrar, setMostrar] = useState(true)
+
+  if (!tipos || tipos.length === 0) return null
+
+  return (
+    <div className="mb-5 bg-borde/5 border border-borde/20 rounded-lg p-4">
+      <button
+        onClick={() => setMostrar(!mostrar)}
+        className="font-body text-sm font-semibold text-texto flex items-center gap-2"
+      >
+        🃏 Vista previa de las cartas {mostrar ? '▲' : '▼'}
+      </button>
+
+      {mostrar && (
+        <div className="flex flex-wrap gap-4 mt-4">
+          {tipos.map((carta) => (
+            <CartaJuego key={carta.id} carta={carta} categoriaNombre={carta.categoria_nombre} />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function AdminTiposCartaPage() {
   const { data: categorias } = useQuery({
     queryKey: ['admin', 'categorias-carta'],
     queryFn: async () => (await client.get('/api/v1/admin/categorias-carta')).data.data,
+  })
+
+  const { data: tipos } = useQuery({
+    queryKey: ['admin', 'tipos-carta'],
+    queryFn: async () => (await client.get('/api/v1/admin/tipos-carta')).data.data,
   })
 
   const campos = [
@@ -36,7 +68,12 @@ function AdminTiposCartaPage() {
     { name: 'codigo_efecto', label: 'Código efecto (identificador técnico)' },
   ]
 
-  return <AdminResourceTable resource="tipos-carta" title="Tipos de Carta" columns={COLUMNAS} fields={campos} />
+  return (
+    <div>
+      <VistaPrevia tipos={tipos} />
+      <AdminResourceTable resource="tipos-carta" title="Tipos de Carta" columns={COLUMNAS} fields={campos} />
+    </div>
+  )
 }
 
 export default AdminTiposCartaPage

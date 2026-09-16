@@ -19,7 +19,7 @@ class ImagenAdminController extends Controller
                 'max:3072',
                 'dimensions:min_width=50,min_height=50,max_width=4000,max_height=4000',
             ],
-            'carpeta' => ['required', 'string', 'in:ligas,arbitros,trofeos,jugadores,equipos,entrenadores,estadios'],
+            'carpeta' => ['required', 'string', 'in:ligas,arbitros,trofeos,jugadores,equipos,entrenadores,estadios,cartas'],
         ]);
 
         $nombreSeguro = Str::random(40).'.'.$request->file('imagen')->getClientOriginalExtension();

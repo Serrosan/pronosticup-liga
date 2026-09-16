@@ -27,22 +27,24 @@ class ClasificacionController extends Controller
             'hasta_jornada' => ['nullable', 'integer', 'min:1'],
         ]);
 
-        $hastaJornada = $validated['hasta_jornada'] ?? null;
+        $jornadaSeleccionada = $validated['hasta_jornada'] ?? null;
 
-        $consulta = EventoPuntos::where('id_liga', $liga->id)->with('partido');
+        // Siempre traemos el historial COMPLETO de la liga: lo necesitamos para poder
+        // comparar "cómo iba la clasificación general antes de esta jornada", aunque las
+        // filas que se muestren luego sean solo de una jornada concreta en solitario.
+        $eventosCompletos = EventoPuntos::where('id_liga', $liga->id)->with('partido')->get();
 
-        if ($hastaJornada) {
-            $consulta->where('jornada', '<=', $hastaJornada);
-        }
+        $eventosParaFilas = $jornadaSeleccionada
+            ? $eventosCompletos->where('jornada', $jornadaSeleccionada)
+            : $eventosCompletos;
 
-        $eventos = $consulta->get();
-        $porUsuario = $eventos->groupBy('id_usuario');
+        $porUsuario = $eventosParaFilas->groupBy('id_usuario');
 
-        $jornadaParaComparar = $hastaJornada ?? CierreJornada::where('id_liga', $liga->id)->where('cerrada', true)->max('jornada');
+        $jornadaParaComparar = $jornadaSeleccionada ?? CierreJornada::where('id_liga', $liga->id)->where('cerrada', true)->max('jornada');
 
         $posicionesAnteriores = [];
         if ($jornadaParaComparar) {
-            $eventosAnteriores = $eventos->where('jornada', '<', $jornadaParaComparar);
+            $eventosAnteriores = $eventosCompletos->where('jornada', '<', $jornadaParaComparar);
             $posicionesAnteriores = $eventosAnteriores->groupBy('id_usuario')
                 ->map(fn ($grupo) => $grupo->sum('puntos'))
                 ->sortDesc()
@@ -56,7 +58,8 @@ class ClasificacionController extends Controller
             $usuario = User::find($idUsuario);
 
             // Racha actual: aciertos seguidos contando desde el partido más reciente hacia atrás,
-            // hasta el primer fallo (o hasta acabar la lista, si nunca has fallado).
+            // hasta el primer fallo (o hasta acabar la lista, si nunca has fallado). Dentro del
+            // conjunto que corresponda (esa jornada sola, o todo el historial en "Total").
             $eventosConPartido = $grupo->filter(fn ($e) => $e->id_partido && $e->partido)
                 ->sortByDesc(fn ($e) => $e->partido->horario_estimado);
 

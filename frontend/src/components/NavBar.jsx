@@ -75,6 +75,7 @@ function NavBar() {
 
   const enLaLiga = ['/clasificacion-liga', '/calendario', '/estadios'].some((p) => location.pathname.startsWith(p))
   const enQuiniela = location.pathname.startsWith('/quinielas')
+  const tieneCartas = usuario?.liga_activa?.tipo === 'ConExtras'
 
   return (
     <header className="bg-fondo border-b border-borde/30 sticky top-0 z-30">
@@ -92,6 +93,11 @@ function NavBar() {
                 {enlace.label}
               </Link>
             ))}
+            {tieneCartas && (
+              <Link to="/mis-cartas" className={claseEnlace('/mis-cartas')}>
+                🃏 Cartas
+              </Link>
+            )}
             <MenuDesplegable etiqueta="LaLiga" opciones={LALIGA} activo={enLaLiga} />
             <MenuDesplegable etiqueta="Quinielas" opciones={QUINIELAS} activo={enQuiniela} />
             {usuario?.es_superadmin && (
@@ -114,6 +120,11 @@ function NavBar() {
                 {enlace.label}
               </Link>
             ))}
+            {tieneCartas && (
+              <Link to="/mis-cartas" onClick={() => setMenuAbierto(false)} className={claseEnlace('/mis-cartas')}>
+                🃏 Cartas
+              </Link>
+            )}
             <p className="font-body text-[10px] uppercase tracking-widest text-borde px-3 pt-3 pb-1">LaLiga</p>
             {LALIGA.map((op) => (
               <Link key={op.to} to={op.to} onClick={() => setMenuAbierto(false)} className={claseEnlace(op.to)}>

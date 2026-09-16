@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\BonusTop3ProbabilidadLiga;
 use App\Models\CategoriaCarta;
 use App\Models\ConfiguracionCartasLiga;
 use App\Models\Liga;
@@ -11,6 +12,12 @@ use Illuminate\Http\Request;
 
 class ConfiguracionCartasLigaAdminController extends Controller
 {
+    private const DEFECTOS_TOP3 = [
+        1 => ['Comun' => 35, 'PocoComun' => 35, 'Rara' => 22, 'Legendaria' => 8],
+        2 => ['Comun' => 45, 'PocoComun' => 33, 'Rara' => 17, 'Legendaria' => 5],
+        3 => ['Comun' => 55, 'PocoComun' => 30, 'Rara' => 12, 'Legendaria' => 3],
+    ];
+
     public function mostrar(Liga $liga)
     {
         $categorias = CategoriaCarta::where('activa', true)->orderBy('nombre')->get();
@@ -34,6 +41,23 @@ class ConfiguracionCartasLigaAdminController extends Controller
             ];
         });
 
+        $bonusTop3Guardado = BonusTop3ProbabilidadLiga::where('id_liga', $liga->id)->get()->groupBy('posicion');
+
+        $bonusTop3 = collect([1, 2, 3])->map(function ($posicion) use ($bonusTop3Guardado) {
+            $filasPosicion = ($bonusTop3Guardado->get($posicion) ?? collect())->keyBy('rareza');
+            $defecto = self::DEFECTOS_TOP3[$posicion];
+
+            return [
+                'posicion' => $posicion,
+                'rarezas' => [
+                    'Comun' => $filasPosicion->get('Comun')->porcentaje ?? $defecto['Comun'],
+                    'PocoComun' => $filasPosicion->get('PocoComun')->porcentaje ?? $defecto['PocoComun'],
+                    'Rara' => $filasPosicion->get('Rara')->porcentaje ?? $defecto['Rara'],
+                    'Legendaria' => $filasPosicion->get('Legendaria')->porcentaje ?? $defecto['Legendaria'],
+                ],
+            ];
+        });
+
         return response()->json([
             'data' => [
                 'liga' => [
@@ -42,6 +66,7 @@ class ConfiguracionCartasLigaAdminController extends Controller
                     'tope_mano_cartas' => $liga->tope_mano_cartas ?? 8,
                 ],
                 'categorias' => $datos,
+                'bonus_top3' => $bonusTop3,
             ],
         ]);
     }
@@ -57,6 +82,12 @@ class ConfiguracionCartasLigaAdminController extends Controller
             'categorias.*.rarezas.PocoComun' => ['required', 'integer', 'min:0', 'max:100'],
             'categorias.*.rarezas.Rara' => ['required', 'integer', 'min:0', 'max:100'],
             'categorias.*.rarezas.Legendaria' => ['required', 'integer', 'min:0', 'max:100'],
+            'bonus_top3' => ['required', 'array', 'size:3'],
+            'bonus_top3.*.posicion' => ['required', 'integer', 'in:1,2,3'],
+            'bonus_top3.*.rarezas.Comun' => ['required', 'integer', 'min:0', 'max:100'],
+            'bonus_top3.*.rarezas.PocoComun' => ['required', 'integer', 'min:0', 'max:100'],
+            'bonus_top3.*.rarezas.Rara' => ['required', 'integer', 'min:0', 'max:100'],
+            'bonus_top3.*.rarezas.Legendaria' => ['required', 'integer', 'min:0', 'max:100'],
         ]);
 
         foreach ($validated['categorias'] as $cat) {
@@ -65,6 +96,16 @@ class ConfiguracionCartasLigaAdminController extends Controller
             if ($suma !== 100) {
                 return response()->json([
                     'message' => "Los porcentajes de rareza de una categoría suman {$suma}, deben sumar exactamente 100.",
+                ], 422);
+            }
+        }
+
+        foreach ($validated['bonus_top3'] as $fila) {
+            $suma = $fila['rarezas']['Comun'] + $fila['rarezas']['PocoComun'] + $fila['rarezas']['Rara'] + $fila['rarezas']['Legendaria'];
+
+            if ($suma !== 100) {
+                return response()->json([
+                    'message' => "Los porcentajes del bonus Top 3 (posición {$fila['posicion']}) suman {$suma}, deben sumar exactamente 100.",
                 ], 422);
             }
         }
@@ -80,6 +121,15 @@ class ConfiguracionCartasLigaAdminController extends Controller
             foreach ($cat['rarezas'] as $rareza => $porcentaje) {
                 RarezaProbabilidadLiga::updateOrCreate(
                     ['id_liga' => $liga->id, 'id_categoria' => $cat['id_categoria'], 'rareza' => $rareza],
+                    ['porcentaje' => $porcentaje]
+                );
+            }
+        }
+
+        foreach ($validated['bonus_top3'] as $fila) {
+            foreach ($fila['rarezas'] as $rareza => $porcentaje) {
+                BonusTop3ProbabilidadLiga::updateOrCreate(
+                    ['id_liga' => $liga->id, 'posicion' => $fila['posicion'], 'rareza' => $rareza],
                     ['porcentaje' => $porcentaje]
                 );
             }

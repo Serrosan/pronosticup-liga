@@ -71,6 +71,7 @@ Route::prefix('v1')->group(function () {
     Route::post('/chat/{mensajeChat}/fijar', [\App\Http\Controllers\Api\V1\ChatController::class, 'fijar']);
     Route::get('/logros', [\App\Http\Controllers\Api\V1\LogrosController::class, 'index']);
     Route::post('/liga-activa/personalizar', [\App\Http\Controllers\Api\V1\LigaPersonalizacionController::class, 'actualizar']);
+    Route::post('/jornadas/{jornada}/repartir-cartas', [\App\Http\Controllers\Api\V1\CartaRepartoController::class, 'repartirJornada']);
 
     Route::middleware('admin')->prefix('admin')->group(function () {
         Route::get('/equipos/{equipo}', [\App\Http\Controllers\Api\V1\Admin\EquipoAdminController::class, 'show']);

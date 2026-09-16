@@ -6,11 +6,40 @@ import { useToast } from '../context/ToastContext'
 
 const RAREZAS = ['Comun', 'PocoComun', 'Rara', 'Legendaria']
 const ETIQUETA_RAREZA = { Comun: 'Común', PocoComun: 'Poco común', Rara: 'Rara', Legendaria: 'Legendaria' }
+const ETIQUETA_POSICION = { 1: '🥇 1º de la jornada', 2: '🥈 2º de la jornada', 3: '🥉 3º de la jornada' }
 
-function FilaCategoria({ categoria, onCambiar }) {
-  const suma = RAREZAS.reduce((acc, r) => acc + Number(categoria.rarezas[r] || 0), 0)
+function FilaRarezas({ rarezas, onCambiar }) {
+  const suma = RAREZAS.reduce((acc, r) => acc + Number(rarezas[r] || 0), 0)
   const sumaValida = suma === 100
 
+  return (
+    <>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {RAREZAS.map((rareza) => (
+          <div key={rareza}>
+            <label className="font-body text-[10px] text-borde block mb-1">{ETIQUETA_RAREZA[rareza]}</label>
+            <div className="flex items-center gap-1">
+              <input
+                type="number"
+                min="0"
+                max="100"
+                value={rarezas[rareza]}
+                onChange={(e) => onCambiar(rareza, Number(e.target.value))}
+                className="w-full font-body text-sm bg-fondo text-texto rounded border border-borde/40 px-2 py-1 text-center"
+              />
+              <span className="font-body text-xs text-borde">%</span>
+            </div>
+          </div>
+        ))}
+      </div>
+      <p className={`font-body text-xs mt-2 ${sumaValida ? 'text-acento' : 'text-red-500 font-semibold'}`}>
+        Suma total: {suma}% {sumaValida ? '✓' : '— debe ser exactamente 100%'}
+      </p>
+    </>
+  )
+}
+
+function FilaCategoria({ categoria, onCambiar }) {
   return (
     <div className="bg-borde/5 border border-borde/20 rounded-lg p-4 mb-3">
       <div className="flex items-center justify-between mb-3">
@@ -27,29 +56,25 @@ function FilaCategoria({ categoria, onCambiar }) {
           />
         </div>
       </div>
+      <FilaRarezas rarezas={categoria.rarezas} onCambiar={(rareza, valor) => onCambiar('rareza', valor, rareza)} />
+    </div>
+  )
+}
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {RAREZAS.map((rareza) => (
-          <div key={rareza}>
-            <label className="font-body text-[10px] text-borde block mb-1">{ETIQUETA_RAREZA[rareza]}</label>
-            <div className="flex items-center gap-1">
-              <input
-                type="number"
-                min="0"
-                max="100"
-                value={categoria.rarezas[rareza]}
-                onChange={(e) => onCambiar('rareza', Number(e.target.value), rareza)}
-                className="w-full font-body text-sm bg-fondo text-texto rounded border border-borde/40 px-2 py-1 text-center"
-              />
-              <span className="font-body text-xs text-borde">%</span>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <p className={`font-body text-xs mt-2 ${sumaValida ? 'text-acento' : 'text-red-500 font-semibold'}`}>
-        Suma total: {suma}% {sumaValida ? '✓' : '— debe ser exactamente 100%'}
+function SeccionBonusTop3({ bonusTop3, onCambiar }) {
+  return (
+    <div className="mt-6">
+      <p className="font-body text-xs uppercase tracking-widest text-borde mb-1">Carta extra del Top 3 de la jornada</p>
+      <p className="font-body text-xs text-borde mb-3">
+        La categoría de esta carta extra se sortea al azar igual que las normales — aquí solo se ajusta con qué probabilidad
+        de rareza sale, según en qué posición quedaste esa jornada.
       </p>
+      {bonusTop3.map((fila) => (
+        <div key={fila.posicion} className="bg-premio/5 border border-premio/20 rounded-lg p-4 mb-3">
+          <p className="font-display text-sm text-premio mb-3">{ETIQUETA_POSICION[fila.posicion]}</p>
+          <FilaRarezas rarezas={fila.rarezas} onCambiar={(rareza, valor) => onCambiar(fila.posicion, rareza, valor)} />
+        </div>
+      ))}
     </div>
   )
 }
@@ -60,6 +85,7 @@ function AdminConfiguracionCartasPage() {
   const [idLigaSeleccionada, setIdLigaSeleccionada] = useState('')
   const [topeMano, setTopeMano] = useState(8)
   const [categorias, setCategorias] = useState([])
+  const [bonusTop3, setBonusTop3] = useState([])
 
   const { data: ligas } = useQuery({
     queryKey: ['admin', 'ligas'],
@@ -76,6 +102,7 @@ function AdminConfiguracionCartasPage() {
     if (configuracion) {
       setTopeMano(configuracion.liga.tope_mano_cartas)
       setCategorias(configuracion.categorias)
+      setBonusTop3(configuracion.bonus_top3)
     }
   }, [configuracion])
 
@@ -87,6 +114,7 @@ function AdminConfiguracionCartasPage() {
         cantidad_reparto_semanal: c.cantidad_reparto_semanal,
         rarezas: c.rarezas,
       })),
+      bonus_top3: bonusTop3.map((b) => ({ posicion: b.posicion, rarezas: b.rarezas })),
     }),
     onSuccess: () => {
       toast.exito('Configuración guardada.')
@@ -98,26 +126,34 @@ function AdminConfiguracionCartasPage() {
   function cambiarCategoria(idCategoria, campo, valor, rareza = null) {
     setCategorias((prev) => prev.map((c) => {
       if (c.id_categoria !== idCategoria) return c
-
-      if (campo === 'rareza') {
-        return { ...c, rarezas: { ...c.rarezas, [rareza]: valor } }
-      }
+      if (campo === 'rareza') return { ...c, rarezas: { ...c.rarezas, [rareza]: valor } }
       return { ...c, [campo]: valor }
     }))
   }
 
-  const hayAlgunaSumaInvalida = categorias.some((c) => RAREZAS.reduce((acc, r) => acc + Number(c.rarezas[r] || 0), 0) !== 100)
+  function cambiarBonusTop3(posicion, rareza, valor) {
+    setBonusTop3((prev) => prev.map((b) => (
+      b.posicion === posicion ? { ...b, rarezas: { ...b.rarezas, [rareza]: valor } } : b
+    )))
+  }
+
+  const hayCategoriaInvalida = categorias.some((c) => RAREZAS.reduce((acc, r) => acc + Number(c.rarezas[r] || 0), 0) !== 100)
+  const hayBonusInvalido = bonusTop3.some((b) => RAREZAS.reduce((acc, r) => acc + Number(b.rarezas[r] || 0), 0) !== 100)
+  const hayAlgoInvalido = hayCategoriaInvalida || hayBonusInvalido
 
   return (
     <div>
       <h2 className="font-display text-xl text-texto mb-4">Configuración de Cartas por liga</h2>
 
       <div className="mb-5 max-w-xs">
-        <label className="font-body text-xs text-borde block mb-1">Liga</label>
+        <label className="font-body text-xs text-borde block mb-1">Liga (solo "Con extras")</label>
         <SelectTema
           value={idLigaSeleccionada}
           onChange={(e) => setIdLigaSeleccionada(e.target.value)}
-          options={[{ value: '', label: 'Elige una liga...' }, ...(ligas ?? []).map((l) => ({ value: String(l.id), label: `${l.nombre} (${l.tipo})` }))]}
+          options={[
+            { value: '', label: 'Elige una liga...' },
+            ...(ligas ?? []).filter((l) => l.tipo === 'ConExtras').map((l) => ({ value: String(l.id), label: l.nombre })),
+          ]}
           className="w-full bg-fondo"
         />
       </div>
@@ -154,10 +190,12 @@ function AdminConfiguracionCartasPage() {
             ))
           )}
 
+          <SeccionBonusTop3 bonusTop3={bonusTop3} onCambiar={cambiarBonusTop3} />
+
           <button
             onClick={() => guardar.mutate()}
-            disabled={guardar.isPending || hayAlgunaSumaInvalida || categorias.length === 0}
-            className="font-body text-sm font-semibold bg-acento text-fondo rounded px-4 py-2 hover:brightness-110 disabled:opacity-50 mt-2"
+            disabled={guardar.isPending || hayAlgoInvalido || categorias.length === 0}
+            className="font-body text-sm font-semibold bg-acento text-fondo rounded px-4 py-2 hover:brightness-110 disabled:opacity-50 mt-5"
           >
             {guardar.isPending ? 'Guardando...' : 'Guardar configuración'}
           </button>

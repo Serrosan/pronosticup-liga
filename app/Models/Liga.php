@@ -41,4 +41,9 @@ class Liga extends Model
     {
         return $this->hasMany(RarezaProbabilidadLiga::class, 'id_liga');
     }
+
+    public function bonusTop3ProbabilidadCartas()
+    {
+        return $this->hasMany(BonusTop3ProbabilidadLiga::class, 'id_liga');
+    }
 }

@@ -55,15 +55,20 @@ function AdminEventosPartidoPage() {
     onError: (err) => toast.error(err.response?.data?.message ?? 'No se pudo recalcular.'),
   })
 
+  const repartirCartas = useMutation({
+    mutationFn: () => client.post(`/api/v1/jornadas/${jornada}/repartir-cartas`),
+    onSuccess: (respuesta) => toast.exito(respuesta.data.message),
+    onError: (err) => toast.error(err.response?.data?.message ?? 'No se pudieron repartir las cartas.'),
+  })
+
   function actualizarEvento(index, campo, valor) {
     setEventos((prev) => prev.map((e, i) => (i === index ? { ...e, [campo]: valor } : e)))
   }
-
   return (
     <div>
       <h2 className="font-display text-xl text-texto mb-4">Eventos de partido (goles/tarjetas/sustituciones)</h2>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 max-w-3xl">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4 max-w-5xl">
         <div className="bg-premio/10 border border-premio/30 rounded-lg p-4">
           <p className="font-body text-sm font-semibold text-premio">⚽ Recalcular puntos de goleadores</p>
           <p className="font-body text-xs text-borde mt-0.5 mb-3">
@@ -91,6 +96,20 @@ function AdminEventosPartidoPage() {
             {recalcularPuntos.isPending ? 'Recalculando...' : `Recalcular pronósticos J${jornada}`}
           </button>
         </div>
+
+        <div className="bg-borde/10 border border-borde/40 rounded-lg p-4">
+          <p className="font-body text-sm font-semibold text-texto">🃏 Repartir cartas de la jornada</p>
+          <p className="font-body text-xs text-borde mt-0.5 mb-3">
+            Solo para ligas "Con extras". Hazlo al final, cuando ya tengas la jornada y los goleadores confirmados — el bonus del Top 3 usa el resultado definitivo de esa jornada. Solo se puede repartir una vez por jornada.
+          </p>
+          <button
+            onClick={() => repartirCartas.mutate()}
+            disabled={repartirCartas.isPending}
+            className="font-body text-sm font-semibold bg-texto text-fondo rounded px-4 py-2 hover:brightness-110 disabled:opacity-50 w-full"
+          >
+            {repartirCartas.isPending ? 'Repartiendo...' : `Repartir cartas J${jornada}`}
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-col gap-3 mb-4 max-w-xl">
@@ -107,7 +126,6 @@ function AdminEventosPartidoPage() {
               </option>
             ))}
           </select>
-
           <select
             value={idPartido}
             onChange={(e) => setIdPartido(e.target.value)}

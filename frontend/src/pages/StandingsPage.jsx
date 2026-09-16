@@ -273,7 +273,7 @@ function StandingsPage() {
       {jornadaSeleccionada !== null && (
         <div className="mb-4 bg-premio/10 border border-premio/30 rounded-lg px-4 py-2.5 text-center">
           <p className="font-body text-sm text-premio font-semibold">
-            📅 Así iba la clasificación tras la Jornada {jornadaSeleccionada}
+            📅 Puntos conseguidos en la Jornada {jornadaSeleccionada}
           </p>
         </div>
       )}

@@ -19,6 +19,18 @@ class ParserComentariosPartido
                 continue;
             }
 
+            if (preg_match('/Gol en propia puerta de\s*([A-ZÁÉÍÓÚÑ][^,]*),\s*([^.]+)\./u', $linea, $m)) {
+                $eventos[] = [
+                    'minuto' => $minutoActual,
+                    'tipo_evento' => 'gol_en_propia',
+                    'jugador_texto' => trim($m[1]),
+                    'equipo_texto' => trim($m[2]),
+                    'jugador_relacionado_texto' => null,
+                    'texto_original' => $linea,
+                ];
+                continue;
+            }
+
             if (preg_match('/¡Gooooool!.*?\.\s*([A-ZÁÉÍÓÚÑ][^(]*?)\s*\(([^)]+)\)/u', $linea, $m)) {
                 $evento = [
                     'minuto' => $minutoActual,

@@ -32,7 +32,14 @@ class EventoPartidoAdminController extends Controller
             $esLocal = $this->coincideEquipo($evento['equipo_texto'], $partido->equipoLocal->nombre, $partido->equipoLocal->nombre_corto);
             $poolJugadores = $esLocal ? $jugadoresLocal : $jugadoresVisitante;
 
-            $evento['id_equipo'] = $esLocal ? $partido->id_equipo_local : $partido->id_equipo_visitante;
+            if ($evento['tipo_evento'] === 'gol_en_propia') {
+                // El jugador pertenece al equipo que menciona el texto, pero el gol cuenta
+                // para el marcador del equipo CONTRARIO — invertimos el equipo del evento.
+                $evento['id_equipo'] = $esLocal ? $partido->id_equipo_visitante : $partido->id_equipo_local;
+            } else {
+                $evento['id_equipo'] = $esLocal ? $partido->id_equipo_local : $partido->id_equipo_visitante;
+            }
+
             $evento['id_jugador'] = $this->buscarJugador($evento['jugador_texto'], $poolJugadores);
             $evento['id_jugador_relacionado'] = $evento['jugador_relacionado_texto']
                 ? $this->buscarJugador($evento['jugador_relacionado_texto'], $poolJugadores)
@@ -52,9 +59,11 @@ class EventoPartidoAdminController extends Controller
             'eventos.*.id_jugador' => ['required', 'exists:jugadores,id'],
             'eventos.*.id_equipo' => ['required', 'exists:equipos,id'],
             'eventos.*.minuto' => ['required', 'string'],
-            'eventos.*.tipo_evento' => ['required', 'in:gol,tarjeta_amarilla,tarjeta_roja,sustitucion'],
+            'eventos.*.tipo_evento' => ['required', 'in:gol,gol_en_propia,tarjeta_amarilla,tarjeta_roja,sustitucion'],
             'eventos.*.id_jugador_relacionado' => ['nullable', 'exists:jugadores,id'],
         ]);
+
+        EventoPartido::where('id_partido', $validated['id_partido'])->delete();
 
         foreach ($validated['eventos'] as $evento) {
             EventoPartido::create([

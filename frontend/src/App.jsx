@@ -58,6 +58,7 @@ import LogrosPage from './pages/LogrosPage'
 import AdminCategoriasCartaPage from './pages/AdminCategoriasCartaPage'
 import AdminTiposCartaPage from './pages/AdminTiposCartaPage'
 import AdminConfiguracionCartasPage from './pages/AdminConfiguracionCartasPage'
+import AdminGestionCartasUsuariosPage from './pages/AdminGestionCartasUsuariosPage'
 
 function RutaProtegida() {
   const { usuario, cargando } = useAuth()
@@ -147,6 +148,7 @@ function App() {
                 <Route path="eventos-calendario" element={<AdminEventosCalendarioPage />} />
                 <Route path="importar-historico" element={<AdminImportarHistoricoPage />} />
                 <Route path="/admin/configuracion-cartas" element={<AdminConfiguracionCartasPage />} />
+                <Route path="/admin/gestion-cartas-usuarios" element={<AdminGestionCartasUsuariosPage />} />
                 <Route path="novedades" element={<AdminNovedadesPage />} />
                 <Route path=":resource/detalle/:id" element={<AdminResourceDetailPage />} />
                 <Route path="/admin/categorias-carta" element={<AdminCategoriasCartaPage />} />

@@ -38,6 +38,7 @@ const GRUPOS = [
       { to: '/admin/categorias-carta', label: 'Categorías de Carta' },
       { to: '/admin/tipos-carta', label: 'Tipos de Carta' },
       { to: '/admin/configuracion-cartas', label: 'Configuración por liga' },
+      { to: '/admin/gestion-cartas-usuarios', label: 'Gestión de cartas de usuarios' },
     ],
   },
 ]

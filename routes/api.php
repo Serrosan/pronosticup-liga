@@ -136,6 +136,9 @@ Route::prefix('v1')->group(function () {
         Route::post('/importar-historico', [\App\Http\Controllers\Api\V1\Admin\HistoricoImportController::class, 'importar']);
         Route::get('/ligas/{liga}/configuracion-cartas', [\App\Http\Controllers\Api\V1\Admin\ConfiguracionCartasLigaAdminController::class, 'mostrar']);
         Route::put('/ligas/{liga}/configuracion-cartas', [\App\Http\Controllers\Api\V1\Admin\ConfiguracionCartasLigaAdminController::class, 'actualizar']);
+        Route::get('/cartas-usuario', [\App\Http\Controllers\Api\V1\Admin\CartaUsuarioAdminController::class, 'index']);
+        Route::post('/cartas-usuario', [\App\Http\Controllers\Api\V1\Admin\CartaUsuarioAdminController::class, 'store']);
+        Route::delete('/cartas-usuario/{cartaUsuario}', [\App\Http\Controllers\Api\V1\Admin\CartaUsuarioAdminController::class, 'destroy']);
         Route::apiResource('categorias-carta', \App\Http\Controllers\Api\V1\Admin\CategoriaCartaAdminController::class)
         ->parameters(['categorias-carta' => 'categoriaCarta']);
 

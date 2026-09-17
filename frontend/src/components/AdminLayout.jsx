@@ -58,7 +58,7 @@ function AdminLayout({ children }) {
         </div>
       </div>
       <div className="max-w-6xl mx-auto px-4 py-6 flex flex-col md:flex-row gap-6">
-        <aside className="md:w-48 shrink-0">
+        <aside className="md:w-56 shrink-0">
           <h1 className="font-display text-lg text-texto mb-3">Administración</h1>
           <nav className="flex flex-col gap-4">
             {GRUPOS.map((grupo) => (

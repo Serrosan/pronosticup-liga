@@ -57,6 +57,17 @@ function BotonAccion({ icono, onClick, titulo, color = 'text-borde hover:text-te
   )
 }
 
+function ValorColumna({ valor }) {
+  if (typeof valor === 'boolean') {
+    return valor ? (
+      <span className="text-acento font-bold">✓</span>
+    ) : (
+      <span className="text-borde">✗</span>
+    )
+  }
+  return valor ?? '—'
+}
+
 function AdminResourceTable({ resource, title, columns, fields, irADetalleTrasCrear = false, filtros = [] }) {
   const claveFiltroGuardado = `filtro-admin-${resource}`
   const [editando, setEditando] = useState(null)
@@ -254,7 +265,6 @@ function AdminResourceTable({ resource, title, columns, fields, irADetalleTrasCr
           </button>
         </div>
       </div>
-
       {filtros.length > 0 && (
         <div className="flex flex-wrap items-center gap-3 mb-4 bg-borde/5 border border-borde/20 rounded-lg px-3 py-2.5">
           {filtros.map((f) => {
@@ -288,7 +298,18 @@ function AdminResourceTable({ resource, title, columns, fields, irADetalleTrasCr
             {fields.map((field) => (
               <div key={field.name}>
                 <label className="font-body text-xs text-borde block mb-1">{field.label}</label>
-                {field.type === 'select' ? (
+                {field.type === 'boolean' ? (
+                  <div className="flex items-center h-9">
+                    <input type="hidden" name={field.name} value="0" />
+                    <input
+                      type="checkbox"
+                      name={field.name}
+                      value="1"
+                      defaultChecked={!!editando[field.name]}
+                      className="w-5 h-5 accent-acento cursor-pointer"
+                    />
+                  </div>
+                ) : field.type === 'select' ? (
                   <SelectTema
                     name={field.name}
                     defaultValue={valorParaCampo(field, editando[field.name])}
@@ -368,7 +389,9 @@ function AdminResourceTable({ resource, title, columns, fields, irADetalleTrasCr
               <tr key={item.id} className="border-b border-borde/10 last:border-0 odd:bg-borde/5">
                 <td className="font-marcador text-xs text-borde px-4 py-2">{item.id}</td>
                 {columns.map((col) => (
-                  <td key={col.key} className="font-body text-sm text-texto px-4 py-2">{item[col.key]}</td>
+                  <td key={col.key} className="font-body text-sm text-texto px-4 py-2">
+                    <ValorColumna valor={item[col.key]} />
+                  </td>
                 ))}
                 <td className="px-2 py-2">
                   <div className="flex items-center justify-end gap-0.5">

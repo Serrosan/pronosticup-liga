@@ -1,19 +1,58 @@
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import client from '../api/client'
 import TicketHeader from '../components/TicketHeader'
 import CartaJuego from '../components/CartaJuego'
+import SelectTema from '../components/SelectTema'
 import SkeletonLista from '../components/SkeletonLista'
 import useTitulo from '../hooks/useTitulo'
 import { useToast } from '../context/ToastContext'
+
+function SelectorPartido({ carta, partidos, onJugar, onCancelar, jugando }) {
+  const [idPartido, setIdPartido] = useState('')
+
+  return (
+    <div className="bg-borde/10 border border-borde/30 rounded-lg p-3 mt-2 w-56">
+      <SelectTema
+        value={idPartido}
+        onChange={(e) => setIdPartido(e.target.value)}
+        options={[
+          { value: '', label: 'Elige un partido...' },
+          ...partidos.map((p) => ({ value: String(p.id), label: `${p.equipo_local} vs ${p.equipo_visitante}` })),
+        ]}
+        className="w-full bg-fondo text-xs"
+      />
+      <div className="flex gap-2 mt-2">
+        <button
+          onClick={() => onJugar(carta.id, idPartido)}
+          disabled={!idPartido || jugando}
+          className="font-body text-xs font-semibold bg-acento text-fondo rounded px-3 py-1.5 hover:brightness-110 disabled:opacity-50 flex-1"
+        >
+          {jugando ? 'Jugando...' : 'Confirmar'}
+        </button>
+        <button onClick={onCancelar} className="font-body text-xs text-borde hover:text-texto px-2">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  )
+}
 
 function MisCartasPage() {
   useTitulo('Mis Cartas')
   const toast = useToast()
   const queryClient = useQueryClient()
+  const [idCartaEligiendoPartido, setIdCartaEligiendoPartido] = useState(null)
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['mis-cartas'],
     queryFn: async () => (await client.get('/api/v1/mis-cartas')).data.data,
+  })
+
+  const { data: dashboard } = useQuery({
+    queryKey: ['dashboard'],
+    queryFn: async () => (await client.get('/api/v1/dashboard')).data.data,
+    enabled: data?.activo === true,
   })
 
   const descartar = useMutation({
@@ -23,6 +62,16 @@ function MisCartasPage() {
       queryClient.invalidateQueries({ queryKey: ['mis-cartas'] })
     },
     onError: (err) => toast.error(err.response?.data?.message ?? 'No se pudo descartar.'),
+  })
+
+  const jugar = useMutation({
+    mutationFn: ({ idCarta, idPartido }) => client.post(`/api/v1/mis-cartas/${idCarta}/jugar`, { id_partido: idPartido }),
+    onSuccess: () => {
+      toast.exito('Carta jugada. Se resolverá cuando se cierre la jornada.')
+      setIdCartaEligiendoPartido(null)
+      queryClient.invalidateQueries({ queryKey: ['mis-cartas'] })
+    },
+    onError: (err) => toast.error(err.response?.data?.message ?? 'No se pudo jugar la carta.'),
   })
 
   if (isLoading) return <div className="max-w-4xl mx-auto px-4 py-8"><SkeletonLista /></div>
@@ -39,6 +88,7 @@ function MisCartasPage() {
   }
 
   const sobreTope = data.cartas.length > data.tope_mano_cartas
+  const partidosDisponibles = dashboard?.proxima_jornada?.partidos?.filter((p) => p.estado === 'Programado') ?? []
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
@@ -66,18 +116,41 @@ function MisCartasPage() {
         </p>
       ) : (
         <div className="flex flex-wrap gap-5 justify-center">
-          {data.cartas.map((carta) => (
-            <div key={carta.id} className="flex flex-col items-center gap-2">
-              <CartaJuego carta={carta.tipo_carta} categoriaNombre={carta.tipo_carta.categoria.nombre} />
-              <button
-                onClick={() => descartar.mutate(carta.id)}
-                disabled={descartar.isPending}
-                className="font-body text-xs text-borde hover:text-red-500 underline"
-              >
-                Descartar
-              </button>
-            </div>
-          ))}
+          {data.cartas.map((carta) => {
+            const esJugada = carta.tipo_carta.categoria.nombre === 'Jugadas'
+
+            return (
+              <div key={carta.id} className="flex flex-col items-center gap-2">
+                <CartaJuego carta={carta.tipo_carta} categoriaNombre={carta.tipo_carta.categoria.nombre} />
+                <div className="flex gap-3">
+                  {esJugada && partidosDisponibles.length > 0 && idCartaEligiendoPartido !== carta.id && (
+                    <button
+                      onClick={() => setIdCartaEligiendoPartido(carta.id)}
+                      className="font-body text-xs text-acento hover:underline"
+                    >
+                      Jugar
+                    </button>
+                  )}
+                  <button
+                    onClick={() => descartar.mutate(carta.id)}
+                    disabled={descartar.isPending}
+                    className="font-body text-xs text-borde hover:text-red-500 underline"
+                  >
+                    Descartar
+                  </button>
+                </div>
+                {idCartaEligiendoPartido === carta.id && (
+                  <SelectorPartido
+                    carta={carta}
+                    partidos={partidosDisponibles}
+                    onJugar={(idCarta, idPartido) => jugar.mutate({ idCarta, idPartido })}
+                    onCancelar={() => setIdCartaEligiendoPartido(null)}
+                    jugando={jugar.isPending}
+                  />
+                )}
+              </div>
+            )
+          })}
         </div>
       )}
     </div>

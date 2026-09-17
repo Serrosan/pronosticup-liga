@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\CalendarioPartido;
+use App\Models\CartaUsuario;
 use App\Models\CierreJornada;
 use App\Models\ConfiguracionPuntos;
 use App\Models\EventoPartido;
@@ -197,6 +198,14 @@ class JornadaController extends Controller
             ->whereIn('id_partido', $idsPartidos)
             ->get();
 
+        // Cartas "Jugada" activas de tipo Chute Extra: +1pt fijo en el partido que se eligió al jugarla.
+        $cartasChuteExtra = CartaUsuario::where('id_liga', $liga->id)
+            ->whereIn('id_partido', $idsPartidos)
+            ->where('estado', 'jugada')
+            ->whereHas('tipoCarta', fn ($q) => $q->where('codigo_efecto', 'JUG-COM-001'))
+            ->get()
+            ->keyBy(fn ($c) => "{$c->id_usuario}-{$c->id_partido}");
+
         $puntosPorUsuario = [];
         $aciertosSignoPorUsuario = [];
 
@@ -230,6 +239,15 @@ class JornadaController extends Controller
             } else {
                 $tipo = 'Fallo';
                 $puntos = 0;
+            }
+
+            // Resolver Chute Extra, si esta persona jugó esa carta sobre este partido concreto.
+            $claveCarta = "{$pronostico->id_usuario}-{$pronostico->id_partido}";
+            $cartaChuteExtra = $cartasChuteExtra->get($claveCarta);
+
+            if ($cartaChuteExtra) {
+                $puntos += 1;
+                $cartaChuteExtra->update(['estado' => 'resuelta_cumplida', 'puntos_generados' => 1]);
             }
 
             EventoPuntos::create([
@@ -316,18 +334,12 @@ class JornadaController extends Controller
         }
     }
 
-    /**
-     * Genera una "Novedad" automática con un resumen breve de la jornada recién cerrada:
-     * quién lideró esa jornada concreta, y quién subió más puestos en la clasificación
-     * general respecto a antes de esta jornada. Se muestra en el TickerNovedades del Dashboard.
-     */
     private function generarResumenJornada($liga, int $jornada, array $puntosPorUsuario): void
     {
         if (empty($puntosPorUsuario)) {
             return;
         }
 
-        // --- Líder de esta jornada concreta (no el total acumulado) ---
         $idLider = array_search(max($puntosPorUsuario), $puntosPorUsuario);
         $puntosLider = $puntosPorUsuario[$idLider];
         $lider = User::find($idLider);
@@ -339,7 +351,6 @@ class JornadaController extends Controller
         $nombreLider = $lider->nombre_visible ?? $lider->name;
         $partes = ["{$nombreLider} lideró con {$puntosLider}pt"];
 
-        // --- Mayor subida de puestos en la clasificación general ---
         $posicionesAntes = EventoPuntos::where('id_liga', $liga->id)
             ->where('jornada', '<', $jornada)
             ->selectRaw('id_usuario, SUM(puntos) as total')
@@ -367,7 +378,7 @@ class JornadaController extends Controller
             $posAntes = $posicionesAntes->get($idUsuario);
 
             if (is_null($posAntes)) {
-                continue; // no tenía posición previa (recién importado/registrado), no cuenta
+                continue;
             }
 
             $subida = $posAntes - $posDespues;

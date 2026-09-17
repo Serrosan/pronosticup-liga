@@ -36,7 +36,7 @@ function VistaPrevia({ tipos }) {
       {mostrar && (
         <div className="flex flex-wrap gap-4 mt-4">
           {tipos.map((carta) => (
-            <CartaJuego key={carta.id} carta={carta} categoriaNombre={carta.categoria_nombre} />
+            <CartaJuego key={carta.id} carta={carta} categoriaNombre={carta.categoria_nombre} tamano="mini" />
           ))}
         </div>
       )}
@@ -66,6 +66,7 @@ function AdminTiposCartaPage() {
     { name: 'imagen_url', label: 'Imagen (ilustración central)', type: 'imagen', carpeta: 'cartas' },
     { name: 'insignia_corta', label: 'Insignia corta (ej. +1, x2 — opcional)' },
     { name: 'codigo_efecto', label: 'Código efecto (identificador técnico)' },
+    { name: 'activa', label: 'Activa', type: 'boolean' },
   ]
 
   return (

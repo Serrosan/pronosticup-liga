@@ -14,6 +14,10 @@ function TarjetaDato({ icono, titulo, children }) {
   )
 }
 
+function SinDatos() {
+  return <p className="font-body text-sm text-borde">Aún sin datos suficientes.</p>
+}
+
 function EstadisticasLigaPage() {
   useTitulo('Estadísticas de la liga')
 
@@ -49,9 +53,7 @@ function EstadisticasLigaPage() {
                 {data.veces_resultado_mas_repetido} veces esta temporada
               </p>
             </>
-          ) : (
-            <p className="font-body text-sm text-borde">Aún sin datos suficientes.</p>
-          )}
+          ) : <SinDatos />}
         </TarjetaDato>
 
         <TarjetaDato icono="😰" titulo="El equipo que más os cuesta acertar">
@@ -65,9 +67,7 @@ function EstadisticasLigaPage() {
                 {data.equipo_mas_dificil.porcentaje_fallo}% de fallo en sus partidos
               </p>
             </>
-          ) : (
-            <p className="font-body text-sm text-borde">Aún sin datos suficientes.</p>
-          )}
+          ) : <SinDatos />}
         </TarjetaDato>
 
         <TarjetaDato icono="🥅" titulo="Vuestro goleador favorito">
@@ -81,9 +81,61 @@ function EstadisticasLigaPage() {
                 Elegido {data.jugador_mas_elegido.veces} veces
               </p>
             </>
-          ) : (
-            <p className="font-body text-sm text-borde">Aún sin datos suficientes.</p>
-          )}
+          ) : <SinDatos />}
+        </TarjetaDato>
+
+        <TarjetaDato icono="🔥" titulo="La mejor racha de la historia de la liga">
+          {data.mejor_racha_historica ? (
+            <>
+              {data.mejor_racha_historica.avatar_url && (
+                <img src={data.mejor_racha_historica.avatar_url} alt={data.mejor_racha_historica.nombre} className="w-10 h-10 rounded-full object-cover mx-auto mb-1" />
+              )}
+              <p className="font-body text-base font-semibold text-texto">{data.mejor_racha_historica.nombre}</p>
+              <p className="font-body text-xs text-borde mt-1">
+                {data.mejor_racha_historica.racha} aciertos seguidos
+              </p>
+            </>
+          ) : <SinDatos />}
+        </TarjetaDato>
+
+        <TarjetaDato icono="🎇" titulo="La jornada más goleadora">
+          {data.jornada_mas_goleadora ? (
+            <>
+              <p className="font-marcador text-4xl font-bold text-premio">{data.jornada_mas_goleadora.goles}</p>
+              <p className="font-body text-xs text-borde mt-1">
+                goles en la Jornada {data.jornada_mas_goleadora.jornada}
+              </p>
+            </>
+          ) : <SinDatos />}
+        </TarjetaDato>
+
+        <TarjetaDato icono="😱" titulo="La mayor sorpresa de la liga">
+          {data.partido_sorpresa ? (
+            <>
+              <div className="flex items-center justify-center gap-2 mb-1">
+                {data.partido_sorpresa.escudo_local && <img src={data.partido_sorpresa.escudo_local} alt="" className="w-6 h-6 object-contain" />}
+                <p className="font-body text-sm text-texto">{data.partido_sorpresa.equipo_local} {data.partido_sorpresa.goles_casa}-{data.partido_sorpresa.goles_fuera} {data.partido_sorpresa.equipo_visitante}</p>
+                {data.partido_sorpresa.escudo_visitante && <img src={data.partido_sorpresa.escudo_visitante} alt="" className="w-6 h-6 object-contain" />}
+              </div>
+              <p className="font-body text-xs text-borde mt-1">
+                Solo el {data.partido_sorpresa.porcentaje_acierto}% de la liga acertó el signo
+              </p>
+            </>
+          ) : <SinDatos />}
+        </TarjetaDato>
+
+        <TarjetaDato icono="🎯" titulo="El rey de los resultados exactos">
+          {data.rey_de_los_exactos ? (
+            <>
+              {data.rey_de_los_exactos.avatar_url && (
+                <img src={data.rey_de_los_exactos.avatar_url} alt={data.rey_de_los_exactos.nombre} className="w-10 h-10 rounded-full object-cover mx-auto mb-1" />
+              )}
+              <p className="font-body text-base font-semibold text-texto">{data.rey_de_los_exactos.nombre}</p>
+              <p className="font-body text-xs text-borde mt-1">
+                {data.rey_de_los_exactos.total} resultados exactos
+              </p>
+            </>
+          ) : <SinDatos />}
         </TarjetaDato>
       </div>
     </div>

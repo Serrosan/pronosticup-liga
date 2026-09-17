@@ -99,7 +99,11 @@ function SeccionGoleadores({ goleadores }) {
           <div key={g.id} className="flex items-center gap-2 bg-fondo border border-borde/20 rounded-full pl-1 pr-3 py-1">
             <FotoJugador url={g.foto_url} nombre={g.nombre} />
             <span className="font-body text-xs text-texto">{g.nombre}</span>
-            {g.goles > 0 ? (
+            {!g.calculado ? (
+              <span className="font-body text-[9px] text-borde italic">
+                {g.goles > 0 ? `${g.goles} gol(es) · sin calcular` : 'sin calcular'}
+              </span>
+            ) : g.goles > 0 ? (
               <span className="font-marcador text-xs font-bold text-premio">+{g.puntos}</span>
             ) : (
               <span className="font-body text-[10px] text-borde">—</span>
@@ -113,6 +117,7 @@ function SeccionGoleadores({ goleadores }) {
 
 function BloqueJornada({ bloque }) {
   const [abierto, setAbierto] = useState(bloque.bloqueada === false || bloque.partidos.some((p) => p.estado_partido !== 'Jugado'))
+  const hayGoleadoresPendientes = bloque.goleadores?.length > 0 && !bloque.goleadores_calculados
 
   return (
     <div className="bg-fondo border border-borde/30 rounded-lg overflow-hidden mb-4">
@@ -124,6 +129,9 @@ function BloqueJornada({ bloque }) {
           <span className="font-display text-base text-texto">Jornada {bloque.jornada}</span>
           {!bloque.bloqueada && (
             <span className="font-body text-[10px] font-semibold text-premio bg-premio/10 rounded-full px-2 py-0.5">Abierta</span>
+          )}
+          {hayGoleadoresPendientes && (
+            <span className="font-body text-[10px] font-semibold text-borde bg-borde/10 rounded-full px-2 py-0.5">🥅 Sin calcular</span>
           )}
         </div>
         <div className="flex items-center gap-3">
@@ -166,6 +174,9 @@ function DesgloseTotal({ desglose }) {
           </div>
         ))}
       </div>
+      <p className="font-body text-[10px] text-borde mt-2 italic">
+        Goleadores solo suma lo ya recalculado oficialmente por el admin en cada jornada.
+      </p>
     </div>
   )
 }

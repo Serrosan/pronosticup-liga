@@ -146,6 +146,9 @@ class JornadaController extends Controller
             ->pluck('id');
 
         $creados = DB::transaction(function () use ($liga, $jornada, $idsPartidos, $config) {
+            CierreJornada::where('id_liga', $liga->id)->where('jornada', $jornada)
+                ->update(['goleadores_calculados_en' => now()]);
+
             EventoPuntos::where('id_liga', $liga->id)
                 ->where('jornada', $jornada)
                 ->where('tipo_evento', 'GolesGoleadorElegido')

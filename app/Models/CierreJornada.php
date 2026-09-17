@@ -8,10 +8,10 @@ class CierreJornada extends Model
 {
     protected $table = 'cierres_jornada';
 
-    protected $fillable = ['id_liga', 'jornada', 'cerrada', 'cerrada_en', 'cerrada_por'];
+    protected $fillable = ['id_liga', 'jornada', 'cerrada', 'cerrada_en', 'cerrada_por', 'goleadores_calculados_en'];
 
     protected function casts(): array
     {
-        return ['cerrada' => 'boolean', 'cerrada_en' => 'datetime'];
+        return ['cerrada' => 'boolean', 'cerrada_en' => 'datetime', 'goleadores_calculados_en' => 'datetime'];
     }
 }

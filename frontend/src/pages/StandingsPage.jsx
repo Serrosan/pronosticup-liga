@@ -12,6 +12,15 @@ import useTitulo from '../hooks/useTitulo'
 
 const MEDALLAS = ['🥇', '🥈', '🥉']
 
+const LEYENDA = [
+  { icono: '✓', color: 'var(--color-acento)', texto: 'Aciertos (signo, diferencia o exacto)' },
+  { icono: '✗', color: '#EF4444', texto: 'Fallos' },
+  { icono: '🎯', color: 'var(--color-premio)', texto: 'Resultados exactos' },
+  { icono: '%', color: '#0ea5e9', texto: 'Porcentaje de acierto (aciertos / resueltos)' },
+  { icono: '🔥', color: '#F59E0B', texto: 'Racha de aciertos seguidos (solo si llevas 2 o más)' },
+  { icono: '🥅', color: '#a855f7', texto: 'Puntos ganados por tus goleadores elegidos' },
+]
+
 function Avatar({ url, nombre }) {
   if (url) return <img src={url} alt={nombre} className="w-10 h-10 rounded-full object-cover shrink-0" />
   return (
@@ -40,6 +49,43 @@ function Chip({ color, children, titulo }) {
     >
       {children}
     </span>
+  )
+}
+
+function Leyenda() {
+  const [abierta, setAbierta] = useState(false)
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setAbierta(!abierta)}
+        className="font-body text-xs text-borde hover:text-texto flex items-center gap-1"
+        title="Qué significa cada icono"
+      >
+        ℹ️ ¿Qué significan los iconos?
+      </button>
+
+      {abierta && (
+        <>
+          <div className="fixed inset-0 z-30" onClick={() => setAbierta(false)} />
+          <div className="absolute right-0 mt-2 w-72 bg-fondo border border-borde/30 rounded-lg shadow-lg z-40 p-4">
+            <div className="flex flex-col gap-2">
+              {LEYENDA.map((item) => (
+                <div key={item.texto} className="flex items-center gap-2.5">
+                  <span
+                    className="font-marcador text-xs font-bold rounded-full w-7 h-7 flex items-center justify-center shrink-0"
+                    style={{ backgroundColor: `${item.color}1F`, color: item.color }}
+                  >
+                    {item.icono}
+                  </span>
+                  <p className="font-body text-xs text-texto">{item.texto}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
   )
 }
 
@@ -285,7 +331,10 @@ function StandingsPage() {
       )}
 
       <div className="bg-fondo border border-borde/30 rounded-lg overflow-hidden">
-        <TicketHeader titulo={jornadaSeleccionada ? `Clasificación tras la Jornada ${jornadaSeleccionada}` : 'Clasificación de la liga'} />
+        <TicketHeader
+          titulo={jornadaSeleccionada ? `Clasificación tras la Jornada ${jornadaSeleccionada}` : 'Clasificación de la liga'}
+          accion={<Leyenda />}
+        />
 
         {clasificacion.length === 0 ? (
           <EstadoVacio icono="🏆" titulo="Aún no hay puntos" texto="En cuanto se cierre la primera jornada, aparecerá aquí la clasificación." />

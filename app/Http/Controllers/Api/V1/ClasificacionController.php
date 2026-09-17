@@ -29,9 +29,6 @@ class ClasificacionController extends Controller
 
         $jornadaSeleccionada = $validated['hasta_jornada'] ?? null;
 
-        // Siempre traemos el historial COMPLETO de la liga: lo necesitamos para poder
-        // comparar "cómo iba la clasificación general antes de esta jornada", aunque las
-        // filas que se muestren luego sean solo de una jornada concreta en solitario.
         $eventosCompletos = EventoPuntos::where('id_liga', $liga->id)->with('partido')->get();
 
         $eventosParaFilas = $jornadaSeleccionada
@@ -57,9 +54,6 @@ class ClasificacionController extends Controller
         $filas = $porUsuario->map(function ($grupo, $idUsuario) {
             $usuario = User::find($idUsuario);
 
-            // Racha actual: aciertos seguidos contando desde el partido más reciente hacia atrás,
-            // hasta el primer fallo (o hasta acabar la lista, si nunca has fallado). Dentro del
-            // conjunto que corresponda (esa jornada sola, o todo el historial en "Total").
             $eventosConPartido = $grupo->filter(fn ($e) => $e->id_partido && $e->partido)
                 ->sortByDesc(fn ($e) => $e->partido->horario_estimado);
 
@@ -142,6 +136,14 @@ class ClasificacionController extends Controller
         $config = ConfiguracionPuntos::paraLiga($liga->id);
         $esUnoMismo = $usuario->id === $request->user()->id;
 
+        // Necesitamos saber, jornada a jornada, si el admin ya pulsó "Recalcular goleadores"
+        // de verdad — un simple "0 puntos" no basta, porque 0 real y "aún sin calcular" se ven
+        // igual en la base de datos si nadie marcó gol con su goleador elegido esa semana.
+        $goleadoresCalculadosPorJornada = CierreJornada::where('id_liga', $liga->id)
+            ->get()
+            ->keyBy('jornada')
+            ->map(fn ($cierre) => ! is_null($cierre->goleadores_calculados_en));
+
         $pronosticos = Pronostico::where('id_liga', $liga->id)
             ->where('id_usuario', $usuario->id)
             ->with(['partido.equipoLocal', 'partido.equipoVisitante'])
@@ -189,11 +191,12 @@ class ClasificacionController extends Controller
 
         $numerosJornada = $filasPorPartido->pluck('jornada')->unique()->sortDesc()->values();
 
-        $jornadas = $numerosJornada->map(function ($jornada) use ($liga, $usuario, $filasPorPartido, $bonusPlenoPorJornada, $config, $esUnoMismo) {
+        $jornadas = $numerosJornada->map(function ($jornada) use ($liga, $usuario, $filasPorPartido, $bonusPlenoPorJornada, $config, $esUnoMismo, $goleadoresCalculadosPorJornada) {
             $partidosDeEstaJornada = $filasPorPartido->where('jornada', $jornada)->values();
 
             $bloqueada = CalendarioPartido::jornadaBloqueada($liga->id_temporada, $jornada);
             $goleadoresVisibles = $esUnoMismo || $bloqueada;
+            $goleadoresCalculadosOficial = $goleadoresCalculadosPorJornada->get($jornada, false);
 
             $idsPartidosJornada = $partidosDeEstaJornada->pluck('id_partido');
 
@@ -208,27 +211,33 @@ class ClasificacionController extends Controller
                 ->get()
                 ->countBy('id_jugador');
 
-            $goleadores = $seleccionGoleadores->map(function ($seleccion) use ($golesRealesPorJugador, $config, $goleadoresVisibles) {
+            $goleadores = $seleccionGoleadores->map(function ($seleccion) use ($golesRealesPorJugador, $config, $goleadoresVisibles, $goleadoresCalculadosOficial) {
                 $goles = $golesRealesPorJugador->get($seleccion->id_jugador, 0);
-                $puntos = $goles * $config->puntos_gol_goleador;
+                $puntosCalculados = $goles * $config->puntos_gol_goleador;
 
                 return [
                     'id' => $goleadoresVisibles ? $seleccion->id_jugador : null,
                     'nombre' => $goleadoresVisibles ? ($seleccion->jugador->nombre_camiseta ?? trim("{$seleccion->jugador->nombre} {$seleccion->jugador->apellidos}")) : null,
                     'foto_url' => $goleadoresVisibles ? $seleccion->jugador->foto_url : null,
+                    // Los goles marcados son SIEMPRE informativos, se muestren o no ya los puntos oficiales.
                     'goles' => $goleadoresVisibles ? $goles : null,
-                    'puntos' => $puntos,
+                    // Los puntos solo se muestran una vez el admin ha recalculado goleadores de verdad
+                    // para esta jornada — antes de eso, sería una proyección que puede no coincidir
+                    // nunca con el total oficial, así que preferimos no mostrar ningún número.
+                    'puntos' => $goleadoresCalculadosOficial ? $puntosCalculados : null,
+                    'calculado' => $goleadoresCalculadosOficial,
                     'oculto' => ! $goleadoresVisibles,
                 ];
             });
 
             $puntosPartidos = (int) $partidosDeEstaJornada->sum('puntos');
             $puntosBonus = $bonusPlenoPorJornada->get($jornada, 0);
-            $puntosGoleadores = (int) $goleadores->sum('puntos');
+            $puntosGoleadores = (int) $goleadores->pluck('puntos')->filter(fn ($p) => ! is_null($p))->sum();
 
             return [
                 'jornada' => $jornada,
                 'bloqueada' => $bloqueada,
+                'goleadores_calculados' => $goleadoresCalculadosOficial,
                 'puntos_totales_jornada' => $puntosPartidos + $puntosBonus + $puntosGoleadores,
                 'bonus_pleno' => $puntosBonus,
                 'partidos' => $partidosDeEstaJornada,
@@ -238,7 +247,7 @@ class ClasificacionController extends Controller
 
         $puntosPronosticos = (int) $filasPorPartido->sum('puntos');
         $puntosBonusTotal = (int) $bonusPlenoPorJornada->sum();
-        $puntosGoleadoresTotal = (int) $jornadas->sum(fn ($j) => collect($j['goleadores'])->sum('puntos'));
+        $puntosGoleadoresTotal = (int) $jornadas->sum(fn ($j) => collect($j['goleadores'])->pluck('puntos')->filter(fn ($p) => ! is_null($p))->sum());
 
         return response()->json([
             'data' => [

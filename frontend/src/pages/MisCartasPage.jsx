@@ -121,7 +121,7 @@ function MisCartasPage() {
 
             return (
               <div key={carta.id} className="flex flex-col items-center gap-2">
-                <CartaJuego carta={carta.tipo_carta} categoriaNombre={carta.tipo_carta.categoria.nombre} />
+                <CartaJuego carta={carta.tipo_carta} categoriaNombre={carta.tipo_carta.categoria.nombre} categoriaIcono={carta.tipo_carta.categoria.icono} />
                 <div className="flex gap-3">
                   {esJugada && partidosDisponibles.length > 0 && idCartaEligiendoPartido !== carta.id && (
                     <button

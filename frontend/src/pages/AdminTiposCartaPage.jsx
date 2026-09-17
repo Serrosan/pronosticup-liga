@@ -36,7 +36,7 @@ function VistaPrevia({ tipos }) {
       {mostrar && (
         <div className="flex flex-wrap gap-4 mt-4">
           {tipos.map((carta) => (
-            <CartaJuego key={carta.id} carta={carta} categoriaNombre={carta.categoria_nombre} tamano="mini" />
+            <CartaJuego key={carta.id} carta={carta} categoriaNombre={carta.categoria_nombre} categoriaIcono={carta.categoria_icono} tamano="mini" />
           ))}
         </div>
       )}

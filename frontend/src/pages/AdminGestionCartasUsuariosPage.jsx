@@ -126,7 +126,7 @@ function AdminGestionCartasUsuariosPage() {
             <div className="flex flex-wrap gap-4">
               {cartasEnMano.map((carta) => (
                 <div key={carta.id} className="flex flex-col items-center gap-2">
-                  <CartaJuego carta={carta.tipo_carta} categoriaNombre={carta.tipo_carta.categoria.nombre} tamano="pequena" />
+                  <CartaJuego carta={carta.tipo_carta} categoriaNombre={carta.tipo_carta.categoria.nombre} categoriaIcono={carta.tipo_carta.categoria.icono} tamano="pequena" />
                   <div className="text-center">
                     <p className="font-body text-[10px] text-borde">Origen: {carta.origen} · J{carta.jornada_obtenida}</p>
                     <button

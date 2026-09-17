@@ -14,6 +14,7 @@ class TipoCartaAdminController extends Controller
         $tipos = TipoCarta::with('categoria')->orderBy('id_categoria')->orderBy('rareza')->get()->map(function ($t) {
             $datos = $t->toArray();
             $datos['categoria_nombre'] = $t->categoria->nombre ?? '—';
+            $datos['categoria_icono'] = $t->categoria->icono ?? null;
             return $datos;
         });
 

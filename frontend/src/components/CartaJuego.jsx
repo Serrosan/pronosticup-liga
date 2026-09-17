@@ -18,25 +18,47 @@ const ETIQUETA_CATEGORIA = {
   Trampa: 'TRAMPA',
 }
 
-// 'normal' = tamaño completo. 'mini' = misma estructura entera, todo escalado más pequeño
-// (para vistas previas con muchas cartas juntas). 'pequena' = solo cabecera+icono+insignia,
-// sin descripción (para listas muy compactas, tipo la mano completa de alguien).
+// Cuántos puntitos se muestran abajo de la carta, según la rareza.
+const PUNTOS_RAREZA = {
+  Comun: 1,
+  PocoComun: 2,
+  Rara: 3,
+  Legendaria: 4,
+}
+
 const TAMANOS = {
   normal: {
     ancho: 'w-56', padCabecera: 'py-2.5', textoCabecera: 'text-base',
     circulo: 'w-28 h-28', padCirculo: 'py-6', emoji: 'text-4xl',
     insignia: 'w-10 h-10 text-sm', insigniaPos: 'top-0 right-2',
+    iconoCategoria: 'text-base', iconoCategoriaPos: 'top-1 left-2',
     etiqueta: 'text-[10px] px-3 py-1', descripcion: 'text-xs px-4 pb-5',
+    puntito: 'w-1.5 h-1.5', gapPuntitos: 'gap-1', posPuntitos: 'bottom-2 left-2',
   },
   mini: {
     ancho: 'w-32', padCabecera: 'py-1.5', textoCabecera: 'text-[11px]',
     circulo: 'w-14 h-14', padCirculo: 'py-2.5', emoji: 'text-xl',
     insignia: 'w-6 h-6 text-[9px]', insigniaPos: '-top-1 right-1',
+    iconoCategoria: 'text-[10px]', iconoCategoriaPos: 'top-0.5 left-1',
     etiqueta: 'text-[7px] px-1.5 py-0.5', descripcion: 'text-[9px] px-2 pb-2.5 leading-snug',
+    puntito: 'w-1 h-1', gapPuntitos: 'gap-0.5', posPuntitos: 'bottom-1 left-1',
   },
 }
 
-function CartaJuego({ carta, categoriaNombre, tamano = 'normal' }) {
+function Puntitos({ rareza, colorBorde, tamano }) {
+  const cantidad = PUNTOS_RAREZA[rareza] ?? 1
+  const t = TAMANOS[tamano] ?? TAMANOS.normal
+
+  return (
+    <div className={`absolute flex ${t.gapPuntitos} ${t.posPuntitos}`}>
+      {Array.from({ length: cantidad }, (_, i) => (
+        <span key={i} className={`rounded-full ${t.puntito}`} style={{ backgroundColor: colorBorde }} />
+      ))}
+    </div>
+  )
+}
+
+function CartaJuego({ carta, categoriaNombre, categoriaIcono, tamano = 'normal' }) {
   const colores = COLORES_RAREZA[carta.rareza] ?? COLORES_RAREZA.Comun
 
   if (tamano === 'pequena') {
@@ -52,6 +74,7 @@ function CartaJuego({ carta, categoriaNombre, tamano = 'normal' }) {
           {carta.nombre}
         </div>
         <div className="relative flex items-center justify-center py-3">
+          {categoriaIcono && <span className="absolute top-0.5 left-1 text-[10px]">{categoriaIcono}</span>}
           <div className="rounded-full flex items-center justify-center overflow-hidden w-16 h-16" style={{ backgroundColor: '#FFFFFF' }}>
             {carta.imagen_url ? (
               <img src={carta.imagen_url} alt={carta.nombre} className="w-full h-full object-contain p-2" />
@@ -68,7 +91,7 @@ function CartaJuego({ carta, categoriaNombre, tamano = 'normal' }) {
             </span>
           )}
         </div>
-        <span className="absolute bottom-3 left-3 w-2 h-2 rounded-full" style={{ backgroundColor: colores.borde }} />
+        <Puntitos rareza={carta.rareza} colorBorde={colores.borde} tamano="mini" />
       </div>
     )
   }
@@ -88,6 +111,12 @@ function CartaJuego({ carta, categoriaNombre, tamano = 'normal' }) {
       </div>
 
       <div className={`relative flex items-center justify-center ${t.padCirculo}`}>
+        {categoriaIcono && (
+          <span className={`absolute ${t.iconoCategoriaPos} ${t.iconoCategoria} opacity-80`} title={categoriaNombre}>
+            {categoriaIcono}
+          </span>
+        )}
+
         <div className={`rounded-full flex items-center justify-center overflow-hidden ${t.circulo}`} style={{ backgroundColor: '#FFFFFF' }}>
           {carta.imagen_url ? (
             <img src={carta.imagen_url} alt={carta.nombre} className="w-full h-full object-contain p-2" />
@@ -119,7 +148,7 @@ function CartaJuego({ carta, categoriaNombre, tamano = 'normal' }) {
         {carta.descripcion}
       </p>
 
-      <span className="absolute bottom-2 left-2 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: colores.borde }} />
+      <Puntitos rareza={carta.rareza} colorBorde={colores.borde} tamano={tamano} />
     </div>
   )
 }

@@ -18,7 +18,6 @@ const ETIQUETA_CATEGORIA = {
   Trampa: 'TRAMPA',
 }
 
-// Cuántos puntitos se muestran abajo de la carta, según la rareza.
 const PUNTOS_RAREZA = {
   Comun: 1,
   PocoComun: 2,
@@ -26,22 +25,26 @@ const PUNTOS_RAREZA = {
   Legendaria: 4,
 }
 
+// min-h + line-clamp en la descripción garantizan que TODAS las cartas midan lo mismo,
+// sin importar si el texto es corto o largo.
 const TAMANOS = {
   normal: {
-    ancho: 'w-56', padCabecera: 'py-2.5', textoCabecera: 'text-base',
-    circulo: 'w-28 h-28', padCirculo: 'py-6', emoji: 'text-4xl',
-    insignia: 'w-10 h-10 text-sm', insigniaPos: 'top-0 right-2',
-    iconoCategoria: 'text-base', iconoCategoriaPos: 'top-1 left-2',
-    etiqueta: 'text-[10px] px-3 py-1', descripcion: 'text-xs px-4 pb-5',
-    puntito: 'w-1.5 h-1.5', gapPuntitos: 'gap-1', posPuntitos: 'bottom-2 left-2',
+    ancho: 'w-60', padCabecera: 'py-3', textoCabecera: 'text-base',
+    circulo: 'w-[120px] h-[120px]', padCirculo: 'py-5', emoji: 'text-5xl',
+    insignia: 'w-10 h-10 text-sm', insigniaPos: 'top-2 right-2',
+    etiqueta: 'text-[10px] px-3 py-1', mbEtiqueta: 'mb-2.5',
+    descripcion: 'text-xs px-5 pb-4 min-h-[64px] line-clamp-3',
+    puntito: 'w-1.5 h-1.5', gapPuntitos: 'gap-1.5', pbPuntitos: 'pb-4',
+    iconoTam: '20px', iconoPos: 'bottom-3 right-2',
   },
   mini: {
-    ancho: 'w-32', padCabecera: 'py-1.5', textoCabecera: 'text-[11px]',
-    circulo: 'w-14 h-14', padCirculo: 'py-2.5', emoji: 'text-xl',
-    insignia: 'w-6 h-6 text-[9px]', insigniaPos: '-top-1 right-1',
-    iconoCategoria: 'text-[10px]', iconoCategoriaPos: 'top-0.5 left-1',
-    etiqueta: 'text-[7px] px-1.5 py-0.5', descripcion: 'text-[9px] px-2 pb-2.5 leading-snug',
-    puntito: 'w-1 h-1', gapPuntitos: 'gap-0.5', posPuntitos: 'bottom-1 left-1',
+    ancho: 'w-36', padCabecera: 'py-2', textoCabecera: 'text-[11px]',
+    circulo: 'w-[62px] h-[62px]', padCirculo: 'py-2', emoji: 'text-2xl',
+    insignia: 'w-6 h-6 text-[9px]', insigniaPos: 'top-0 right-0.5',
+    etiqueta: 'text-[7px] px-1.5 py-0.5', mbEtiqueta: 'mb-1',
+    descripcion: 'text-[9px] px-3 pb-2.5 min-h-[32px] line-clamp-2 leading-snug',
+    puntito: 'w-1 h-1', gapPuntitos: 'gap-1', pbPuntitos: 'pb-2.5',
+    iconoTam: '12px', iconoPos: 'bottom-1.5 right-1',
   },
 }
 
@@ -50,10 +53,38 @@ function Puntitos({ rareza, colorBorde, tamano }) {
   const t = TAMANOS[tamano] ?? TAMANOS.normal
 
   return (
-    <div className={`absolute flex ${t.gapPuntitos} ${t.posPuntitos}`}>
+    <div className={`flex ${t.gapPuntitos}`}>
       {Array.from({ length: cantidad }, (_, i) => (
         <span key={i} className={`rounded-full ${t.puntito}`} style={{ backgroundColor: colorBorde }} />
       ))}
+    </div>
+  )
+}
+
+// Icono de categoría pequeño, en la esquina inferior derecha — un sello discreto,
+// no una marca de agua grande. Suficientemente visible sin competir con nada más.
+function IconoCategoria({ icono, tamano }) {
+  if (!icono) return null
+  const t = TAMANOS[tamano] ?? TAMANOS.normal
+
+  return (
+    <span
+      className={`absolute ${t.iconoPos}`}
+      style={{ fontSize: t.iconoTam, opacity: 0.55, lineHeight: 1 }}
+    >
+      {icono}
+    </span>
+  )
+}
+
+function Circulo({ imagenUrl, nombre, emojiSize, circuloClase }) {
+  return (
+    <div className={`rounded-full flex items-center justify-center overflow-hidden ${circuloClase}`} style={{ backgroundColor: '#FFFFFF' }}>
+      {imagenUrl ? (
+        <img src={imagenUrl} alt={nombre} className="w-full h-full object-contain p-2" />
+      ) : (
+        <span className={emojiSize}>🃏</span>
+      )}
     </div>
   )
 }
@@ -64,34 +95,30 @@ function CartaJuego({ carta, categoriaNombre, categoriaIcono, tamano = 'normal' 
   if (tamano === 'pequena') {
     return (
       <div
-        className="relative flex flex-col rounded-2xl border-2 overflow-hidden w-32"
+        className="relative flex flex-col rounded-2xl border-2 overflow-hidden w-36"
         style={{ borderColor: colores.borde, backgroundColor: '#0E1B2B' }}
       >
         <div
-          className="text-center font-display text-xs py-1.5"
+          className="text-center font-display text-xs py-2"
           style={{ backgroundColor: colores.cabecera, color: colores.texto }}
         >
           {carta.nombre}
         </div>
-        <div className="relative flex items-center justify-center py-3">
-          {categoriaIcono && <span className="absolute top-0.5 left-1 text-[10px]">{categoriaIcono}</span>}
-          <div className="rounded-full flex items-center justify-center overflow-hidden w-16 h-16" style={{ backgroundColor: '#FFFFFF' }}>
-            {carta.imagen_url ? (
-              <img src={carta.imagen_url} alt={carta.nombre} className="w-full h-full object-contain p-2" />
-            ) : (
-              <span className="text-2xl">🃏</span>
-            )}
-          </div>
+        <div className="relative flex items-center justify-center py-3.5">
+          <Circulo imagenUrl={carta.imagen_url} nombre={carta.nombre} emojiSize="text-2xl" circuloClase="w-16 h-16" />
           {carta.insignia_corta && (
             <span
-              className="absolute top-0 right-2 rounded-full flex items-center justify-center font-marcador font-bold border-2 w-7 h-7 text-[10px]"
+              className="absolute top-1 right-2 rounded-full flex items-center justify-center font-marcador font-bold border-2 w-7 h-7 text-[10px]"
               style={{ backgroundColor: '#0E1B2B', borderColor: colores.borde, color: colores.borde }}
             >
               {carta.insignia_corta}
             </span>
           )}
         </div>
-        <Puntitos rareza={carta.rareza} colorBorde={colores.borde} tamano="mini" />
+        <div className="flex justify-start px-3 pb-2">
+          <Puntitos rareza={carta.rareza} colorBorde={colores.borde} tamano="mini" />
+        </div>
+        <IconoCategoria icono={categoriaIcono} tamano="mini" />
       </div>
     )
   }
@@ -111,19 +138,7 @@ function CartaJuego({ carta, categoriaNombre, categoriaIcono, tamano = 'normal' 
       </div>
 
       <div className={`relative flex items-center justify-center ${t.padCirculo}`}>
-        {categoriaIcono && (
-          <span className={`absolute ${t.iconoCategoriaPos} ${t.iconoCategoria} opacity-80`} title={categoriaNombre}>
-            {categoriaIcono}
-          </span>
-        )}
-
-        <div className={`rounded-full flex items-center justify-center overflow-hidden ${t.circulo}`} style={{ backgroundColor: '#FFFFFF' }}>
-          {carta.imagen_url ? (
-            <img src={carta.imagen_url} alt={carta.nombre} className="w-full h-full object-contain p-2" />
-          ) : (
-            <span className={t.emoji}>🃏</span>
-          )}
-        </div>
+        <Circulo imagenUrl={carta.imagen_url} nombre={carta.nombre} emojiSize={t.emoji} circuloClase={t.circulo} />
 
         {carta.insignia_corta && (
           <span
@@ -135,7 +150,7 @@ function CartaJuego({ carta, categoriaNombre, categoriaIcono, tamano = 'normal' 
         )}
       </div>
 
-      <div className="flex justify-center mb-2">
+      <div className={`flex justify-center ${t.mbEtiqueta}`}>
         <span
           className={`font-body font-bold tracking-widest rounded-full border ${t.etiqueta}`}
           style={{ borderColor: colores.borde, color: colores.borde }}
@@ -144,11 +159,15 @@ function CartaJuego({ carta, categoriaNombre, categoriaIcono, tamano = 'normal' 
         </span>
       </div>
 
-      <p className={`font-body text-center text-white/90 leading-snug ${t.descripcion}`}>
+      <p className={`font-body text-center text-white/90 leading-relaxed ${t.descripcion}`}>
         {carta.descripcion}
       </p>
 
-      <Puntitos rareza={carta.rareza} colorBorde={colores.borde} tamano={tamano} />
+      <div className={`flex justify-start px-4 ${t.pbPuntitos}`}>
+        <Puntitos rareza={carta.rareza} colorBorde={colores.borde} tamano={tamano} />
+      </div>
+
+      <IconoCategoria icono={categoriaIcono} tamano={tamano} />
     </div>
   )
 }

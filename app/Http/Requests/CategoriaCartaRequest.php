@@ -16,6 +16,7 @@ class CategoriaCartaRequest extends FormRequest
         return [
             'nombre' => ['required', 'string', 'max:100'],
             'icono' => ['nullable', 'string', 'max:10'],
+            'color' => ['nullable', 'string', 'max:7'],
             'activa' => ['boolean'],
         ];
     }

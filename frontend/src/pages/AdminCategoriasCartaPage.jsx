@@ -1,15 +1,15 @@
 import AdminResourceTable from '../components/AdminResourceTable'
 
 const COLUMNAS = [
-  { key: 'icono', label: 'Icono' },
   { key: 'nombre', label: 'Nombre' },
+  { key: 'icono', label: 'Icono' },
   { key: 'tipos_carta_count', label: 'Tipos de carta' },
   { key: 'activa', label: 'Activa' },
 ]
 
 const CAMPOS = [
   { name: 'nombre', label: 'Nombre' },
-  { name: 'icono', label: 'Icono (emoji, ej. ⚔️ 🛡️ 🎭)' },
+  { name: 'icono', label: 'Icono (emoji, ej. ⚔️ 🛡️ 🎭 — marca de agua de fondo)' },
   { name: 'activa', label: 'Activa', type: 'boolean' },
 ]
 

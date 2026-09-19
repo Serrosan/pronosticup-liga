@@ -41,14 +41,15 @@ class RecordatorioPendiente extends Notification
     public function toMail($notifiable): MailMessage
     {
         $rutaAccion = $this->tipo === 'goleadores' ? "/jornadas/{$this->jornada}/goleadores" : "/jornadas/{$this->jornada}";
-        $etiquetaAccion = $this->tipo === 'goleadores' ? 'Elegir goleadores' : 'Rellenar pronósticos';
+        $etiquetaAccion = $this->tipo === 'goleadores' ? 'elegir tus goleadores' : 'rellenar tus pronósticos';
+        $urlCompleta = url($rutaAccion);
 
         return (new MailMessage)
-            ->subject("⏰ Quedan {$this->ventanaHoras}h para la Jornada {$this->jornada} — {$this->nombreLiga}")
-            ->greeting('¡No te quedes fuera de esta jornada!')
-            ->line("Quedan aproximadamente **{$this->ventanaHoras} horas** para que empiece la Jornada {$this->jornada} en **{$this->nombreLiga}**.")
+            ->subject("Pronósticos pendientes — Jornada {$this->jornada} de {$this->nombreLiga}")
+            ->greeting('Recordatorio de tu liga')
+            ->line("Quedan {$this->ventanaHoras} horas para que empiece la Jornada {$this->jornada} en {$this->nombreLiga}.")
             ->line("Todavía te faltan {$this->textoTipo()} de esta jornada.")
-            ->action($etiquetaAccion, url($rutaAccion))
-            ->salutation('¡Nos vemos en la jornada! ⚽');
+            ->line("Puedes {$etiquetaAccion} aquí: {$urlCompleta}")
+            ->salutation('Un saludo, PronostiCup Liga');
     }
 }

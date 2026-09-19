@@ -52,8 +52,8 @@ class DashboardController extends Controller
 
         // --- La jornada más próxima con partidos sin jugar ---
         $proximaJornadaNumero = CalendarioPartido::where('id_temporada', $liga->id_temporada)
-            ->whereIn('estado', ['Programado', 'Aplazado'])
-            ->orderBy('jornada')
+            ->whereIn('estado', ['Programado', 'En juego'])
+            ->orderBy('horario_estimado')
             ->value('jornada');
 
         $partidosProximaJornada = collect();
@@ -80,12 +80,15 @@ class DashboardController extends Controller
             }
         }
 
-        // --- Avisos: partidos aplazados en la jornada actual o siguiente ---
-        $avisos = $partidosProximaJornada
+        // --- Avisos: cualquier partido aplazado sin resolver de toda la temporada,
+        // no solo el de la jornada que se muestra ahora — así no se pierde de vista.
+        $avisos = CalendarioPartido::where('id_temporada', $liga->id_temporada)
             ->where('estado', 'Aplazado')
+            ->with(['equipoLocal', 'equipoVisitante'])
+            ->get()
             ->map(fn ($p) => [
                 'tipo' => 'aplazado',
-                'mensaje' => "{$p->equipoLocal->nombre} vs {$p->equipoVisitante->nombre} ha sido aplazado.",
+                'mensaje' => "{$p->equipoLocal->nombre} vs {$p->equipoVisitante->nombre} (Jornada {$p->jornada}) sigue aplazado.",
             ])
             ->values();
 

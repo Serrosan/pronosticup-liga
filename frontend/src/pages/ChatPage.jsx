@@ -10,6 +10,7 @@ import SelectorStickers from '../components/SelectorStickers'
 const REACCIONES = ['👍', '🔥', '😂', '😢', '🎉']
 const LIMITE_TEXTO = 500
 const PATRON_URL = /(https?:\/\/[^\s]+)/g
+const PATRON_MENCION = /(@[\p{L}0-9_]+)/gu
 const SEGUNDOS_PARA_DESHACER = 3
 
 function Avatar({ url, nombre }) {
@@ -63,28 +64,42 @@ function resaltarCoincidencia(texto, termino) {
   )
 }
 
+// Nota: solo resalta menciones de UNA palabra (ej. "@Sergio"). Un nombre compuesto
+// como "@Juan Carlos" se detecta bien en el backend (para la notificación), pero
+// aquí visualmente solo se resaltaría "@Juan" — limitación conocida y aceptada.
 function TextoConEnlaces({ texto, esMio, terminoBusqueda }) {
-  const partes = texto.split(PATRON_URL)
+  const partesUrl = texto.split(PATRON_URL)
 
   return (
     <p className="font-body text-sm break-words">
-      {partes.map((parte, i) => {
-        const esUrl = /^https?:\/\//.test(parte)
+      {partesUrl.map((parteUrl, i) => {
+        const esUrl = /^https?:\/\//.test(parteUrl)
         if (esUrl) {
           return (
             <a
               key={i}
-              href={parte}
+              href={parteUrl}
               target="_blank"
               rel="noopener noreferrer"
               className={`underline ${esMio ? 'text-fondo/90 hover:text-fondo' : 'text-acento hover:brightness-110'}`}
               onClick={(evento) => evento.stopPropagation()}
             >
-              {parte}
+              {parteUrl}
             </a>
           )
         }
-        return <span key={i}>{resaltarCoincidencia(parte, terminoBusqueda)}</span>
+
+        const partesMencion = parteUrl.split(PATRON_MENCION)
+        return partesMencion.map((parte, j) => {
+          if (/^@[\p{L}0-9_]+$/u.test(parte)) {
+            return (
+              <span key={`${i}-${j}`} className={`font-semibold ${esMio ? 'text-fondo' : 'text-acento'}`}>
+                {parte}
+              </span>
+            )
+          }
+          return <span key={`${i}-${j}`}>{resaltarCoincidencia(parte, terminoBusqueda)}</span>
+        })
       })}
     </p>
   )
@@ -328,6 +343,45 @@ function MensajeFijado({ mensaje }) {
   )
 }
 
+function normalizarTexto(t) {
+  return String(t ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+}
+
+// Busca si justo antes del cursor hay una "@palabra" sin terminar (sin espacio de por medio).
+function detectarMencionEnCurso(texto, posicionCursor) {
+  const antesDeCursor = texto.slice(0, posicionCursor)
+  const indiceArroba = antesDeCursor.lastIndexOf('@')
+  if (indiceArroba === -1) return null
+
+  const entreArrobaYCursor = antesDeCursor.slice(indiceArroba + 1)
+  if (/\s/.test(entreArrobaYCursor)) return null // ya se cerró con un espacio, no está "en curso"
+
+  return { inicio: indiceArroba, termino: entreArrobaYCursor }
+}
+
+function ListaMenciones({ opciones, onElegir }) {
+  return (
+    <div className="absolute bottom-full mb-1 left-0 w-56 bg-fondo border border-borde/30 rounded-lg shadow-lg overflow-hidden z-20">
+      {opciones.map((op) => (
+        <button
+          key={op.id}
+          onClick={() => onElegir(op.nombre)}
+          className="w-full text-left px-3 py-2 hover:bg-borde/10 flex items-center gap-2"
+        >
+          {op.id === 'todos' ? (
+            <span className="w-6 h-6 rounded-full bg-premio/15 flex items-center justify-center text-xs shrink-0">📢</span>
+          ) : (
+            <span className="w-6 h-6 rounded-full bg-acento/15 flex items-center justify-center text-xs font-semibold text-acento shrink-0">
+              {op.nombre[0]?.toUpperCase()}
+            </span>
+          )}
+          <span className="font-body text-sm text-texto">{op.nombre}</span>
+        </button>
+      ))}
+    </div>
+  )
+}
+
 function ChatPage() {
   const { usuario } = useAuth()
   const toast = useToast()
@@ -341,6 +395,7 @@ function ChatPage() {
   const [terminoBusqueda, setTerminoBusqueda] = useState('')
   const [indiceResultado, setIndiceResultado] = useState(0)
   const [respondiendoA, setRespondiendoA] = useState(null)
+  const [mencionEnCurso, setMencionEnCurso] = useState(null)
   const finRef = useRef(null)
   const inputImagenRef = useRef(null)
   const inputTextoRef = useRef(null)
@@ -364,6 +419,11 @@ function ChatPage() {
       }
     },
     refetchInterval: 4000,
+  })
+
+  const { data: miembros } = useQuery({
+    queryKey: ['liga-activa-miembros'],
+    queryFn: async () => (await client.get('/api/v1/liga-activa/miembros')).data.data,
   })
 
   const enviarTexto = useMutation({
@@ -460,6 +520,7 @@ function ChatPage() {
 
     setTexto('')
     setRespondiendoA(null)
+    setMencionEnCurso(null)
     setMensajePendiente(textoAEnviar)
     setSegundosRestantes(SEGUNDOS_PARA_DESHACER)
 
@@ -536,15 +597,46 @@ function ChatPage() {
     refsMensajes.current[id]?.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }
 
+  function handleCambioTexto(event) {
+    const valor = event.target.value
+    setTexto(valor)
+
+    const cursor = event.target.selectionStart
+    const deteccion = detectarMencionEnCurso(valor, cursor)
+    setMencionEnCurso(deteccion)
+  }
+
+  function elegirMencion(nombre) {
+    if (!mencionEnCurso) return
+
+    const antes = texto.slice(0, mencionEnCurso.inicio)
+    const despues = texto.slice(mencionEnCurso.inicio + 1 + mencionEnCurso.termino.length)
+    const nuevoTexto = `${antes}@${nombre} ${despues}`
+
+    setTexto(nuevoTexto)
+    setMencionEnCurso(null)
+
+    requestAnimationFrame(() => {
+      const posicion = (antes + '@' + nombre + ' ').length
+      inputTextoRef.current?.focus()
+      inputTextoRef.current?.setSelectionRange(posicion, posicion)
+    })
+  }
+
   const grupos = data ? agruparPorFechaYAutor(data.mensajes) : []
 
-  const normalizar = (t) => String(t ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-
   const resultadosBusqueda = terminoBusqueda && data
-    ? data.mensajes.filter((m) => m.tipo === 'texto' && normalizar(m.texto).includes(normalizar(terminoBusqueda)))
+    ? data.mensajes.filter((m) => m.tipo === 'texto' && normalizarTexto(m.texto).includes(normalizarTexto(terminoBusqueda)))
     : []
 
   const mensajeIdResaltado = resultadosBusqueda[indiceResultado]?.id ?? null
+
+  const opcionesMencion = mencionEnCurso
+    ? [
+        ...('todos'.startsWith(normalizarTexto(mencionEnCurso.termino)) ? [{ id: 'todos', nombre: 'todos' }] : []),
+        ...(miembros ?? []).filter((m) => normalizarTexto(m.nombre).startsWith(normalizarTexto(mencionEnCurso.termino))),
+      ]
+    : []
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 flex flex-col" style={{ height: 'calc(100vh - 5rem)' }}>
@@ -674,15 +766,20 @@ function ChatPage() {
             )}
           </div>
 
-          <input
-            ref={inputTextoRef}
-            value={texto}
-            onChange={(e) => setTexto(e.target.value)}
-            placeholder={grabando ? 'Grabando audio...' : 'Escribe un mensaje...'}
-            maxLength={LIMITE_TEXTO}
-            disabled={grabando}
-            className="flex-1 font-body bg-borde/10 text-texto rounded-full border border-borde/40 px-4 py-2.5 focus:outline-none focus:border-acento disabled:opacity-50"
-          />
+          <div className="flex-1 relative">
+            {mencionEnCurso && opcionesMencion.length > 0 && (
+              <ListaMenciones opciones={opcionesMencion} onElegir={elegirMencion} />
+            )}
+            <input
+              ref={inputTextoRef}
+              value={texto}
+              onChange={handleCambioTexto}
+              placeholder={grabando ? 'Grabando audio...' : 'Escribe un mensaje... (usa @ para mencionar)'}
+              maxLength={LIMITE_TEXTO}
+              disabled={grabando}
+              className="w-full font-body bg-borde/10 text-texto rounded-full border border-borde/40 px-4 py-2.5 focus:outline-none focus:border-acento disabled:opacity-50"
+            />
+          </div>
 
           <button
             type="button"

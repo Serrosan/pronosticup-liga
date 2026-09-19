@@ -38,5 +38,6 @@ class AppServiceProvider extends ServiceProvider
         Trofeo::observe(RegistroActividadObserver::class);
         Entrenador::observe(RegistroActividadObserver::class);
         Liga::observe(RegistroActividadObserver::class);
+        \App\Models\CartaUsuario::observe(RegistroActividadObserver::class);
     }
 }

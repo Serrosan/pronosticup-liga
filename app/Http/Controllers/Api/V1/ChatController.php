@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\MensajeChatRequest;
 use App\Models\MensajeChat;
+use App\Notifications\MencionadoEnChat;
 use App\Notifications\MensajeReaccionado;
 use App\Notifications\MensajeRespondido;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class ChatController extends Controller
 {
@@ -79,6 +81,10 @@ class ChatController extends Controller
             $mensajeRespondido->usuario?->notify(new MensajeRespondido($nombreQuienResponde));
         }
 
+        if ($validated['tipo'] === 'texto' && ! empty($validated['texto'])) {
+            $this->notificarMenciones($validated['texto'], $liga, $request->user()->id, $mensaje->usuario);
+        }
+
         return response()->json(['data' => $this->formatear($mensaje)]);
     }
 
@@ -138,12 +144,50 @@ class ChatController extends Controller
             return response()->json(['message' => 'Solo el admin de la liga puede fijar mensajes.'], 403);
         }
 
-        // Solo puede haber un mensaje fijado a la vez por liga: desfijamos cualquier otro.
         MensajeChat::where('id_liga', $liga->id)->where('fijado', true)->update(['fijado' => false]);
 
         $mensajeChat->update(['fijado' => ! $mensajeChat->fijado]);
 
         return response()->json(['data' => $this->formatear($mensajeChat->fresh())]);
+    }
+
+    /**
+     * Busca @menciones en el texto (nombres de miembros de la liga, o "@todos") y
+     * notifica solo por campana a cada persona mencionada — nunca al propio autor.
+     * Los nombres compuestos se comprueban primero (de más largo a más corto) para
+     * que "@Juan Carlos" se detecte entero antes que solo "@Juan".
+     */
+    private function notificarMenciones(string $texto, $liga, int $autorId, $autor): void
+    {
+        $normalizar = fn ($t) => Str::of($t)->lower()->ascii()->toString();
+        $textoNormalizado = $normalizar($texto);
+        $nombreQuienMenciona = $autor->nombre_visible ?? $autor->name;
+
+        if (Str::contains($textoNormalizado, '@todos')) {
+            $miembros = $liga->usuarios()->where('users.id', '!=', $autorId)->get();
+            foreach ($miembros as $miembro) {
+                $miembro->notify(new MencionadoEnChat($nombreQuienMenciona));
+            }
+            return;
+        }
+
+        $miembros = $liga->usuarios()->where('users.id', '!=', $autorId)->get(['users.id', 'users.name', 'users.nombre_visible']);
+        $ordenadosPorLongitud = $miembros->sortByDesc(fn ($u) => strlen($u->nombre_visible ?? $u->name));
+
+        $yaNotificados = [];
+
+        foreach ($ordenadosPorLongitud as $miembro) {
+            if (in_array($miembro->id, $yaNotificados)) {
+                continue;
+            }
+
+            $nombreNormalizado = $normalizar($miembro->nombre_visible ?? $miembro->name);
+
+            if (Str::contains($textoNormalizado, '@'.$nombreNormalizado)) {
+                $miembro->notify(new MencionadoEnChat($nombreQuienMenciona));
+                $yaNotificados[] = $miembro->id;
+            }
+        }
     }
 
     private function formatear(MensajeChat $mensaje): array

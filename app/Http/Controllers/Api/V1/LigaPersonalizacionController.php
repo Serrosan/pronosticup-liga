@@ -53,4 +53,18 @@ class LigaPersonalizacionController extends Controller
             ],
         ]);
     }
+
+    public function miembros(Request $request)
+    {
+        $liga = $request->user()->ligaActiva;
+
+        if (! $liga) {
+            return response()->json(['message' => 'No tienes ninguna liga activa.'], 409);
+        }
+
+        $miembros = $liga->usuarios()->get(['users.id', 'users.name', 'users.nombre_visible'])
+            ->map(fn ($u) => ['id' => $u->id, 'nombre' => $u->nombre_visible ?? $u->name]);
+
+        return response()->json(['data' => $miembros]);
+    }
 }

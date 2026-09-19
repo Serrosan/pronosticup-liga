@@ -176,11 +176,28 @@ class CartaRepartoController extends Controller
                 ->get();
 
             if ($candidatas->isNotEmpty()) {
-                return $candidatas->random();
+                $cartaElegida = $candidatas->random();
+
+                \Log::channel('cartas')->info('Carta sorteada', [
+                    'categoria_id' => $idCategoria,
+                    'porcentajes' => $porcentajes,
+                    'rareza_salida' => $rarezaElegida,
+                    'candidatas_de_esa_rareza' => $candidatas->pluck('nombre'),
+                    'carta_elegida' => $cartaElegida->nombre,
+                ]);
+
+                return $cartaElegida;
             }
+
+            \Log::channel('cartas')->warning('Rareza sin cartas activas, se descarta y se vuelve a sortear', [
+                'categoria_id' => $idCategoria,
+                'rareza_vacia' => $rarezaElegida,
+            ]);
 
             unset($rarezasDisponibles[$rarezaElegida]);
         }
+
+        \Log::channel('cartas')->error('Ninguna rareza de esta categoría tiene cartas activas', ['categoria_id' => $idCategoria]);
 
         return null;
     }

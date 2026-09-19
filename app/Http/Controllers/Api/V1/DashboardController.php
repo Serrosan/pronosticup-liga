@@ -53,7 +53,7 @@ class DashboardController extends Controller
         // --- La jornada más próxima con partidos sin jugar ---
         $proximaJornadaNumero = CalendarioPartido::where('id_temporada', $liga->id_temporada)
             ->whereIn('estado', ['Programado', 'En juego'])
-            ->orderBy('jornada')
+            ->orderBy('horario_estimado')
             ->value('jornada');
 
         $partidosProximaJornada = collect();

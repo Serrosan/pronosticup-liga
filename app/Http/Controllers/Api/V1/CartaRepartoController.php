@@ -10,7 +10,7 @@ use App\Models\CierreJornada;
 use App\Models\ConfiguracionCartasLiga;
 use App\Models\EventoPuntos;
 use App\Models\RarezaProbabilidadLiga;
-use App\Models\TipoCarta;
+use App\Services\SorteoCartasService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 
@@ -21,6 +21,8 @@ class CartaRepartoController extends Controller
         2 => ['Comun' => 45, 'PocoComun' => 33, 'Rara' => 17, 'Legendaria' => 5],
         3 => ['Comun' => 55, 'PocoComun' => 30, 'Rara' => 12, 'Legendaria' => 3],
     ];
+
+    public function __construct(private SorteoCartasService $sorteo) {}
 
     public function repartirJornada(Request $request, int $jornada)
     {
@@ -73,7 +75,7 @@ class CartaRepartoController extends Controller
                 $porcentajes = $this->porcentajesDeCategoria($rarezasPorCategoria, $categoria->id);
 
                 for ($i = 0; $i < $cantidad; $i++) {
-                    $tipoElegido = $this->elegirCartaAlAzar($categoria->id, $porcentajes);
+                    $tipoElegido = $this->sorteo->elegirCartaAlAzar($categoria->id, $porcentajes);
 
                     if ($tipoElegido) {
                         CartaUsuario::create([
@@ -111,7 +113,7 @@ class CartaRepartoController extends Controller
 
         foreach ($top3 as $indice => $fila) {
             if ($fila->puntos <= 0) {
-                continue; // no hay bonus si ni siquiera sumó puntos esa jornada
+                continue;
             }
 
             $posicion = $indice + 1;
@@ -122,7 +124,7 @@ class CartaRepartoController extends Controller
                 : self::DEFECTOS_TOP3[$posicion];
 
             $categoriaAlAzar = $categorias->random();
-            $tipoElegido = $this->elegirCartaAlAzar($categoriaAlAzar->id, $porcentajes);
+            $tipoElegido = $this->sorteo->elegirCartaAlAzar($categoriaAlAzar->id, $porcentajes);
 
             if ($tipoElegido) {
                 CartaUsuario::create([
@@ -161,65 +163,5 @@ class CartaRepartoController extends Controller
         }
 
         return $filas->pluck('porcentaje', 'rareza')->toArray();
-    }
-
-    private function elegirCartaAlAzar(int $idCategoria, array $porcentajes): ?TipoCarta
-    {
-        $rarezasDisponibles = $porcentajes;
-
-        while (! empty($rarezasDisponibles)) {
-            $rarezaElegida = $this->sortearRareza($rarezasDisponibles);
-
-            $candidatas = TipoCarta::where('id_categoria', $idCategoria)
-                ->where('rareza', $rarezaElegida)
-                ->where('activa', true)
-                ->get();
-
-            if ($candidatas->isNotEmpty()) {
-                $cartaElegida = $candidatas->random();
-
-                \Log::channel('cartas')->info('Carta sorteada', [
-                    'categoria_id' => $idCategoria,
-                    'porcentajes' => $porcentajes,
-                    'rareza_salida' => $rarezaElegida,
-                    'candidatas_de_esa_rareza' => $candidatas->pluck('nombre'),
-                    'carta_elegida' => $cartaElegida->nombre,
-                ]);
-
-                return $cartaElegida;
-            }
-
-            \Log::channel('cartas')->warning('Rareza sin cartas activas, se descarta y se vuelve a sortear', [
-                'categoria_id' => $idCategoria,
-                'rareza_vacia' => $rarezaElegida,
-            ]);
-
-            unset($rarezasDisponibles[$rarezaElegida]);
-        }
-
-        \Log::channel('cartas')->error('Ninguna rareza de esta categoría tiene cartas activas', ['categoria_id' => $idCategoria]);
-
-        return null;
-    }
-
-    private function sortearRareza(array $porcentajes): string
-    {
-        $total = array_sum($porcentajes);
-
-        if ($total <= 0) {
-            return array_key_first($porcentajes);
-        }
-
-        $tirada = mt_rand(1, $total);
-        $acumulado = 0;
-
-        foreach ($porcentajes as $rareza => $porcentaje) {
-            $acumulado += $porcentaje;
-            if ($tirada <= $acumulado) {
-                return $rareza;
-            }
-        }
-
-        return array_key_first($porcentajes);
     }
 }

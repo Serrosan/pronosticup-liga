@@ -201,6 +201,47 @@ function AdminConfiguracionCartasPage() {
           </button>
         </div>
       )}
+
+      {configuracion && <RepartoInicial idLiga={idLigaSeleccionada} />}
+    </div>
+  )
+}
+
+function RepartoInicial({ idLiga }) {
+  const toast = useToast()
+  const [cantidad, setCantidad] = useState(4)
+
+  const repartir = useMutation({
+    mutationFn: () => client.post(`/api/v1/admin/ligas/${idLiga}/repartir-inicial`, { cantidad }),
+    onSuccess: (respuesta) => toast.exito(respuesta.data.message),
+    onError: (err) => toast.error(err.response?.data?.message ?? 'No se pudo repartir.'),
+  })
+
+  return (
+    <div className="mt-6 bg-borde/5 border border-borde/20 rounded-lg p-4">
+      <p className="font-body text-sm font-semibold text-texto mb-1">🎁 Reparto inicial único</p>
+      <p className="font-body text-xs text-borde mb-3">
+        Da a todos los miembros de la liga la misma cantidad de cartas de golpe (cada una sorteada por separado,
+        así que el contenido no tiene por qué coincidir entre personas). Útil al activar Cartas a mitad de temporada.
+      </p>
+      <div className="flex items-center gap-2">
+        <input
+          type="number"
+          min="1"
+          max="20"
+          value={cantidad}
+          onChange={(e) => setCantidad(Number(e.target.value))}
+          className="w-20 font-body text-sm bg-fondo text-texto rounded border border-borde/40 px-3 py-2 text-center"
+        />
+        <span className="font-body text-xs text-borde">cartas por persona</span>
+        <button
+          onClick={() => repartir.mutate()}
+          disabled={repartir.isPending}
+          className="font-body text-sm font-semibold bg-premio text-fondo rounded px-4 py-2 hover:brightness-110 disabled:opacity-50 ml-auto"
+        >
+          {repartir.isPending ? 'Repartiendo...' : 'Repartir ahora'}
+        </button>
+      </div>
     </div>
   )
 }

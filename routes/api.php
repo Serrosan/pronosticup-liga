@@ -76,6 +76,7 @@ Route::prefix('v1')->group(function () {
     Route::post('/mis-cartas/{cartaUsuario}/descartar', [\App\Http\Controllers\Api\V1\MisCartasController::class, 'descartar']);
     Route::post('/mis-cartas/{cartaUsuario}/jugar', [\App\Http\Controllers\Api\V1\MisCartasController::class, 'jugar']);
     Route::get('/liga-activa/miembros', [\App\Http\Controllers\Api\V1\LigaPersonalizacionController::class, 'miembros']);
+    Route::post('/ligas/{liga}/repartir-inicial', [\App\Http\Controllers\Api\V1\Admin\CartaRepartoInicialAdminController::class, 'repartir']);
 
     Route::middleware('admin')->prefix('admin')->group(function () {
         Route::get('/equipos/{equipo}', [\App\Http\Controllers\Api\V1\Admin\EquipoAdminController::class, 'show']);

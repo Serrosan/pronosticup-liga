@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\CalendarioPartido;
-use App\Models\CartaUsuario;
 use App\Models\CierreJornada;
 use App\Models\ConfiguracionPuntos;
 use App\Models\EventoPartido;
@@ -14,6 +13,7 @@ use App\Models\Novedad;
 use App\Models\Pronostico;
 use App\Models\User;
 use App\Notifications\JornadaCerradaConPuntos;
+use App\Services\MotorEfectosCartas;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -147,9 +147,6 @@ class JornadaController extends Controller
             ->pluck('id');
 
         $creados = DB::transaction(function () use ($liga, $jornada, $idsPartidos, $config) {
-            CierreJornada::where('id_liga', $liga->id)->where('jornada', $jornada)
-                ->update(['goleadores_calculados_en' => now()]);
-
             EventoPuntos::where('id_liga', $liga->id)
                 ->where('jornada', $jornada)
                 ->where('tipo_evento', 'GolesGoleadorElegido')
@@ -196,18 +193,11 @@ class JornadaController extends Controller
     private function calcularPuntosPronosticos($liga, int $jornada, $partidos, ConfiguracionPuntos $config, int $totalPartidos): array
     {
         $idsPartidos = $partidos->pluck('id');
+        $motor = app(MotorEfectosCartas::class);
 
         $pronosticos = Pronostico::where('id_liga', $liga->id)
             ->whereIn('id_partido', $idsPartidos)
             ->get();
-
-        // Cartas "Jugada" activas de tipo Chute Extra: +1pt fijo en el partido que se eligió al jugarla.
-        $cartasChuteExtra = CartaUsuario::where('id_liga', $liga->id)
-            ->whereIn('id_partido', $idsPartidos)
-            ->where('estado', 'jugada')
-            ->whereHas('tipoCarta', fn ($q) => $q->where('codigo_efecto', 'JUG-COM-001'))
-            ->get()
-            ->keyBy(fn ($c) => "{$c->id_usuario}-{$c->id_partido}");
 
         $puntosPorUsuario = [];
         $aciertosSignoPorUsuario = [];
@@ -244,14 +234,11 @@ class JornadaController extends Controller
                 $puntos = 0;
             }
 
-            // Resolver Chute Extra, si esta persona jugó esa carta sobre este partido concreto.
-            $claveCarta = "{$pronostico->id_usuario}-{$pronostico->id_partido}";
-            $cartaChuteExtra = $cartasChuteExtra->get($claveCarta);
-
-            if ($cartaChuteExtra) {
-                $puntos += 1;
-                $cartaChuteExtra->update(['estado' => 'resuelta_cumplida', 'puntos_generados' => 1]);
-            }
+            // El motor de Cartas ajusta los puntos si hay alguna carta jugada sobre
+            // este partido concreto — el tipo_evento (Fallo/Acierto...) SIEMPRE refleja
+            // lo que ocurrió de verdad, nunca lo falsea, aunque los puntos cambien.
+            $ajuste = $motor->ajustarPuntosPartido($liga->id, $pronostico->id_usuario, $partido->id, $puntos, $tipo, $config);
+            $puntos = $ajuste['puntos'];
 
             EventoPuntos::create([
                 'id_usuario' => $pronostico->id_usuario,
@@ -260,6 +247,7 @@ class JornadaController extends Controller
                 'jornada' => $jornada,
                 'tipo_evento' => $tipo,
                 'puntos' => $puntos,
+                'nota_carta' => $ajuste['nota'],
             ]);
 
             $puntosPorUsuario[$pronostico->id_usuario] = ($puntosPorUsuario[$pronostico->id_usuario] ?? 0) + $puntos;

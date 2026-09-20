@@ -9,14 +9,14 @@ class CartaUsuario extends Model
     protected $table = 'cartas_usuario';
 
     protected $fillable = [
-        'id_usuario', 'id_liga', 'id_tipo_carta', 'jornada_obtenida', 'obtenida_en',
+        'id_usuario', 'id_liga', 'id_tipo_carta', 'jornada_obtenida', 'obtenida_en', 'revelada_en',
         'origen', 'estado', 'id_partido', 'id_usuario_objetivo', 'jornada_efecto',
         'jugada_en', 'puntos_generados',
     ];
 
     protected function casts(): array
     {
-        return ['obtenida_en' => 'datetime', 'jugada_en' => 'datetime'];
+        return ['obtenida_en' => 'datetime', 'revelada_en' => 'datetime', 'jugada_en' => 'datetime'];
     }
 
     public function usuario()

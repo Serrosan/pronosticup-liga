@@ -146,7 +146,7 @@ class JornadaController extends Controller
             ->where('jornada', $jornada)
             ->pluck('id');
 
-        $creados = DB::transaction(function () use ($liga, $jornada, $idsPartidos, $config) {
+        [$creados, $cartasResueltas] = DB::transaction(function () use ($liga, $jornada, $idsPartidos, $config) {
             EventoPuntos::where('id_liga', $liga->id)
                 ->where('jornada', $jornada)
                 ->where('tipo_evento', 'GolesGoleadorElegido')
@@ -182,11 +182,16 @@ class JornadaController extends Controller
                 }
             }
 
-            return $creados;
+            // Cartas que dependen de eventos del partido (tarjetas/goles), no del
+            // resultado final — se resuelven aquí, nunca al cerrar la jornada.
+            $motor = app(MotorEfectosCartas::class);
+            $cartasResueltas = $motor->resolverEfectosDeEventos($liga->id, $jornada, $idsPartidos);
+
+            return [$creados, $cartasResueltas];
         });
 
         return response()->json([
-            'message' => "Recalculado. {$creados} usuario(s) recibieron puntos de goleadores con los eventos disponibles ahora mismo.",
+            'message' => "Recalculado. {$creados} usuario(s) recibieron puntos de goleadores, y {$cartasResueltas} carta(s) de evento se resolvieron con los eventos disponibles ahora mismo.",
         ]);
     }
 
@@ -201,6 +206,7 @@ class JornadaController extends Controller
 
         $puntosPorUsuario = [];
         $aciertosSignoPorUsuario = [];
+        $partidosFallidosPorUsuario = [];
 
         foreach ($pronosticos as $pronostico) {
             $partido = $partidos->firstWhere('id', $pronostico->id_partido);
@@ -234,9 +240,6 @@ class JornadaController extends Controller
                 $puntos = 0;
             }
 
-            // El motor de Cartas ajusta los puntos si hay alguna carta jugada sobre
-            // este partido concreto — el tipo_evento (Fallo/Acierto...) SIEMPRE refleja
-            // lo que ocurrió de verdad, nunca lo falsea, aunque los puntos cambien.
             $ajuste = $motor->ajustarPuntosPartido($liga->id, $pronostico->id_usuario, $partido->id, $puntos, $tipo, $config);
             $puntos = $ajuste['puntos'];
 
@@ -254,11 +257,20 @@ class JornadaController extends Controller
 
             if ($aciertaSigno) {
                 $aciertosSignoPorUsuario[$pronostico->id_usuario] = ($aciertosSignoPorUsuario[$pronostico->id_usuario] ?? 0) + 1;
+            } else {
+                $partidosFallidosPorUsuario[$pronostico->id_usuario][] = $partido->id;
             }
         }
 
-        foreach ($aciertosSignoPorUsuario as $idUsuario => $aciertos) {
-            $bonus = $this->calcularBonusPleno($aciertos, $totalPartidos, $config);
+        // El bonus de pleno se calcula usuario a usuario, dejando que el motor ajuste
+        // cuántos aciertos "cuentan" de verdad (por si algún Amuleto protege un fallo).
+        foreach ($pronosticos->pluck('id_usuario')->unique() as $idUsuario) {
+            $aciertosReales = $aciertosSignoPorUsuario[$idUsuario] ?? 0;
+            $partidosFallidos = collect($partidosFallidosPorUsuario[$idUsuario] ?? []);
+
+            $aciertosEfectivos = $motor->ajustarAciertosParaBonus($liga->id, $idUsuario, $jornada, $aciertosReales, $partidosFallidos);
+
+            $bonus = $this->calcularBonusPleno($aciertosEfectivos, $totalPartidos, $config);
 
             if ($bonus > 0) {
                 EventoPuntos::create([
@@ -285,7 +297,7 @@ class JornadaController extends Controller
 
         $porcentaje = ($aciertos / $totalPartidos) * 100;
 
-        if ($aciertos === $totalPartidos) {
+        if ($aciertos >= $totalPartidos) {
             return $config->bonus_pleno_10;
         }
         if ($porcentaje >= 90) {

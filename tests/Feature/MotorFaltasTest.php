@@ -113,4 +113,65 @@ class MotorFaltasTest extends TestCase
         $this->assertTrue($motor->estaExpulsadoDe($liga->id, $victima->id, 6, 'Faltas'));
         $this->assertFalse($motor->estaExpulsadoDe($liga->id, $victima->id, 6, 'Jugadas'));
     }
+
+    public function test_bloquea_si_ya_no_es_posible_cumplir_el_requisito(): void
+    {
+        [$liga, $tipoCartaSilbato] = $this->crearLigaConCartaFalta();
+        $categoria = $tipoCartaSilbato->categoria;
+
+        $tipoRequisito = \App\Models\TipoCarta::create([
+            'id_categoria' => $categoria->id, 'rareza' => 'Comun', 'nombre' => 'Todo queda en casa',
+            'descripcion' => 'test', 'codigo_efecto' => 'FAL-COM-CASA', 'activa' => true,
+        ]);
+
+        $atacante = User::factory()->create();
+        $victima = User::factory()->create();
+
+        CartaUsuario::create([
+            'id_usuario' => $atacante->id, 'id_liga' => $liga->id, 'id_tipo_carta' => $tipoRequisito->id,
+            'jornada_obtenida' => 5, 'obtenida_en' => now(), 'origen' => 'manual', 'estado' => 'jugada',
+            'id_usuario_objetivo' => $victima->id, 'jornada_efecto' => 6, 'jugada_en' => now(),
+        ]);
+
+        $motor = app(\App\Services\MotorFaltas::class);
+
+        // 10 partidos en la jornada, ya llevas 9 pronosticados y 0 son "Local"
+        // → solo queda 1 partido sin tocar, 0+1 < 2 → debe bloquear.
+        $tipos = collect(array_fill(0, 8, 'Visitante'))->push('Visitante'); // 9 en total, ninguno Local
+
+        $resultado = $motor->comprobarRequisitoPronostico($liga->id, $victima->id, 6, 10, 9, $tipos);
+
+        $this->assertNotNull($resultado);
+        $this->assertStringContainsString('imposible', $resultado);
+    }
+
+    public function test_permite_si_aun_es_posible_cumplir_el_requisito(): void
+    {
+        [$liga, $tipoCartaSilbato] = $this->crearLigaConCartaFalta();
+        $categoria = $tipoCartaSilbato->categoria;
+
+        $tipoRequisito = \App\Models\TipoCarta::create([
+            'id_categoria' => $categoria->id, 'rareza' => 'Comun', 'nombre' => 'Todo queda en casa',
+            'descripcion' => 'test', 'codigo_efecto' => 'FAL-COM-CASA', 'activa' => true,
+        ]);
+
+        $atacante = User::factory()->create();
+        $victima = User::factory()->create();
+
+        CartaUsuario::create([
+            'id_usuario' => $atacante->id, 'id_liga' => $liga->id, 'id_tipo_carta' => $tipoRequisito->id,
+            'jornada_obtenida' => 5, 'obtenida_en' => now(), 'origen' => 'manual', 'estado' => 'jugada',
+            'id_usuario_objetivo' => $victima->id, 'jornada_efecto' => 6, 'jugada_en' => now(),
+        ]);
+
+        $motor = app(\App\Services\MotorFaltas::class);
+
+        // 10 partidos, llevas 8 pronosticados (0 Local) → quedan 2 sin tocar,
+        // 0+2 = 2, justo el mínimo → debe permitirlo.
+        $tipos = collect(array_fill(0, 8, 'Visitante'));
+
+        $resultado = $motor->comprobarRequisitoPronostico($liga->id, $victima->id, 6, 10, 8, $tipos);
+
+        $this->assertNull($resultado);
+    }
 }

@@ -3,10 +3,26 @@
 namespace App\Services;
 
 use App\Models\CartaUsuario;
+use Illuminate\Support\Collection;
 
 class MotorFaltas
 {
     private const CODIGOS_ESCUDO = ['FAL-PCOM-ESCUDO'];
+
+    /**
+     * Registro de Faltas tipo "requisito de pronóstico": exigen que la víctima
+     * incluya al menos X pronósticos de un tipo concreto (Local/Visitante)
+     * entre TODOS los de la jornada afectada.
+     */
+    private const REQUISITOS_PRONOSTICO = [
+        'FAL-COM-CASA' => ['tipo' => 'Local', 'cantidad' => 2],
+        'FAL-PCOM-CASA' => ['tipo' => 'Local', 'cantidad' => 3],
+        'FAL-LEG-CASA' => ['tipo' => 'Local', 'cantidad' => 5],
+        'FAL-COM-VISITA' => ['tipo' => 'Visitante', 'cantidad' => 2],
+        'FAL-PCOM-VISITA' => ['tipo' => 'Visitante', 'cantidad' => 3],
+        'FAL-RAR-VISITA' => ['tipo' => 'Visitante', 'cantidad' => 4],
+        'FAL-LEG-VISITA' => ['tipo' => 'Visitante', 'cantidad' => 5],
+    ];
 
     /**
      * Registro de Expulsión: cada código bloquea 1 o varias categorías de
@@ -97,5 +113,43 @@ class MotorFaltas
         }
 
         return false;
+    }
+
+    /**
+     * Prevalidación real: comprueba si guardar un pronóstico dejaría
+     * MATEMÁTICAMENTE IMPOSIBLE cumplir una Falta de tipo "requisito" activa
+     * contra este usuario — no obliga a que cada pronóstico individual sea
+     * del tipo exigido, solo bloquea el momento en que ya no queden
+     * suficientes partidos por pronosticar para poder alcanzarlo.
+     *
+     * @param int $totalPronosticosConEsteIncluido Cuántos pronósticos tiene ya
+     *   guardados esta jornada, CONTANDO el que se está a punto de guardar ahora.
+     * @param Collection $tiposConEsteIncluido Los resultado_1x2 (Local/Empate/
+     *   Visitante) de esos mismos pronósticos, con el nuevo ya incluido.
+     */
+    public function comprobarRequisitoPronostico(int $idLiga, int $idUsuario, int $jornada, int $totalPartidosJornada, int $totalPronosticosConEsteIncluido, Collection $tiposConEsteIncluido): ?string
+    {
+        $faltaActiva = CartaUsuario::where('id_liga', $idLiga)
+            ->where('id_usuario_objetivo', $idUsuario)
+            ->where('jornada_efecto', $jornada)
+            ->where('estado', 'jugada')
+            ->whereHas('tipoCarta', fn ($q) => $q->whereIn('codigo_efecto', array_keys(self::REQUISITOS_PRONOSTICO)))
+            ->with('tipoCarta')
+            ->first();
+
+        if (! $faltaActiva) {
+            return null;
+        }
+
+        $requisito = self::REQUISITOS_PRONOSTICO[$faltaActiva->tipoCarta->codigo_efecto];
+
+        $cumplidosHastaAhora = $tiposConEsteIncluido->filter(fn ($tipo) => $tipo === $requisito['tipo'])->count();
+        $partidosAunSinPredecir = $totalPartidosJornada - $totalPronosticosConEsteIncluido;
+
+        if ($cumplidosHastaAhora + $partidosAunSinPredecir < $requisito['cantidad']) {
+            return "Tienes una Falta activa contra ti: debes incluir al menos {$requisito['cantidad']} pronóstico(s) de \"{$requisito['tipo']}\" esta jornada, y guardar así ya lo haría imposible de cumplir.";
+        }
+
+        return null;
     }
 }

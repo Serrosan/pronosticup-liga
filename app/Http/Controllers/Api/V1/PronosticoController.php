@@ -36,6 +36,34 @@ class PronosticoController extends Controller
 
         $resultado1x2 = $this->calcularResultado($validated['goles_local_predicho'], $validated['goles_visitante_predicho']);
 
+        // Prevalidación de Faltas tipo "requisito de pronóstico" (Todo queda en
+        // casa / Visita Obligada): si guardar esto deja matemáticamente
+        // imposible cumplir el requisito, se bloquea ANTES de tocar la BD.
+        $totalPartidosJornada = CalendarioPartido::where('id_temporada', $liga->id_temporada)
+            ->where('jornada', $partido->jornada)
+            ->count();
+
+        $otrosPronosticosDeEstaJornada = Pronostico::where('id_usuario', $request->user()->id)
+            ->where('id_liga', $liga->id)
+            ->where('id_partido', '!=', $partido->id)
+            ->whereHas('partido', fn ($q) => $q->where('jornada', $partido->jornada))
+            ->pluck('resultado_1x2');
+
+        $tiposConEsteIncluido = $otrosPronosticosDeEstaJornada->push($resultado1x2);
+
+        $problemaFalta = app(\App\Services\MotorFaltas::class)->comprobarRequisitoPronostico(
+            $liga->id,
+            $request->user()->id,
+            $partido->jornada,
+            $totalPartidosJornada,
+            $tiposConEsteIncluido->count(),
+            $tiposConEsteIncluido
+        );
+
+        if ($problemaFalta) {
+            return response()->json(['message' => $problemaFalta], 422);
+        }
+
         $pronostico = Pronostico::updateOrCreate(
             [
                 'id_usuario' => $request->user()->id,

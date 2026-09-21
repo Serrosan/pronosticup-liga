@@ -98,6 +98,11 @@ function NavBar() {
                 🃏 Cartas
               </Link>
             )}
+            {tieneCartas && (
+              <Link to="/catalogo-cartas" className={claseEnlace('/catalogo-cartas')}>
+                📖 Catálogo
+              </Link>
+            )}
             <MenuDesplegable etiqueta="LaLiga" opciones={LALIGA} activo={enLaLiga} />
             <MenuDesplegable etiqueta="Quinielas" opciones={QUINIELAS} activo={enQuiniela} />
             {usuario?.es_superadmin && (

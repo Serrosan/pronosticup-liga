@@ -60,6 +60,7 @@ import AdminTiposCartaPage from './pages/AdminTiposCartaPage'
 import AdminConfiguracionCartasPage from './pages/AdminConfiguracionCartasPage'
 import AdminGestionCartasUsuariosPage from './pages/AdminGestionCartasUsuariosPage'
 import MisCartasPage from './pages/MisCartasPage'
+import CatalogoCartasPage from './pages/CatalogoCartasPage'
 
 function RutaProtegida() {
   const { usuario, cargando } = useAuth()
@@ -124,6 +125,7 @@ function App() {
                 <Route path="/jornadas/:jornada/goleadores" element={<SeleccionGoleadoresPage />} />
                 <Route path="/chat" element={<ChatPage />} />
                 <Route path="/logros" element={<LogrosPage />} />
+                <Route path="/catalogo-cartas" element={<CatalogoCartasPage />} />
                 <Route path="/quinielas/:tipo" element={<QuinielaPage />} />
                 <Route path="/estadios" element={<StadiumsPage />} />
                 <Route path="/perfil" element={<ProfilePage />} />

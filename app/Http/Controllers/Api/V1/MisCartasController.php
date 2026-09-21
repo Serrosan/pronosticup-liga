@@ -23,13 +23,20 @@ class MisCartasController extends Controller
 
         // Solo mostramos en la mano las cartas ya "abiertas" — las que aún no se han
         // revelado no cuentan como visibles todavía, aunque ya sean tuyas de verdad.
+        $motor = app(\App\Services\MotorEfectosCartas::class);
+
         $cartasEnMano = CartaUsuario::where('id_liga', $liga->id)
             ->where('id_usuario', $request->user()->id)
             ->where('estado', 'en_mano')
             ->whereNotNull('revelada_en')
             ->with('tipoCarta.categoria')
             ->orderByDesc('revelada_en')
-            ->get();
+            ->get()
+            ->map(function ($c) use ($motor) {
+                $datos = $c->toArray();
+                $datos['requiere_partido'] = $motor->requiereEleccionDePartido($c->tipoCarta->codigo_efecto);
+                return $datos;
+            });
 
         $sinAbrir = CartaUsuario::where('id_liga', $liga->id)
             ->where('id_usuario', $request->user()->id)
@@ -166,6 +173,32 @@ class MisCartasController extends Controller
             return response()->json([
                 'message' => "Tienes {$manoActual} cartas en mano y el límite es {$topeMano}. Descarta alguna antes de poder jugar otra.",
             ], 422);
+        }
+
+        $cartaUsuario->load('tipoCarta');
+        $motor = app(\App\Services\MotorEfectosCartas::class);
+        $requierePartido = $motor->requiereEleccionDePartido($cartaUsuario->tipoCarta->codigo_efecto);
+
+        if (! $requierePartido) {
+            // Cartas de Forma 3 (ej. Crack): se juegan "en genérico" para la
+            // próxima jornada jugable, sin elegir ningún partido concreto.
+            $proximaJornada = CalendarioPartido::where('id_temporada', $liga->id_temporada)
+                ->whereIn('estado', ['Programado', 'En juego'])
+                ->orderBy('horario_estimado')
+                ->value('jornada');
+
+            if (! $proximaJornada) {
+                return response()->json(['message' => 'No hay ninguna jornada disponible para jugar esta carta ahora mismo.'], 422);
+            }
+
+            $cartaUsuario->update([
+                'estado' => 'jugada',
+                'id_partido' => null,
+                'jornada_efecto' => $proximaJornada,
+                'jugada_en' => now(),
+            ]);
+
+            return response()->json(['message' => 'Carta jugada para la próxima jornada.']);
         }
 
         $validated = $request->validate([

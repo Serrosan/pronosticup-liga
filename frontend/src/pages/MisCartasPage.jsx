@@ -226,10 +226,20 @@ function MisCartasPage() {
               <div key={carta.id} className="flex flex-col items-center gap-2">
                 <CartaJuego carta={carta.tipo_carta} categoriaNombre={carta.tipo_carta.categoria.nombre} categoriaIcono={carta.tipo_carta.categoria.icono} />
                 <div className="flex gap-3">
-                  {esJugada && hayJornadaJugable && (
+                  {esJugada && carta.requiere_partido && hayJornadaJugable && (
                     <button
                       onClick={() => setIdCartaEligiendoPartido(carta.id)}
                       disabled={sobreTope}
+                      className="font-body text-xs text-acento hover:underline disabled:opacity-40 disabled:no-underline disabled:cursor-not-allowed"
+                      title={sobreTope ? 'Descarta alguna carta primero para poder jugar' : undefined}
+                    >
+                      Jugar
+                    </button>
+                  )}
+                  {esJugada && !carta.requiere_partido && (
+                    <button
+                      onClick={() => jugar.mutate({ idCarta: carta.id, idPartido: null })}
+                      disabled={sobreTope || jugar.isPending}
                       className="font-body text-xs text-acento hover:underline disabled:opacity-40 disabled:no-underline disabled:cursor-not-allowed"
                       title={sobreTope ? 'Descarta alguna carta primero para poder jugar' : undefined}
                     >

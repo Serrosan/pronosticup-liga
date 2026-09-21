@@ -286,6 +286,15 @@ class JornadaController extends Controller
             }
         }
 
+        // Cartas de Forma 3 (bono sobre varios partidos, sin elegir ninguno de
+        // antemano) — se resuelven aquí, ya con todos los eventos de la jornada
+        // creados, para poder contar cuántos exactos/aciertos tuvo cada usuario.
+        $puntosBonosMultiPartido = $motor->resolverBonosMultiPartido($liga->id, $jornada);
+
+        foreach ($puntosBonosMultiPartido as $idUsuario => $puntosExtra) {
+            $puntosPorUsuario[$idUsuario] = ($puntosPorUsuario[$idUsuario] ?? 0) + $puntosExtra;
+        }
+
         return [$puntosPorUsuario, $pronosticos->count()];
     }
 

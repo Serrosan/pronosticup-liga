@@ -6,7 +6,9 @@ use App\Models\CartaUsuario;
 use App\Models\ConfiguracionPuntos;
 use App\Models\EventoPartido;
 use App\Models\EventoPuntos;
+use App\Services\EfectosCartas\BonoMultiPartidoJornada;
 use App\Services\EfectosCartas\BonusFijoPartido;
+use App\Services\EfectosCartas\BonusSiDosExactos;
 use App\Services\EfectosCartas\BonusSiExacto;
 use App\Services\EfectosCartas\BonusSiTarjetaRoja;
 use App\Services\EfectosCartas\Doblete;
@@ -117,6 +119,80 @@ class MotorEfectosCartas
         }
 
         return $aciertosReales + $protegidos->count();
+    }
+
+    // ------------------------------------------------------------------
+    // FORMA 3 — bono sobre varios partidos de la jornada, SIN elegir ninguno
+    // de antemano. Se juega "en genérico" para toda la jornada siguiente, y
+    // se resuelve al cerrar (junto con el resto de puntos), mirando el
+    // conjunto de resultados ya calculados de esa jornada.
+    // ------------------------------------------------------------------
+
+    private function bonosMultiPartido(): array
+    {
+        return [
+            'JUG-LEG-CRACK' => new BonusSiDosExactos(4),
+        ];
+    }
+
+    /**
+     * Usado por MisCartasController al jugar una carta, para saber si debe
+     * pedir que se elija un partido (Formas 1 y 4) o jugarse "en genérico"
+     * sobre toda la jornada (Forma 3).
+     */
+    public function requiereEleccionDePartido(string $codigoEfecto): bool
+    {
+        return ! array_key_exists($codigoEfecto, $this->bonosMultiPartido());
+    }
+
+    /**
+     * @return array<int, int> puntos extra por id_usuario
+     */
+    public function resolverBonosMultiPartido(int $idLiga, int $jornada): array
+    {
+        EventoPuntos::where('id_liga', $idLiga)
+            ->where('jornada', $jornada)
+            ->where('tipo_evento', 'CartaBonoJornada')
+            ->delete();
+
+        $registro = $this->bonosMultiPartido();
+
+        $cartasJugadas = CartaUsuario::where('id_liga', $idLiga)
+            ->where('jornada_efecto', $jornada)
+            ->where('estado', 'jugada')
+            ->with('tipoCarta')
+            ->get()
+            ->filter(fn ($c) => isset($registro[$c->tipoCarta->codigo_efecto]));
+
+        $puntosPorUsuario = [];
+
+        foreach ($cartasJugadas as $carta) {
+            $eventosDeLaJornada = EventoPuntos::where('id_liga', $idLiga)
+                ->where('id_usuario', $carta->id_usuario)
+                ->where('jornada', $jornada)
+                ->whereIn('tipo_evento', ['AciertoExacto', 'AciertoDiferencia', 'Acierto1x2', 'Fallo'])
+                ->get();
+
+            $resultado = $registro[$carta->tipoCarta->codigo_efecto]->evaluar($eventosDeLaJornada);
+
+            if ($resultado['cumplido']) {
+                EventoPuntos::create([
+                    'id_usuario' => $carta->id_usuario,
+                    'id_liga' => $idLiga,
+                    'id_partido' => null,
+                    'jornada' => $jornada,
+                    'tipo_evento' => 'CartaBonoJornada',
+                    'puntos' => $resultado['puntos'],
+                ]);
+
+                $carta->update(['estado' => 'resuelta_cumplida', 'puntos_generados' => $resultado['puntos']]);
+                $puntosPorUsuario[$carta->id_usuario] = ($puntosPorUsuario[$carta->id_usuario] ?? 0) + $resultado['puntos'];
+            } else {
+                $carta->update(['estado' => 'resuelta_no_cumplida', 'puntos_generados' => 0]);
+            }
+        }
+
+        return $puntosPorUsuario;
     }
 
     // ------------------------------------------------------------------

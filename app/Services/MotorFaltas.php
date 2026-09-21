@@ -3,11 +3,13 @@
 namespace App\Services;
 
 use App\Models\CartaUsuario;
+use App\Models\EventoPartido;
 use Illuminate\Support\Collection;
 
 class MotorFaltas
 {
     private const CODIGOS_ESCUDO = ['FAL-PCOM-ESCUDO'];
+    private const CODIGO_FALLO_CLAMOROSO = 'FAL-PCOM-FALLO';
 
     /**
      * Registro de Faltas tipo "requisito de pronóstico": exigen que la víctima
@@ -151,5 +153,33 @@ class MotorFaltas
         }
 
         return null;
+    }
+
+    public function tieneFalloClamorosoActivo(int $idLiga, int $idUsuario, int $jornada): bool
+    {
+        return CartaUsuario::where('id_liga', $idLiga)
+            ->where('id_usuario_objetivo', $idUsuario)
+            ->where('jornada_efecto', $jornada)
+            ->where('estado', 'jugada')
+            ->whereHas('tipoCarta', fn ($q) => $q->where('codigo_efecto', self::CODIGO_FALLO_CLAMOROSO))
+            ->exists();
+    }
+
+    /**
+     * Los N jugadores con más goles reales marcados en toda la temporada —
+     * misma consulta que ya usa EstadisticasJugadoresController::goleadores(),
+     * reutilizada aquí en vez de duplicarla (un controller nunca se llama
+     * desde otro como si fuera un servicio).
+     */
+    public function topGoleadoresRealesIds(int $cantidad = 3): array
+    {
+        return EventoPartido::where('tipo_evento', 'gol')
+            ->whereNotNull('id_jugador')
+            ->selectRaw('id_jugador, count(*) as goles')
+            ->groupBy('id_jugador')
+            ->orderByDesc('goles')
+            ->limit($cantidad)
+            ->pluck('id_jugador')
+            ->all();
     }
 }

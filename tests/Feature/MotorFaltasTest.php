@@ -174,4 +174,29 @@ class MotorFaltasTest extends TestCase
 
         $this->assertNull($resultado);
     }
+
+    public function test_fallo_clamoroso_bloquea_al_top_3_goleadores_reales(): void
+    {
+        [$liga, $tipoCartaSilbato] = $this->crearLigaConCartaFalta();
+        $categoria = $tipoCartaSilbato->categoria;
+
+        $tipoFallo = \App\Models\TipoCarta::create([
+            'id_categoria' => $categoria->id, 'rareza' => 'PocoComun', 'nombre' => 'Fallo clamoroso',
+            'descripcion' => 'test', 'codigo_efecto' => 'FAL-PCOM-FALLO', 'activa' => true,
+        ]);
+
+        $atacante = User::factory()->create();
+        $victima = User::factory()->create();
+
+        CartaUsuario::create([
+            'id_usuario' => $atacante->id, 'id_liga' => $liga->id, 'id_tipo_carta' => $tipoFallo->id,
+            'jornada_obtenida' => 5, 'obtenida_en' => now(), 'origen' => 'manual', 'estado' => 'jugada',
+            'id_usuario_objetivo' => $victima->id, 'jornada_efecto' => 6, 'jugada_en' => now(),
+        ]);
+
+        $motor = app(\App\Services\MotorFaltas::class);
+
+        $this->assertTrue($motor->tieneFalloClamorosoActivo($liga->id, $victima->id, 6));
+        $this->assertFalse($motor->tieneFalloClamorosoActivo($liga->id, $victima->id, 7));
+    }
 }

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\CalendarioPartido;
 use App\Models\GoleadorJornada;
 use App\Models\Jugador;
+use App\Services\MotorFaltas;
 use Illuminate\Http\Request;
 
 class GoleadoresController extends Controller
@@ -62,6 +63,22 @@ class GoleadoresController extends Controller
             return response()->json([
                 'message' => "No puedes repetir jugadores de la jornada anterior: {$nombresRepetidos}.",
             ], 422);
+        }
+
+        // Falta "Fallo clamoroso" activa contra ti: no puedes elegir a los 3
+        // máximos goleadores REALES de LaLiga esta temporada.
+        $motorFaltas = app(MotorFaltas::class);
+
+        if ($motorFaltas->tieneFalloClamorosoActivo($liga->id, $request->user()->id, $jornada)) {
+            $topGoleadoresReales = $motorFaltas->topGoleadoresRealesIds(3);
+            $bloqueados = array_intersect($validated['jugadores'], $topGoleadoresReales);
+
+            if (! empty($bloqueados)) {
+                $nombresBloqueados = Jugador::whereIn('id', $bloqueados)->pluck('nombre')->implode(', ');
+                return response()->json([
+                    'message' => "Tienes una Falta activa: no puedes elegir a los 3 máximos goleadores reales de LaLiga esta jornada: {$nombresBloqueados}.",
+                ], 422);
+            }
         }
 
         GoleadorJornada::where('id_usuario', $request->user()->id)

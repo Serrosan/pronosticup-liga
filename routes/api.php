@@ -54,14 +54,14 @@ Route::prefix('v1')->group(function () {
     Route::delete('/notificaciones/leidas', [\App\Http\Controllers\Api\V1\NotificacionController::class, 'borrarLeidas']);
     Route::delete('/notificaciones/{id}', [\App\Http\Controllers\Api\V1\NotificacionController::class, 'destroy']);
     Route::get('/clasificacion/usuarios/{usuario}/detalle', [\App\Http\Controllers\Api\V1\ClasificacionController::class, 'detalle']);
-    Route::get('/jornadas/{jornada}/otros-pronosticos', [\App\Http\Controllers\Api\V1\OtrosPronosticosController::class, 'show']);
+    Route::get('/jornadas/{jornada}/otros-pronosticos', [\App\Http\Controllers\Api\V1\PronosticoController::class, 'deOtros']);
     Route::get('/estadisticas-jugadores/goleadores', [\App\Http\Controllers\Api\V1\EstadisticasJugadoresController::class, 'goleadores']);
     Route::get('/estadisticas-jugadores/asistencias', [\App\Http\Controllers\Api\V1\EstadisticasJugadoresController::class, 'asistencias']);
     Route::get('/estadisticas-jugadores/tarjetas', [\App\Http\Controllers\Api\V1\EstadisticasJugadoresController::class, 'tarjetas']);
     Route::get('/jornadas/{jornada}/momento-decisivo', [\App\Http\Controllers\Api\V1\MomentoDecisivoController::class, 'show']);
     Route::get('/configuracion-puntos', [\App\Http\Controllers\Api\V1\ConfiguracionPuntosPublicaController::class, 'show']);
     Route::get('/equipos-lista', [\App\Http\Controllers\Api\V1\EquipoListaController::class, 'index']);
-    Route::get('/jornada-actual', [\App\Http\Controllers\Api\V1\JornadaActualController::class, 'show']);
+    Route::get('/jornada-actual', [\App\Http\Controllers\Api\V1\JornadaController::class, 'actual']);
     Route::post('/jornadas/{jornada}/copiar-pronosticos', [\App\Http\Controllers\Api\V1\CopiarPronosticosController::class, 'copiar']);
     Route::get('/jornadas/{jornada}/progreso-liga', [\App\Http\Controllers\Api\V1\PronosticoController::class, 'progresoLiga']);
     Route::get('/jornadas-cerradas', [\App\Http\Controllers\Api\V1\ClasificacionController::class, 'jornadasCerradas']);

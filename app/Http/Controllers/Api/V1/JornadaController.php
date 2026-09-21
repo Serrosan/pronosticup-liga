@@ -19,6 +19,34 @@ use Illuminate\Support\Facades\DB;
 
 class JornadaController extends Controller
 {
+    /**
+     * La jornada "actual" a efectos de navegación general de la app — la del
+     * próximo partido programado, o la última jugada si no queda ninguno.
+     * Fusionado aquí desde JornadaActualController (era single-action, sin
+     * justificación propia para vivir fuera de JornadaController).
+     */
+    public function actual(Request $request)
+    {
+        $liga = $request->user()->ligaActiva;
+
+        if (! $liga) {
+            return response()->json(['message' => 'No tienes ninguna liga activa.'], 409);
+        }
+
+        $proximoPartido = CalendarioPartido::where('id_temporada', $liga->id_temporada)
+            ->where('estado', 'Programado')
+            ->orderBy('horario_estimado')
+            ->first();
+
+        if ($proximoPartido) {
+            return response()->json(['data' => ['jornada' => $proximoPartido->jornada]]);
+        }
+
+        $ultimaJornada = CalendarioPartido::where('id_temporada', $liga->id_temporada)->max('jornada') ?? 1;
+
+        return response()->json(['data' => ['jornada' => $ultimaJornada]]);
+    }
+
     public function cerrar(Request $request, int $jornada)
     {
         $liga = $request->user()->ligaActiva;

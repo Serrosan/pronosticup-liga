@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import client from '../api/client'
+import { useAuth } from '../context/AuthContext'
 import TicketHeader from '../components/TicketHeader'
 import CartaJuego from '../components/CartaJuego'
 import AperturaCarta from '../components/AperturaCarta'
@@ -12,6 +13,46 @@ import { useToast } from '../context/ToastContext'
 function Escudo({ url, alt }) {
   if (!url) return <span className="w-5 h-5 rounded-full bg-borde/15 flex items-center justify-center text-xs shrink-0">⚽</span>
   return <img src={url} alt={alt} className="w-5 h-5 object-contain shrink-0" />
+}
+
+function SelectorRival({ miembros, onJugar, onCancelar, jugando }) {
+  const [idRival, setIdRival] = useState('')
+  const [mensaje, setMensaje] = useState('')
+
+  return (
+    <div className="bg-borde/10 border border-borde/30 rounded-lg p-3 mt-2 w-64">
+      <p className="font-body text-[10px] uppercase tracking-widest text-premio mb-2">Elige a quién se la juegas</p>
+      <SelectTema
+        value={idRival}
+        onChange={(e) => setIdRival(e.target.value)}
+        options={[
+          { value: '', label: 'Elige un rival...' },
+          ...miembros.map((m) => ({ value: String(m.id), label: m.nombre })),
+        ]}
+        className="w-full bg-fondo text-xs"
+      />
+      <textarea
+        value={mensaje}
+        onChange={(e) => setMensaje(e.target.value)}
+        placeholder="Mensaje de burla (opcional)"
+        maxLength={200}
+        rows={2}
+        className="w-full font-body text-xs bg-fondo text-texto rounded border border-borde/40 px-2 py-1.5 mt-2"
+      />
+      <div className="flex gap-2 mt-2">
+        <button
+          onClick={() => onJugar(idRival, mensaje)}
+          disabled={!idRival || jugando}
+          className="font-body text-xs font-semibold bg-acento text-fondo rounded px-3 py-1.5 hover:brightness-110 disabled:opacity-50 flex-1"
+        >
+          {jugando ? 'Jugando...' : 'Confirmar'}
+        </button>
+        <button onClick={onCancelar} className="font-body text-xs text-borde hover:text-texto px-2">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  )
 }
 
 function SelectorPartido({ partidos, jornada, onJugar, onCancelar, jugando }) {
@@ -69,8 +110,19 @@ function CartaJugada({ jugada }) {
             <br />
             <span className="text-borde">Jornada {jugada.partido.jornada}</span>
           </p>
+        ) : jugada.objetivo ? (
+          <p className="font-body text-xs text-texto mt-0.5">
+            {jugada.objetivo.es_uno_mismo ? (
+              <span className="font-semibold">Te proteges a ti mismo</span>
+            ) : (
+              <>Jugada contra: <span className="font-semibold">{jugada.objetivo.nombre}</span></>
+            )}
+            <br />
+            <span className="text-borde">Efecto en la jornada {jugada.jornada_efecto}</span>
+            {jugada.mensaje_falta && <><br /><span className="italic text-borde">"{jugada.mensaje_falta}"</span></>}
+          </p>
         ) : (
-          <p className="font-body text-xs text-borde mt-0.5">Sin partido asociado</p>
+          <p className="font-body text-xs text-borde mt-0.5">Jugada para la jornada {jugada.jornada_efecto}</p>
         )}
       </div>
     </div>
@@ -124,9 +176,11 @@ function BotonAbrirSobres({ sinAbrir, onAbrir, abriendo }) {
 
 function MisCartasPage() {
   useTitulo('Mis Cartas')
+  const { usuario } = useAuth()
   const toast = useToast()
   const queryClient = useQueryClient()
   const [idCartaEligiendoPartido, setIdCartaEligiendoPartido] = useState(null)
+  const [idCartaEligiendoRival, setIdCartaEligiendoRival] = useState(null)
   const [cartaAbriendose, setCartaAbriendose] = useState(null)
 
   const { data, isLoading, error } = useQuery({
@@ -137,6 +191,12 @@ function MisCartasPage() {
   const { data: jornadaJugable } = useQuery({
     queryKey: ['proxima-jornada-jugable'],
     queryFn: async () => (await client.get('/api/v1/mis-cartas/proxima-jornada-jugable')).data.data,
+    enabled: data?.activo === true,
+  })
+
+  const { data: miembros } = useQuery({
+    queryKey: ['liga-activa-miembros'],
+    queryFn: async () => (await client.get('/api/v1/liga-activa/miembros')).data.data,
     enabled: data?.activo === true,
   })
 
@@ -157,6 +217,17 @@ function MisCartasPage() {
       queryClient.invalidateQueries({ queryKey: ['mis-cartas'] })
     },
     onError: (err) => toast.error(err.response?.data?.message ?? 'No se pudo jugar la carta.'),
+  })
+
+  const jugarFalta = useMutation({
+    mutationFn: ({ idCarta, idUsuarioObjetivo, mensaje }) =>
+      client.post(`/api/v1/mis-cartas/${idCarta}/jugar-falta`, idUsuarioObjetivo ? { id_usuario_objetivo: idUsuarioObjetivo, mensaje: mensaje || undefined } : {}),
+    onSuccess: (respuesta) => {
+      toast.exito(respuesta.data.message)
+      setIdCartaEligiendoRival(null)
+      queryClient.invalidateQueries({ queryKey: ['mis-cartas'] })
+    },
+    onError: (err) => toast.error(err.response?.data?.message ?? 'No se pudo jugar la Falta.'),
   })
 
   const abrirSiguiente = useMutation({
@@ -221,6 +292,8 @@ function MisCartasPage() {
         <div className="flex flex-wrap gap-5 justify-center mb-8">
           {data.cartas.map((carta) => {
             const esJugada = carta.tipo_carta.categoria.nombre === 'Jugadas'
+            const esFalta = carta.tipo_carta.categoria.nombre === 'Faltas'
+            const esEscudo = carta.tipo_carta.codigo_efecto === 'FAL-PCOM-ESCUDO'
 
             return (
               <div key={carta.id} className="flex flex-col items-center gap-2">
@@ -246,6 +319,26 @@ function MisCartasPage() {
                       Jugar
                     </button>
                   )}
+                  {esFalta && esEscudo && (
+                    <button
+                      onClick={() => jugarFalta.mutate({ idCarta: carta.id, idUsuarioObjetivo: null, mensaje: null })}
+                      disabled={sobreTope || jugarFalta.isPending}
+                      className="font-body text-xs text-acento hover:underline disabled:opacity-40 disabled:no-underline disabled:cursor-not-allowed"
+                      title={sobreTope ? 'Descarta alguna carta primero para poder jugar' : undefined}
+                    >
+                      {jugarFalta.isPending ? 'Activando...' : 'Activar'}
+                    </button>
+                  )}
+                  {esFalta && !esEscudo && miembros && (
+                    <button
+                      onClick={() => setIdCartaEligiendoRival(carta.id)}
+                      disabled={sobreTope}
+                      className="font-body text-xs text-acento hover:underline disabled:opacity-40 disabled:no-underline disabled:cursor-not-allowed"
+                      title={sobreTope ? 'Descarta alguna carta primero para poder jugar' : undefined}
+                    >
+                      Jugar
+                    </button>
+                  )}
                   <button
                     onClick={() => descartar.mutate(carta.id)}
                     disabled={descartar.isPending}
@@ -261,6 +354,14 @@ function MisCartasPage() {
                     onJugar={(idPartido) => jugar.mutate({ idCarta: carta.id, idPartido })}
                     onCancelar={() => setIdCartaEligiendoPartido(null)}
                     jugando={jugar.isPending}
+                  />
+                )}
+                {idCartaEligiendoRival === carta.id && (
+                  <SelectorRival
+                    miembros={miembros.filter((m) => m.id !== usuario?.id)}
+                    onJugar={(idRival, mensaje) => jugarFalta.mutate({ idCarta: carta.id, idUsuarioObjetivo: idRival, mensaje })}
+                    onCancelar={() => setIdCartaEligiendoRival(null)}
+                    jugando={jugarFalta.isPending}
                   />
                 )}
               </div>

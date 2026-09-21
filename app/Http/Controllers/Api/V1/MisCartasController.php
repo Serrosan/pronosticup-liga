@@ -48,18 +48,24 @@ class MisCartasController extends Controller
         $cartasJugadas = CartaUsuario::where('id_liga', $liga->id)
             ->where('id_usuario', $request->user()->id)
             ->whereIn('estado', ['jugada', 'pendiente_resolucion'])
-            ->with(['tipoCarta.categoria', 'partido.equipoLocal', 'partido.equipoVisitante'])
+            ->with(['tipoCarta.categoria', 'partido.equipoLocal', 'partido.equipoVisitante', 'usuarioObjetivo'])
             ->orderByDesc('jugada_en')
             ->get()
             ->map(fn ($c) => [
                 'id' => $c->id,
                 'tipo_carta' => $c->tipoCarta,
                 'jugada_en' => $c->jugada_en?->toIso8601String(),
+                'jornada_efecto' => $c->jornada_efecto,
                 'partido' => $c->partido ? [
                     'equipo_local' => $c->partido->equipoLocal->nombre_corto ?? $c->partido->equipoLocal->nombre,
                     'equipo_visitante' => $c->partido->equipoVisitante->nombre_corto ?? $c->partido->equipoVisitante->nombre,
                     'jornada' => $c->partido->jornada,
                 ] : null,
+                'objetivo' => $c->usuarioObjetivo ? [
+                    'nombre' => $c->usuarioObjetivo->nombre_visible ?? $c->usuarioObjetivo->name,
+                    'es_uno_mismo' => $c->usuarioObjetivo->id === $request->user()->id,
+                ] : null,
+                'mensaje_falta' => $c->mensaje_falta,
             ]);
 
         return response()->json([

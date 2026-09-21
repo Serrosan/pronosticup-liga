@@ -129,6 +129,20 @@ function CartaJugada({ jugada }) {
   )
 }
 
+function FaltaRecibida({ falta }) {
+  return (
+    <div className="flex items-center gap-3 bg-red-500/5 border border-red-500/30 rounded-lg p-3">
+      <CartaJuego carta={falta.tipo_carta} categoriaNombre={falta.tipo_carta.categoria.nombre} categoriaIcono={falta.tipo_carta.categoria.icono} tamano="pequena" />
+      <div className="min-w-0">
+        <p className="font-body text-xs font-semibold text-red-500">⚠️ {falta.atacante} te ha jugado esta Falta</p>
+        <p className="font-body text-xs text-texto mt-0.5">{falta.tipo_carta.descripcion}</p>
+        <p className="font-body text-xs text-borde mt-0.5">Afecta a la jornada {falta.jornada_efecto}</p>
+        {falta.mensaje_falta && <p className="font-body text-xs italic text-borde mt-1">"{falta.mensaje_falta}"</p>}
+      </div>
+    </div>
+  )
+}
+
 function ReversoCarta({ className = '' }) {
   return (
     <div
@@ -281,6 +295,15 @@ function MisCartasPage() {
           </div>
         )}
       </div>
+
+      {data.faltas_recibidas.length > 0 && (
+        <div className="mb-8">
+          <p className="font-body text-sm font-semibold text-red-500 mb-3">⚠️ Faltas activas contra ti</p>
+          <div className="flex flex-col gap-2">
+            {data.faltas_recibidas.map((falta) => <FaltaRecibida key={falta.id} falta={falta} />)}
+          </div>
+        </div>
+      )}
 
       <p className="font-body text-sm font-semibold text-texto mb-3">Tu mano</p>
 

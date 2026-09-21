@@ -68,12 +68,30 @@ class MisCartasController extends Controller
                 'mensaje_falta' => $c->mensaje_falta,
             ]);
 
+        // Faltas que otros te han jugado a ti — para que sepas qué tienes
+        // encima, sin tener que descubrirlo solo cuando algo te bloquea.
+        $faltasRecibidas = CartaUsuario::where('id_liga', $liga->id)
+            ->where('id_usuario_objetivo', $request->user()->id)
+            ->where('id_usuario', '!=', $request->user()->id)
+            ->where('estado', 'jugada')
+            ->with(['tipoCarta.categoria', 'usuario'])
+            ->orderByDesc('jugada_en')
+            ->get()
+            ->map(fn ($c) => [
+                'id' => $c->id,
+                'tipo_carta' => $c->tipoCarta,
+                'atacante' => $c->usuario->nombre_visible ?? $c->usuario->name,
+                'jornada_efecto' => $c->jornada_efecto,
+                'mensaje_falta' => $c->mensaje_falta,
+            ]);
+
         return response()->json([
             'data' => [
                 'activo' => true,
                 'tope_mano_cartas' => $liga->tope_mano_cartas ?? 8,
                 'cartas' => $cartasEnMano,
                 'jugadas' => $cartasJugadas,
+                'faltas_recibidas' => $faltasRecibidas,
                 'sin_abrir' => $sinAbrir,
             ],
         ]);

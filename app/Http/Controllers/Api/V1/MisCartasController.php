@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\CalendarioPartido;
 use App\Models\CartaUsuario;
+use App\Services\MotorFaltas;
 use Illuminate\Http\Request;
 
 class MisCartasController extends Controller
@@ -136,6 +137,104 @@ class MisCartasController extends Controller
         return response()->json(['data' => ['jornada' => $proximaJornadaNumero, 'partidos' => $partidos]]);
     }
 
+    /**
+     * Jugar una carta de Faltas — apunta a un rival (o a ti mismo, en el caso
+     * de Escudo) y afecta a la jornada SIGUIENTE a la que está abierta ahora
+     * mismo (se juega en la jornada N, el efecto cae en la N+1).
+     */
+    public function jugarFalta(Request $request, CartaUsuario $cartaUsuario)
+    {
+        if ($cartaUsuario->id_usuario !== $request->user()->id) {
+            return response()->json(['message' => 'Esta carta no es tuya.'], 403);
+        }
+
+        if ($cartaUsuario->estado !== 'en_mano') {
+            return response()->json(['message' => 'Esta carta ya no está en tu mano.'], 422);
+        }
+
+        $cartaUsuario->load('tipoCarta.categoria');
+
+        if ($cartaUsuario->tipoCarta->categoria->nombre !== 'Faltas') {
+            return response()->json(['message' => 'Esta carta no es de tipo Falta.'], 422);
+        }
+
+        $liga = $request->user()->ligaActiva;
+
+        $yaJugadaEstaJornada = CartaUsuario::where('id_liga', $liga->id)
+            ->where('id_usuario', $request->user()->id)
+            ->where('estado', 'jugada')
+            ->whereHas('tipoCarta.categoria', fn ($q) => $q->where('nombre', 'Faltas'))
+            ->exists();
+
+        if ($yaJugadaEstaJornada) {
+            return response()->json(['message' => 'Solo puedes jugar 1 Falta por jornada.'], 422);
+        }
+
+        $proximaJornada = CalendarioPartido::where('id_temporada', $liga->id_temporada)
+            ->whereIn('estado', ['Programado', 'En juego'])
+            ->orderBy('horario_estimado')
+            ->value('jornada');
+
+        if (! $proximaJornada) {
+            return response()->json(['message' => 'No hay ninguna jornada disponible ahora mismo.'], 422);
+        }
+
+        $jornadaEfecto = $proximaJornada + 1;
+
+        $motorFaltas = app(MotorFaltas::class);
+
+        if ($motorFaltas->estaExpulsadoDe($liga->id, $request->user()->id, $proximaJornada, 'Faltas')) {
+            return response()->json(['message' => 'Tienes una Expulsión activa esta jornada — no puedes jugar cartas de tipo Falta.'], 422);
+        }
+
+        $esEscudo = $cartaUsuario->tipoCarta->codigo_efecto === 'FAL-PCOM-ESCUDO';
+
+        if ($esEscudo) {
+            // El Escudo se protege a sí mismo, no elige rival ni pasa por las
+            // reglas anti-abuso (esas solo tienen sentido entre 2 personas).
+            $cartaUsuario->update([
+                'estado' => 'jugada',
+                'id_usuario_objetivo' => $request->user()->id,
+                'jornada_efecto' => $jornadaEfecto,
+                'jugada_en' => now(),
+            ]);
+
+            return response()->json(['message' => "Escudo activado. Te protegerá en la jornada {$jornadaEfecto}."]);
+        }
+
+        $validated = $request->validate([
+            'id_usuario_objetivo' => ['required', 'exists:users,id', 'different:'.$request->user()->id],
+            'mensaje' => ['nullable', 'string', 'max:200'],
+        ]);
+
+        $esMiembro = $liga->usuarios()->where('users.id', $validated['id_usuario_objetivo'])->exists();
+        if (! $esMiembro) {
+            return response()->json(['message' => 'Ese usuario no pertenece a tu liga.'], 422);
+        }
+
+        $totalMiembros = $liga->usuarios()->count();
+
+        $problema = $motorFaltas->comprobarAntiAbuso($liga->id, $request->user()->id, $validated['id_usuario_objetivo'], $jornadaEfecto, $totalMiembros);
+        if ($problema) {
+            return response()->json(['message' => $problema], 422);
+        }
+
+        $escudoConsumido = $motorFaltas->consumirEscudoSiActivo($liga->id, $validated['id_usuario_objetivo'], $jornadaEfecto);
+        if ($escudoConsumido) {
+            return response()->json(['message' => 'Ese jugador tenía un Escudo activo esta semana — tu Falta no ha podido jugarse.'], 422);
+        }
+
+        $cartaUsuario->update([
+            'estado' => 'jugada',
+            'id_usuario_objetivo' => $validated['id_usuario_objetivo'],
+            'jornada_efecto' => $jornadaEfecto,
+            'mensaje_falta' => $validated['mensaje'] ?? null,
+            'jugada_en' => now(),
+        ]);
+
+        return response()->json(['message' => "Falta jugada. Afectará a la jornada {$jornadaEfecto}."]);
+    }
+
     public function descartar(Request $request, CartaUsuario $cartaUsuario)
     {
         if ($cartaUsuario->id_usuario !== $request->user()->id) {
@@ -191,6 +290,10 @@ class MisCartasController extends Controller
                 return response()->json(['message' => 'No hay ninguna jornada disponible para jugar esta carta ahora mismo.'], 422);
             }
 
+            if (app(\App\Services\MotorFaltas::class)->estaExpulsadoDe($liga->id, $request->user()->id, $proximaJornada, 'Jugadas')) {
+                return response()->json(['message' => 'Tienes una Expulsión activa esta jornada — no puedes jugar cartas de tipo Jugada.'], 422);
+            }
+
             $cartaUsuario->update([
                 'estado' => 'jugada',
                 'id_partido' => null,
@@ -213,6 +316,10 @@ class MisCartasController extends Controller
 
         if (CalendarioPartido::jornadaBloqueada($partido->id_temporada, $partido->jornada)) {
             return response()->json(['message' => 'Esa jornada ya está bloqueada.'], 422);
+        }
+
+        if (app(\App\Services\MotorFaltas::class)->estaExpulsadoDe($liga->id, $request->user()->id, $partido->jornada, 'Jugadas')) {
+            return response()->json(['message' => 'Tienes una Expulsión activa esta jornada — no puedes jugar cartas de tipo Jugada.'], 422);
         }
 
         $cartaUsuario->update([

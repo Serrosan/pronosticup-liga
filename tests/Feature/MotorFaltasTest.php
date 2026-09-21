@@ -88,4 +88,29 @@ class MotorFaltasTest extends TestCase
         $this->assertNotNull($resultado);
         $this->assertStringContainsString('máximo de Faltas recibidas', $resultado);
     }
+
+    public function test_expulsion_rara_solo_bloquea_faltas_no_jugadas(): void
+    {
+        [$liga, $tipoCartaSilbato] = $this->crearLigaConCartaFalta();
+        $categoriaExpulsion = $tipoCartaSilbato->categoria;
+
+        $tipoExpulsionRara = \App\Models\TipoCarta::create([
+            'id_categoria' => $categoriaExpulsion->id, 'rareza' => 'Rara', 'nombre' => 'Expulsión',
+            'descripcion' => 'test', 'codigo_efecto' => 'FAL-RAR-EXPULSION', 'activa' => true,
+        ]);
+
+        $atacante = User::factory()->create();
+        $victima = User::factory()->create();
+
+        CartaUsuario::create([
+            'id_usuario' => $atacante->id, 'id_liga' => $liga->id, 'id_tipo_carta' => $tipoExpulsionRara->id,
+            'jornada_obtenida' => 5, 'obtenida_en' => now(), 'origen' => 'manual', 'estado' => 'jugada',
+            'id_usuario_objetivo' => $victima->id, 'jornada_efecto' => 6, 'jugada_en' => now(),
+        ]);
+
+        $motor = app(MotorFaltas::class);
+
+        $this->assertTrue($motor->estaExpulsadoDe($liga->id, $victima->id, 6, 'Faltas'));
+        $this->assertFalse($motor->estaExpulsadoDe($liga->id, $victima->id, 6, 'Jugadas'));
+    }
 }

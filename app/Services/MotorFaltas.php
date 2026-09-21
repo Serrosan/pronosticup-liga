@@ -9,6 +9,16 @@ class MotorFaltas
     private const CODIGOS_ESCUDO = ['FAL-PCOM-ESCUDO'];
 
     /**
+     * Registro de Expulsión: cada código bloquea 1 o varias categorías de
+     * carta. Añadir una Expulsión nueva (ej. una que bloquee solo Jugadas)
+     * es 1 línea aquí, sin tocar nada más.
+     */
+    private const CATEGORIAS_BLOQUEADAS_POR_EXPULSION = [
+        'FAL-LEG-EXPULSION' => ['Jugadas', 'Faltas'],
+        'FAL-RAR-EXPULSION' => ['Faltas'],
+    ];
+
+    /**
      * ¿El objetivo tiene un Escudo activo protegiéndolo justo en la jornada
      * en la que caería esta Falta? Si lo hay, lo consume (queda resuelto) y
      * lo devuelve — quien llama decide qué hacer con ese dato.
@@ -61,5 +71,31 @@ class MotorFaltas
         }
 
         return null;
+    }
+
+    /**
+     * ¿Este usuario tiene una Expulsión activa que le impide jugar cartas de
+     * esta categoría, justo en esta jornada? Se comprueba con el número de
+     * jornada que está a punto de abrirse (donde caería el efecto).
+     */
+    public function estaExpulsadoDe(int $idLiga, int $idUsuario, int $jornada, string $categoria): bool
+    {
+        $expulsiones = CartaUsuario::where('id_liga', $idLiga)
+            ->where('id_usuario_objetivo', $idUsuario)
+            ->where('jornada_efecto', $jornada)
+            ->whereIn('estado', ['jugada', 'resuelta_cumplida'])
+            ->whereHas('tipoCarta', fn ($q) => $q->whereIn('codigo_efecto', array_keys(self::CATEGORIAS_BLOQUEADAS_POR_EXPULSION)))
+            ->with('tipoCarta')
+            ->get();
+
+        foreach ($expulsiones as $expulsion) {
+            $categoriasBloqueadas = self::CATEGORIAS_BLOQUEADAS_POR_EXPULSION[$expulsion->tipoCarta->codigo_efecto];
+
+            if (in_array($categoria, $categoriasBloqueadas, true)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

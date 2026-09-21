@@ -27,6 +27,24 @@ trait CrudAdminBasico
         return new $resourceClase($modelo);
     }
 
+    /**
+     * Variantes "planas" para controllers que devuelven JSON en crudo
+     * (['data' => $modelo]) en vez de envolver la respuesta en una clase Resource.
+     */
+    protected function crearRecursoPlano(Request $request, string $modeloClase): JsonResponse
+    {
+        $recurso = $modeloClase::create($request->validated());
+
+        return response()->json(['data' => $recurso]);
+    }
+
+    protected function actualizarRecursoPlano(Request $request, Model $modelo): JsonResponse
+    {
+        $modelo->update($request->validated());
+
+        return response()->json(['data' => $modelo]);
+    }
+
     protected function eliminarRecurso(Model $modelo, string $nombreSingular): JsonResponse
     {
         $modelo->delete();

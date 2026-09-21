@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Http\Controllers\Api\V1\Admin\Concerns\CrudAdminBasico;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\JugadorRequest;
 use App\Http\Resources\JugadorResource;
@@ -10,6 +11,8 @@ use App\Models\Jugador;
 
 class JugadorAdminController extends Controller
 {
+    use CrudAdminBasico;
+
     public function index()
     {
         return JugadorResource::collection(Jugador::orderBy('nombre')->get());
@@ -17,23 +20,21 @@ class JugadorAdminController extends Controller
 
     public function show(Jugador $jugador)
     {
-        return response()->json(['data' => $jugador]);
+        return $this->mostrarRecurso($jugador);
     }
 
     public function store(JugadorRequest $request)
     {
-        $jugador = Jugador::create($request->validated());
-
-        return new JugadorResource($jugador);
+        return $this->crearRecurso($request, Jugador::class, JugadorResource::class);
     }
 
     public function update(JugadorRequest $request, Jugador $jugador)
     {
-        $jugador->update($request->validated());
-
-        return new JugadorResource($jugador);
+        return $this->actualizarRecurso($request, $jugador, JugadorResource::class);
     }
 
+    // destroy() se queda fuera del trait a propósito: necesita comprobar
+    // eventos de partido asociados antes de borrar, con flujo de confirmación.
     public function destroy(Jugador $jugador)
     {
         $totalEventos = EventoPartido::where('id_jugador', $jugador->id)

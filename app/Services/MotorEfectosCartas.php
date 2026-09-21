@@ -6,10 +6,13 @@ use App\Models\CartaUsuario;
 use App\Models\ConfiguracionPuntos;
 use App\Models\EventoPartido;
 use App\Models\EventoPuntos;
+use App\Models\Pronostico;
 use App\Services\EfectosCartas\BonoMultiPartidoJornada;
 use App\Services\EfectosCartas\BonusFijoPartido;
+use App\Services\EfectosCartas\BonusSiCoincideMayoria;
 use App\Services\EfectosCartas\BonusSiDosExactos;
 use App\Services\EfectosCartas\BonusSiExacto;
+use App\Services\EfectosCartas\BonusSiNoCoincideMayoria;
 use App\Services\EfectosCartas\BonusSiTarjetaRoja;
 use App\Services\EfectosCartas\Doblete;
 use App\Services\EfectosCartas\PlenoGarantizado;
@@ -38,10 +41,50 @@ class MotorEfectosCartas
         ];
     }
 
+    // ------------------------------------------------------------------
+    // FORMA 2 — compara tu signo contra la mayoría del resto de tu liga en
+    // ese partido. Se resuelve en el mismo punto que la Forma 1 (1 partido
+    // elegido de antemano), por eso comparten método de entrada.
+    //
+    // TODO: registrar aquí Palomitas/Visionario en cuanto existan en el
+    // catálogo real, 1 línea por rareza — sin tocar nada más.
+    // ------------------------------------------------------------------
+
+    private function comparadoresMayoria(): array
+    {
+        return [
+            // 'JUG-COM-PALOMITAS' => new BonusSiCoincideMayoria(1),
+        ];
+    }
+
+    /**
+     * Desempate al azar si 2+ resultados empatan como más votados (decidido
+     * explícitamente así, no hay criterio "correcto" objetivo para desempatar).
+     * Nunca cuenta el propio pronóstico del usuario, solo el resto de la liga.
+     * Devuelve null si nadie más de la liga pronosticó ese partido todavía.
+     */
+    private function calcularMayoriaSigno(int $idLiga, int $idPartido, int $idUsuarioExcluir): ?string
+    {
+        $conteos = Pronostico::where('id_liga', $idLiga)
+            ->where('id_partido', $idPartido)
+            ->where('id_usuario', '!=', $idUsuarioExcluir)
+            ->selectRaw('resultado_1x2, COUNT(*) as total')
+            ->groupBy('resultado_1x2')
+            ->pluck('total', 'resultado_1x2');
+
+        if ($conteos->isEmpty()) {
+            return null;
+        }
+
+        $maximo = $conteos->max();
+
+        return $conteos->filter(fn ($total) => $total === $maximo)->keys()->random();
+    }
+
     /**
      * @return array{puntos: int, nota: ?string}
      */
-    public function ajustarPuntosPartido(int $idLiga, int $idUsuario, int $idPartido, int $puntosBase, string $tipoEventoReal, ConfiguracionPuntos $config): array
+    public function ajustarPuntosPartido(int $idLiga, int $idUsuario, int $idPartido, int $puntosBase, string $tipoEventoReal, string $miSigno, ConfiguracionPuntos $config): array
     {
         $carta = CartaUsuario::where('id_liga', $idLiga)
             ->where('id_usuario', $idUsuario)
@@ -54,21 +97,33 @@ class MotorEfectosCartas
             return ['puntos' => $puntosBase, 'nota' => null];
         }
 
-        $ajustadores = $this->ajustadoresPartido();
         $codigoEfecto = $carta->tipoCarta->codigo_efecto;
+        $ajustadores = $this->ajustadoresPartido();
 
-        if (! isset($ajustadores[$codigoEfecto])) {
-            return ['puntos' => $puntosBase, 'nota' => null];
+        if (isset($ajustadores[$codigoEfecto])) {
+            $resultado = $ajustadores[$codigoEfecto]->calcular($puntosBase, $tipoEventoReal, $config);
+
+            $carta->update(['estado' => 'resuelta_cumplida', 'puntos_generados' => $resultado['puntos'] - $puntosBase]);
+
+            return $resultado;
         }
 
-        $resultado = $ajustadores[$codigoEfecto]->calcular($puntosBase, $tipoEventoReal, $config);
+        $comparadores = $this->comparadoresMayoria();
 
-        $carta->update([
-            'estado' => 'resuelta_cumplida',
-            'puntos_generados' => $resultado['puntos'] - $puntosBase,
-        ]);
+        if (isset($comparadores[$codigoEfecto])) {
+            $mayoria = $this->calcularMayoriaSigno($idLiga, $idPartido, $idUsuario);
+            $resultado = $comparadores[$codigoEfecto]->evaluar($miSigno, $mayoria);
+            $puntosFinales = $puntosBase + $resultado['puntos'];
 
-        return $resultado;
+            $carta->update([
+                'estado' => $resultado['puntos'] > 0 ? 'resuelta_cumplida' : 'resuelta_no_cumplida',
+                'puntos_generados' => $resultado['puntos'],
+            ]);
+
+            return ['puntos' => $puntosFinales, 'nota' => null];
+        }
+
+        return ['puntos' => $puntosBase, 'nota' => null];
     }
 
     // ------------------------------------------------------------------

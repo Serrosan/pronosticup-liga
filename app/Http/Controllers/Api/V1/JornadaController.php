@@ -240,7 +240,7 @@ class JornadaController extends Controller
                 $puntos = 0;
             }
 
-            $ajuste = $motor->ajustarPuntosPartido($liga->id, $pronostico->id_usuario, $partido->id, $puntos, $tipo, $config);
+            $ajuste = $motor->ajustarPuntosPartido($liga->id, $pronostico->id_usuario, $partido->id, $puntos, $tipo, $pronostico->resultado_1x2, $config);
             $puntos = $ajuste['puntos'];
 
             EventoPuntos::create([

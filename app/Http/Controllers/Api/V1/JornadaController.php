@@ -323,6 +323,14 @@ class JornadaController extends Controller
             $puntosPorUsuario[$idUsuario] = ($puntosPorUsuario[$idUsuario] ?? 0) + $puntosExtra;
         }
 
+        // Forma 6 (2 partidos elegidos de antemano) — mismo momento, registro
+        // vacío hasta que exista una carta real de esta forma.
+        $puntosDoblePartido = $motor->resolverBonoDoblePartidoElegido($liga->id, $jornada);
+
+        foreach ($puntosDoblePartido as $idUsuario => $puntosExtra) {
+            $puntosPorUsuario[$idUsuario] = ($puntosPorUsuario[$idUsuario] ?? 0) + $puntosExtra;
+        }
+
         return [$puntosPorUsuario, $pronosticos->count()];
     }
 

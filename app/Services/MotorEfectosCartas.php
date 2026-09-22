@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\CartaPartido;
 use App\Models\CartaUsuario;
 use App\Models\ConfiguracionPuntos;
 use App\Models\EventoPartido;
@@ -304,5 +305,96 @@ class MotorEfectosCartas
         }
 
         return $creados;
+    }
+
+    // ------------------------------------------------------------------
+    // FORMA 6 — bono si aciertas el 1X2 de 2 partidos ELEGIDOS de antemano
+    // (a diferencia de la Forma 3, aquí sí se eligen). Se resuelve al cerrar
+    // jornada, igual que la Forma 3, pero mirando solo los 2 partidos
+    // concretos guardados en la tabla pivote carta_partidos.
+    //
+    // TODO: registrar aquí Doble Filo en cuanto exista en el catálogo real,
+    // 1 línea con su bonus — sin tocar nada más. La interfaz frontend para
+    // elegir 2 partidos aún no está construida, a propósito: mejor diseñarla
+    // viendo la carta real que adivinarla ahora.
+    // ------------------------------------------------------------------
+
+    private function bonosDoblePartidoElegido(): array
+    {
+        return [
+            // 'JUG-PCOM-DOBLEFILO' => 3,
+        ];
+    }
+
+    /**
+     * Usado por MisCartasController para saber si una carta necesita el
+     * flujo de "elegir 2 partidos" en vez del de 1 partido o ninguno.
+     */
+    public function requiereDosPartidos(string $codigoEfecto): bool
+    {
+        return array_key_exists($codigoEfecto, $this->bonosDoblePartidoElegido());
+    }
+
+    /**
+     * @return array<int, int> puntos extra por id_usuario
+     */
+    public function resolverBonoDoblePartidoElegido(int $idLiga, int $jornada): array
+    {
+        EventoPuntos::where('id_liga', $idLiga)
+            ->where('jornada', $jornada)
+            ->where('tipo_evento', 'CartaDoblePartido')
+            ->delete();
+
+        $registro = $this->bonosDoblePartidoElegido();
+
+        if (empty($registro)) {
+            return [];
+        }
+
+        $cartasJugadas = CartaUsuario::where('id_liga', $idLiga)
+            ->where('jornada_efecto', $jornada)
+            ->where('estado', 'jugada')
+            ->with(['tipoCarta', 'cartaPartidos'])
+            ->get()
+            ->filter(fn ($c) => isset($registro[$c->tipoCarta->codigo_efecto]));
+
+        $puntosPorUsuario = [];
+
+        foreach ($cartasJugadas as $carta) {
+            $partidosElegidos = $carta->cartaPartidos;
+
+            if ($partidosElegidos->count() !== 2) {
+                $carta->update(['estado' => 'resuelta_no_cumplida', 'puntos_generados' => 0]);
+                continue;
+            }
+
+            $ambosAcertados = $partidosElegidos->every(function ($cp) use ($idLiga, $carta) {
+                return EventoPuntos::where('id_liga', $idLiga)
+                    ->where('id_usuario', $carta->id_usuario)
+                    ->where('id_partido', $cp->id_partido)
+                    ->whereIn('tipo_evento', ['Acierto1x2', 'AciertoDiferencia', 'AciertoExacto'])
+                    ->exists();
+            });
+
+            $bonus = $registro[$carta->tipoCarta->codigo_efecto];
+
+            if ($ambosAcertados) {
+                EventoPuntos::create([
+                    'id_usuario' => $carta->id_usuario,
+                    'id_liga' => $idLiga,
+                    'id_partido' => null,
+                    'jornada' => $jornada,
+                    'tipo_evento' => 'CartaDoblePartido',
+                    'puntos' => $bonus,
+                ]);
+
+                $carta->update(['estado' => 'resuelta_cumplida', 'puntos_generados' => $bonus]);
+                $puntosPorUsuario[$carta->id_usuario] = ($puntosPorUsuario[$carta->id_usuario] ?? 0) + $bonus;
+            } else {
+                $carta->update(['estado' => 'resuelta_no_cumplida', 'puntos_generados' => 0]);
+            }
+        }
+
+        return $puntosPorUsuario;
     }
 }

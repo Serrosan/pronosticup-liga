@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\CartaPartido;
 
 class CartaUsuario extends Model
 {
@@ -42,5 +43,10 @@ class CartaUsuario extends Model
     public function partido()
     {
         return $this->belongsTo(CalendarioPartido::class, 'id_partido');
+    }
+
+    public function cartaPartidos()
+    {
+        return $this->hasMany(CartaPartido::class, 'id_carta_usuario');
     }
 }

@@ -5,11 +5,21 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\CalendarioPartido;
 use App\Models\CartaUsuario;
+use App\Models\Liga;
+use App\Models\User;
+use App\Notifications\FaltaJugadaContraTi;
+use App\Services\MotorEfectosCartas;
 use App\Services\MotorFaltas;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class MisCartasController extends Controller
 {
+    public function __construct(
+        private MotorEfectosCartas $motor,
+        private MotorFaltas $motorFaltas,
+    ) {}
+
     public function index(Request $request)
     {
         $liga = $request->user()->ligaActiva;
@@ -19,13 +29,11 @@ class MisCartasController extends Controller
         }
 
         if ($liga->tipo !== 'ConExtras') {
-            return response()->json(['data' => ['activo' => false, 'cartas' => [], 'jugadas' => [], 'sin_abrir' => 0, 'tope_mano_cartas' => null]]);
+            return response()->json(['data' => ['activo' => false, 'cartas' => [], 'jugadas' => [], 'faltas_recibidas' => [], 'sin_abrir' => 0, 'tope_mano_cartas' => null]]);
         }
 
         // Solo mostramos en la mano las cartas ya "abiertas" — las que aún no se han
         // revelado no cuentan como visibles todavía, aunque ya sean tuyas de verdad.
-        $motor = app(\App\Services\MotorEfectosCartas::class);
-
         $cartasEnMano = CartaUsuario::where('id_liga', $liga->id)
             ->where('id_usuario', $request->user()->id)
             ->where('estado', 'en_mano')
@@ -33,9 +41,9 @@ class MisCartasController extends Controller
             ->with('tipoCarta.categoria')
             ->orderByDesc('revelada_en')
             ->get()
-            ->map(function ($c) use ($motor) {
+            ->map(function ($c) {
                 $datos = $c->toArray();
-                $datos['requiere_partido'] = $motor->requiereEleccionDePartido($c->tipoCarta->codigo_efecto);
+                $datos['requiere_partido'] = $this->motor->requiereEleccionDePartido($c->tipoCarta->codigo_efecto);
                 return $datos;
             });
 
@@ -134,10 +142,7 @@ class MisCartasController extends Controller
             return response()->json(['message' => 'No tienes ninguna liga activa.'], 409);
         }
 
-        $proximaJornadaNumero = CalendarioPartido::where('id_temporada', $liga->id_temporada)
-            ->whereIn('estado', ['Programado', 'En juego'])
-            ->orderBy('horario_estimado')
-            ->value('jornada');
+        $proximaJornadaNumero = $this->proximaJornadaNumero($liga);
 
         if (! $proximaJornadaNumero) {
             return response()->json(['data' => ['jornada' => null, 'partidos' => []]]);
@@ -168,12 +173,8 @@ class MisCartasController extends Controller
      */
     public function jugarFalta(Request $request, CartaUsuario $cartaUsuario)
     {
-        if ($cartaUsuario->id_usuario !== $request->user()->id) {
-            return response()->json(['message' => 'Esta carta no es tuya.'], 403);
-        }
-
-        if ($cartaUsuario->estado !== 'en_mano') {
-            return response()->json(['message' => 'Esta carta ya no está en tu mano.'], 422);
+        if ($error = $this->verificarPropiaEnMano($cartaUsuario, $request)) {
+            return $error;
         }
 
         $cartaUsuario->load('tipoCarta.categoria');
@@ -194,23 +195,17 @@ class MisCartasController extends Controller
             return response()->json(['message' => 'Solo puedes jugar 1 Falta por jornada.'], 422);
         }
 
-        $proximaJornada = CalendarioPartido::where('id_temporada', $liga->id_temporada)
-            ->whereIn('estado', ['Programado', 'En juego'])
-            ->orderBy('horario_estimado')
-            ->value('jornada');
+        $proximaJornada = $this->proximaJornadaNumero($liga);
 
         if (! $proximaJornada) {
             return response()->json(['message' => 'No hay ninguna jornada disponible ahora mismo.'], 422);
         }
 
-        $jornadaEfecto = $proximaJornada + 1;
-
-        $motorFaltas = app(MotorFaltas::class);
-
-        if ($motorFaltas->estaExpulsadoDe($liga->id, $request->user()->id, $proximaJornada, 'Faltas')) {
-            return response()->json(['message' => 'Tienes una Expulsión activa esta jornada — no puedes jugar cartas de tipo Falta.'], 422);
+        if ($error = $this->comprobarExpulsion($liga, $request->user(), $proximaJornada, 'Faltas')) {
+            return $error;
         }
 
+        $jornadaEfecto = $proximaJornada + 1;
         $esEscudo = $cartaUsuario->tipoCarta->codigo_efecto === 'FAL-PCOM-ESCUDO';
 
         if ($esEscudo) {
@@ -238,12 +233,12 @@ class MisCartasController extends Controller
 
         $totalMiembros = $liga->usuarios()->count();
 
-        $problema = $motorFaltas->comprobarAntiAbuso($liga->id, $request->user()->id, $validated['id_usuario_objetivo'], $jornadaEfecto, $totalMiembros);
+        $problema = $this->motorFaltas->comprobarAntiAbuso($liga->id, $request->user()->id, $validated['id_usuario_objetivo'], $jornadaEfecto, $totalMiembros);
         if ($problema) {
             return response()->json(['message' => $problema], 422);
         }
 
-        $escudoConsumido = $motorFaltas->consumirEscudoSiActivo($liga->id, $validated['id_usuario_objetivo'], $jornadaEfecto);
+        $escudoConsumido = $this->motorFaltas->consumirEscudoSiActivo($liga->id, $validated['id_usuario_objetivo'], $jornadaEfecto);
         if ($escudoConsumido) {
             return response()->json(['message' => 'Ese jugador tenía un Escudo activo esta semana — tu Falta no ha podido jugarse.'], 422);
         }
@@ -256,21 +251,17 @@ class MisCartasController extends Controller
             'jugada_en' => now(),
         ]);
 
-        $victima = \App\Models\User::find($validated['id_usuario_objetivo']);
+        $victima = User::find($validated['id_usuario_objetivo']);
         $nombreAtacante = $request->user()->nombre_visible ?? $request->user()->name;
-        $victima?->notify(new \App\Notifications\FaltaJugadaContraTi($nombreAtacante, $cartaUsuario->tipoCarta->nombre, $jornadaEfecto));
+        $victima?->notify(new FaltaJugadaContraTi($nombreAtacante, $cartaUsuario->tipoCarta->nombre, $jornadaEfecto));
 
         return response()->json(['message' => "Falta jugada. Afectará a la jornada {$jornadaEfecto}."]);
     }
 
     public function descartar(Request $request, CartaUsuario $cartaUsuario)
     {
-        if ($cartaUsuario->id_usuario !== $request->user()->id) {
-            return response()->json(['message' => 'Esta carta no es tuya.'], 403);
-        }
-
-        if ($cartaUsuario->estado !== 'en_mano') {
-            return response()->json(['message' => 'Esta carta ya no está en tu mano.'], 422);
+        if ($error = $this->verificarPropiaEnMano($cartaUsuario, $request)) {
+            return $error;
         }
 
         $cartaUsuario->update(['estado' => 'descartada']);
@@ -280,12 +271,8 @@ class MisCartasController extends Controller
 
     public function jugar(Request $request, CartaUsuario $cartaUsuario)
     {
-        if ($cartaUsuario->id_usuario !== $request->user()->id) {
-            return response()->json(['message' => 'Esta carta no es tuya.'], 403);
-        }
-
-        if ($cartaUsuario->estado !== 'en_mano') {
-            return response()->json(['message' => 'Esta carta ya no está en tu mano.'], 422);
+        if ($error = $this->verificarPropiaEnMano($cartaUsuario, $request)) {
+            return $error;
         }
 
         $liga = $request->user()->ligaActiva;
@@ -303,23 +290,19 @@ class MisCartasController extends Controller
         }
 
         $cartaUsuario->load('tipoCarta');
-        $motor = app(\App\Services\MotorEfectosCartas::class);
-        $requierePartido = $motor->requiereEleccionDePartido($cartaUsuario->tipoCarta->codigo_efecto);
+        $requierePartido = $this->motor->requiereEleccionDePartido($cartaUsuario->tipoCarta->codigo_efecto);
 
         if (! $requierePartido) {
             // Cartas de Forma 3 (ej. Crack): se juegan "en genérico" para la
             // próxima jornada jugable, sin elegir ningún partido concreto.
-            $proximaJornada = CalendarioPartido::where('id_temporada', $liga->id_temporada)
-                ->whereIn('estado', ['Programado', 'En juego'])
-                ->orderBy('horario_estimado')
-                ->value('jornada');
+            $proximaJornada = $this->proximaJornadaNumero($liga);
 
             if (! $proximaJornada) {
                 return response()->json(['message' => 'No hay ninguna jornada disponible para jugar esta carta ahora mismo.'], 422);
             }
 
-            if (app(\App\Services\MotorFaltas::class)->estaExpulsadoDe($liga->id, $request->user()->id, $proximaJornada, 'Jugadas')) {
-                return response()->json(['message' => 'Tienes una Expulsión activa esta jornada — no puedes jugar cartas de tipo Jugada.'], 422);
+            if ($error = $this->comprobarExpulsion($liga, $request->user(), $proximaJornada, 'Jugadas')) {
+                return $error;
             }
 
             $cartaUsuario->update([
@@ -346,8 +329,8 @@ class MisCartasController extends Controller
             return response()->json(['message' => 'Esa jornada ya está bloqueada.'], 422);
         }
 
-        if (app(\App\Services\MotorFaltas::class)->estaExpulsadoDe($liga->id, $request->user()->id, $partido->jornada, 'Jugadas')) {
-            return response()->json(['message' => 'Tienes una Expulsión activa esta jornada — no puedes jugar cartas de tipo Jugada.'], 422);
+        if ($error = $this->comprobarExpulsion($liga, $request->user(), $partido->jornada, 'Jugadas')) {
+            return $error;
         }
 
         $cartaUsuario->update([
@@ -358,5 +341,47 @@ class MisCartasController extends Controller
         ]);
 
         return response()->json(['message' => 'Carta jugada sobre ese partido.']);
+    }
+
+    /**
+     * Las 2 comprobaciones que se repetían en jugar()/jugarFalta()/descartar():
+     * que la carta sea de verdad tuya, y que siga en tu mano sin usar.
+     */
+    private function verificarPropiaEnMano(CartaUsuario $cartaUsuario, Request $request): ?JsonResponse
+    {
+        if ($cartaUsuario->id_usuario !== $request->user()->id) {
+            return response()->json(['message' => 'Esta carta no es tuya.'], 403);
+        }
+
+        if ($cartaUsuario->estado !== 'en_mano') {
+            return response()->json(['message' => 'Esta carta ya no está en tu mano.'], 422);
+        }
+
+        return null;
+    }
+
+    /**
+     * La misma consulta de "próxima jornada con partidos por jugar" que se
+     * repetía en 3 sitios distintos.
+     */
+    private function proximaJornadaNumero(Liga $liga): ?int
+    {
+        return CalendarioPartido::where('id_temporada', $liga->id_temporada)
+            ->whereIn('estado', ['Programado', 'En juego'])
+            ->orderBy('horario_estimado')
+            ->value('jornada');
+    }
+
+    /**
+     * La comprobación de Expulsión que se repetía en jugar() (×2 ramas) y
+     * jugarFalta(), solo cambiando la categoría a comprobar.
+     */
+    private function comprobarExpulsion(Liga $liga, User $usuario, int $jornada, string $categoria): ?JsonResponse
+    {
+        if ($this->motorFaltas->estaExpulsadoDe($liga->id, $usuario->id, $jornada, $categoria)) {
+            return response()->json(['message' => "Tienes una Expulsión activa esta jornada — no puedes jugar cartas de tipo {$categoria}."], 422);
+        }
+
+        return null;
     }
 }

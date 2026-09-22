@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Http\Controllers\Api\V1\Admin\Concerns\CrudAdminBasico;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CategoriaCartaRequest;
 use App\Models\CategoriaCarta;
@@ -9,6 +10,8 @@ use Illuminate\Http\Request;
 
 class CategoriaCartaAdminController extends Controller
 {
+    use CrudAdminBasico;
+
     public function index()
     {
         return response()->json(['data' => CategoriaCarta::withCount('tiposCarta')->orderBy('nombre')->get()]);
@@ -16,21 +19,21 @@ class CategoriaCartaAdminController extends Controller
 
     public function show(CategoriaCarta $categoriaCarta)
     {
-        return response()->json(['data' => $categoriaCarta]);
+        return $this->mostrarRecurso($categoriaCarta);
     }
 
     public function store(CategoriaCartaRequest $request)
     {
-        $categoria = CategoriaCarta::create($request->validated());
-        return response()->json(['data' => $categoria]);
+        return $this->crearRecursoPlano($request, CategoriaCarta::class);
     }
 
     public function update(CategoriaCartaRequest $request, CategoriaCarta $categoriaCarta)
     {
-        $categoriaCarta->update($request->validated());
-        return response()->json(['data' => $categoriaCarta]);
+        return $this->actualizarRecursoPlano($request, $categoriaCarta);
     }
 
+    // destroy() se queda fuera del trait: necesita comprobar si tiene tipos
+    // de carta asociados antes de dejar borrar, con flujo de confirmación.
     public function destroy(Request $request, CategoriaCarta $categoriaCarta)
     {
         $tieneTipos = $categoriaCarta->tiposCarta()->exists();

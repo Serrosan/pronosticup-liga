@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Http\Controllers\Api\V1\Admin\Concerns\CrudAdminBasico;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\TipoCartaRequest;
 use App\Models\TipoCarta;
@@ -9,6 +10,8 @@ use Illuminate\Http\Request;
 
 class TipoCartaAdminController extends Controller
 {
+    use CrudAdminBasico;
+
     public function index()
     {
         $tipos = TipoCarta::with('categoria')->orderBy('id_categoria')->orderBy('rareza')->get()->map(function ($t) {
@@ -23,15 +26,16 @@ class TipoCartaAdminController extends Controller
 
     public function show(TipoCarta $tipoCartum)
     {
-        return response()->json(['data' => $tipoCartum]);
+        return $this->mostrarRecurso($tipoCartum);
     }
 
     public function store(TipoCartaRequest $request)
     {
-        $tipo = TipoCarta::create($request->validated());
-        return response()->json(['data' => $tipo]);
+        return $this->crearRecursoPlano($request, TipoCarta::class);
     }
 
+    // update() se queda fuera del trait: tiene un efecto secundario real
+    // (retirar cartas sin jugar en manos de usuarios al desactivar el tipo).
     public function update(TipoCartaRequest $request, TipoCarta $tipoCartum)
     {
         $tipo = $tipoCartum;
@@ -39,7 +43,6 @@ class TipoCartaAdminController extends Controller
 
         $tipo->update($request->validated());
 
-        // Al desactivar una carta, cualquier copia sin jugar en manos de usuarios se recoge automáticamente.
         if ($seDesactivaAhora) {
             $tipo->cartasUsuario()->where('estado', 'en_mano')->update(['estado' => 'retirada_por_catalogo']);
         }
@@ -47,6 +50,8 @@ class TipoCartaAdminController extends Controller
         return response()->json(['data' => $tipo]);
     }
 
+    // destroy() se queda fuera del trait: comprueba si ya se repartió alguna
+    // vez antes de dejar borrar, con flujo de confirmación.
     public function destroy(Request $request, TipoCarta $tipoCartum)
     {
         $tieneHistorial = $tipoCartum->cartasUsuario()->exists();

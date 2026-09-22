@@ -42,10 +42,7 @@ class CartaRepartoInicialAdminController extends Controller
         $rarezasPorCategoria = RarezaProbabilidadLiga::where('id_liga', $liga->id)->get()->groupBy('id_categoria');
         $miembros = $liga->usuarios()->get(['users.id']);
 
-        $jornadaActual = CalendarioPartido::where('id_temporada', $liga->id_temporada)
-            ->whereIn('estado', ['Programado', 'Aplazado', 'En juego'])
-            ->orderBy('jornada')
-            ->value('jornada') ?? 1;
+        $jornadaActual = CalendarioPartido::jornadaActualParaTemporada($liga->id_temporada);
 
         $creadas = 0;
 

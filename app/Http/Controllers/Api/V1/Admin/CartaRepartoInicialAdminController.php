@@ -8,6 +8,7 @@ use App\Models\CartaUsuario;
 use App\Models\CategoriaCarta;
 use App\Models\Liga;
 use App\Models\RarezaProbabilidadLiga;
+use App\Services\ProbabilidadesPorDefecto;
 use App\Services\SorteoCartasService;
 use Illuminate\Http\Request;
 
@@ -53,7 +54,7 @@ class CartaRepartoInicialAdminController extends Controller
                 $filas = $rarezasPorCategoria->get($categoriaAlAzar->id) ?? collect();
                 $porcentajes = $filas->isNotEmpty()
                     ? $filas->pluck('porcentaje', 'rareza')->toArray()
-                    : ['Comun' => 65, 'PocoComun' => 25, 'Rara' => 8, 'Legendaria' => 2];
+                    : ProbabilidadesPorDefecto::RAREZA;
 
                 $tipoElegido = $this->sorteo->elegirCartaAlAzar($categoriaAlAzar->id, $porcentajes);
 

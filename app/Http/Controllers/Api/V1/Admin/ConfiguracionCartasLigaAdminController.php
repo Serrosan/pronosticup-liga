@@ -8,16 +8,11 @@ use App\Models\CategoriaCarta;
 use App\Models\ConfiguracionCartasLiga;
 use App\Models\Liga;
 use App\Models\RarezaProbabilidadLiga;
+use App\Services\ProbabilidadesPorDefecto;
 use Illuminate\Http\Request;
 
 class ConfiguracionCartasLigaAdminController extends Controller
 {
-    private const DEFECTOS_TOP3 = [
-        1 => ['Comun' => 35, 'PocoComun' => 35, 'Rara' => 22, 'Legendaria' => 8],
-        2 => ['Comun' => 45, 'PocoComun' => 33, 'Rara' => 17, 'Legendaria' => 5],
-        3 => ['Comun' => 55, 'PocoComun' => 30, 'Rara' => 12, 'Legendaria' => 3],
-    ];
-
     public function mostrar(Liga $liga)
     {
         $categorias = CategoriaCarta::where('activa', true)->orderBy('nombre')->get();
@@ -33,10 +28,10 @@ class ConfiguracionCartasLigaAdminController extends Controller
                 'nombre' => $categoria->nombre,
                 'cantidad_reparto_semanal' => $config->cantidad_reparto_semanal ?? 1,
                 'rarezas' => [
-                    'Comun' => $rarezasCategoria->get('Comun')->porcentaje ?? 65,
-                    'PocoComun' => $rarezasCategoria->get('PocoComun')->porcentaje ?? 25,
-                    'Rara' => $rarezasCategoria->get('Rara')->porcentaje ?? 8,
-                    'Legendaria' => $rarezasCategoria->get('Legendaria')->porcentaje ?? 2,
+                    'Comun' => $rarezasCategoria->get('Comun')->porcentaje ?? ProbabilidadesPorDefecto::RAREZA['Comun'],
+                    'PocoComun' => $rarezasCategoria->get('PocoComun')->porcentaje ?? ProbabilidadesPorDefecto::RAREZA['PocoComun'],
+                    'Rara' => $rarezasCategoria->get('Rara')->porcentaje ?? ProbabilidadesPorDefecto::RAREZA['Rara'],
+                    'Legendaria' => $rarezasCategoria->get('Legendaria')->porcentaje ?? ProbabilidadesPorDefecto::RAREZA['Legendaria'],
                 ],
             ];
         });
@@ -45,7 +40,7 @@ class ConfiguracionCartasLigaAdminController extends Controller
 
         $bonusTop3 = collect([1, 2, 3])->map(function ($posicion) use ($bonusTop3Guardado) {
             $filasPosicion = ($bonusTop3Guardado->get($posicion) ?? collect())->keyBy('rareza');
-            $defecto = self::DEFECTOS_TOP3[$posicion];
+            $defecto = ProbabilidadesPorDefecto::TOP3[$posicion];
 
             return [
                 'posicion' => $posicion,

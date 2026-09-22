@@ -10,18 +10,13 @@ use App\Models\CierreJornada;
 use App\Models\ConfiguracionCartasLiga;
 use App\Models\EventoPuntos;
 use App\Models\RarezaProbabilidadLiga;
+use App\Services\ProbabilidadesPorDefecto;
 use App\Services\SorteoCartasService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 
 class CartaRepartoController extends Controller
 {
-    private const DEFECTOS_TOP3 = [
-        1 => ['Comun' => 35, 'PocoComun' => 35, 'Rara' => 22, 'Legendaria' => 8],
-        2 => ['Comun' => 45, 'PocoComun' => 33, 'Rara' => 17, 'Legendaria' => 5],
-        3 => ['Comun' => 55, 'PocoComun' => 30, 'Rara' => 12, 'Legendaria' => 3],
-    ];
-
     public function __construct(private SorteoCartasService $sorteo) {}
 
     public function repartirJornada(Request $request, int $jornada)
@@ -121,7 +116,7 @@ class CartaRepartoController extends Controller
             $filasPosicion = $bonusPorcentajesGuardados->get($posicion) ?? collect();
             $porcentajes = $filasPosicion->isNotEmpty()
                 ? $filasPosicion->pluck('porcentaje', 'rareza')->toArray()
-                : self::DEFECTOS_TOP3[$posicion];
+                : ProbabilidadesPorDefecto::TOP3[$posicion];
 
             $categoriaAlAzar = $categorias->random();
             $tipoElegido = $this->sorteo->elegirCartaAlAzar($categoriaAlAzar->id, $porcentajes);
@@ -159,7 +154,7 @@ class CartaRepartoController extends Controller
         $filas = $rarezasPorCategoria->get($idCategoria) ?? collect();
 
         if ($filas->isEmpty()) {
-            return ['Comun' => 65, 'PocoComun' => 25, 'Rara' => 8, 'Legendaria' => 2];
+            return ProbabilidadesPorDefecto::RAREZA;
         }
 
         return $filas->pluck('porcentaje', 'rareza')->toArray();

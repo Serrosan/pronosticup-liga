@@ -256,6 +256,10 @@ class MisCartasController extends Controller
             'jugada_en' => now(),
         ]);
 
+        $victima = \App\Models\User::find($validated['id_usuario_objetivo']);
+        $nombreAtacante = $request->user()->nombre_visible ?? $request->user()->name;
+        $victima?->notify(new \App\Notifications\FaltaJugadaContraTi($nombreAtacante, $cartaUsuario->tipoCarta->nombre, $jornadaEfecto));
+
         return response()->json(['message' => "Falta jugada. Afectará a la jornada {$jornadaEfecto}."]);
     }
 

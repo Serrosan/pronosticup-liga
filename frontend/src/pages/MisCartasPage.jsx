@@ -15,6 +15,47 @@ function Escudo({ url, alt }) {
   return <img src={url} alt={alt} className="w-5 h-5 object-contain shrink-0" />
 }
 
+function SelectorPartido({ partidos, jornada, onJugar, onCancelar, jugando }) {
+  const [idPartido, setIdPartido] = useState('')
+  const partidoElegido = partidos.find((p) => String(p.id) === idPartido)
+
+  return (
+    <div className="bg-borde/10 border border-borde/30 rounded-lg p-3 mt-2 w-64">
+      <p className="font-body text-[10px] uppercase tracking-widest text-premio mb-2">Jornada {jornada}</p>
+      <SelectTema
+        value={idPartido}
+        onChange={(e) => setIdPartido(e.target.value)}
+        options={[
+          { value: '', label: 'Elige un partido...' },
+          ...partidos.map((p) => ({ value: String(p.id), label: `${p.equipo_local} vs ${p.equipo_visitante} · ${p.horario_estimado}` })),
+        ]}
+        className="w-full bg-fondo text-xs"
+      />
+      {partidoElegido && (
+        <div className="flex items-center justify-center gap-2 mt-2 py-2 bg-fondo rounded border border-borde/20">
+          <Escudo url={partidoElegido.escudo_local} alt={partidoElegido.equipo_local} />
+          <span className="font-body text-xs text-texto">{partidoElegido.equipo_local}</span>
+          <span className="text-borde text-xs">vs</span>
+          <span className="font-body text-xs text-texto">{partidoElegido.equipo_visitante}</span>
+          <Escudo url={partidoElegido.escudo_visitante} alt={partidoElegido.equipo_visitante} />
+        </div>
+      )}
+      <div className="flex gap-2 mt-2">
+        <button
+          onClick={() => onJugar(idPartido)}
+          disabled={!idPartido || jugando}
+          className="font-body text-xs font-semibold bg-acento text-fondo rounded px-3 py-1.5 hover:brightness-110 disabled:opacity-50 flex-1"
+        >
+          {jugando ? 'Jugando...' : 'Confirmar'}
+        </button>
+        <button onClick={onCancelar} className="font-body text-xs text-borde hover:text-texto px-2">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function SelectorRival({ miembros, onJugar, onCancelar, jugando }) {
   const [idRival, setIdRival] = useState('')
   const [mensaje, setMensaje] = useState('')
@@ -43,49 +84,6 @@ function SelectorRival({ miembros, onJugar, onCancelar, jugando }) {
         <button
           onClick={() => onJugar(idRival, mensaje)}
           disabled={!idRival || jugando}
-          className="font-body text-xs font-semibold bg-acento text-fondo rounded px-3 py-1.5 hover:brightness-110 disabled:opacity-50 flex-1"
-        >
-          {jugando ? 'Jugando...' : 'Confirmar'}
-        </button>
-        <button onClick={onCancelar} className="font-body text-xs text-borde hover:text-texto px-2">
-          Cancelar
-        </button>
-      </div>
-    </div>
-  )
-}
-
-function SelectorPartido({ partidos, jornada, onJugar, onCancelar, jugando }) {
-  const [idPartido, setIdPartido] = useState('')
-  const partidoElegido = partidos.find((p) => String(p.id) === idPartido)
-
-  return (
-    <div className="bg-borde/10 border border-borde/30 rounded-lg p-3 mt-2 w-64">
-      <p className="font-body text-[10px] uppercase tracking-widest text-premio mb-2">Jornada {jornada}</p>
-      <SelectTema
-        value={idPartido}
-        onChange={(e) => setIdPartido(e.target.value)}
-        options={[
-          { value: '', label: 'Elige un partido...' },
-          ...partidos.map((p) => ({ value: String(p.id), label: `${p.equipo_local} vs ${p.equipo_visitante} · ${p.horario_estimado}` })),
-        ]}
-        className="w-full bg-fondo text-xs"
-      />
-
-      {partidoElegido && (
-        <div className="flex items-center justify-center gap-2 mt-2 py-2 bg-fondo rounded border border-borde/20">
-          <Escudo url={partidoElegido.escudo_local} alt={partidoElegido.equipo_local} />
-          <span className="font-body text-xs text-texto">{partidoElegido.equipo_local}</span>
-          <span className="text-borde text-xs">vs</span>
-          <span className="font-body text-xs text-texto">{partidoElegido.equipo_visitante}</span>
-          <Escudo url={partidoElegido.escudo_visitante} alt={partidoElegido.equipo_visitante} />
-        </div>
-      )}
-
-      <div className="flex gap-2 mt-2">
-        <button
-          onClick={() => onJugar(idPartido)}
-          disabled={!idPartido || jugando}
           className="font-body text-xs font-semibold bg-acento text-fondo rounded px-3 py-1.5 hover:brightness-110 disabled:opacity-50 flex-1"
         >
           {jugando ? 'Jugando...' : 'Confirmar'}
@@ -167,10 +165,9 @@ function BotonAbrirSobres({ sinAbrir, onAbrir, abriendo }) {
     <button
       onClick={onAbrir}
       disabled={abriendo}
-      className="relative w-full mb-6 bg-fondo border-2 border-acento/50 rounded-xl overflow-visible flex items-center gap-4 pl-6 pr-5 py-4 hover:border-acento transition disabled:opacity-50"
+      className="relative w-full mb-4 bg-fondo border-2 border-acento/50 rounded-xl overflow-visible flex items-center gap-4 pl-6 pr-5 py-4 hover:border-acento transition disabled:opacity-50"
       style={{ boxShadow: '0 0 24px rgba(200,255,77,0.15)' }}
     >
-      {/* Recortes de ticket perforado, a juego con el resto de la app */}
       <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-fondo border-2 border-acento/50" />
       <div className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-fondo border-2 border-acento/50" />
 
@@ -188,11 +185,28 @@ function BotonAbrirSobres({ sinAbrir, onAbrir, abriendo }) {
   )
 }
 
+function Pestana({ activa, onClick, children, contador, colorContador }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex-1 font-body text-sm font-semibold px-3 py-2.5 border-b-2 transition ${
+        activa ? 'border-acento text-texto' : 'border-transparent text-borde hover:text-texto'
+      }`}
+    >
+      {children}
+      {contador > 0 && (
+        <span className={`ml-1.5 text-xs font-bold ${colorContador ?? 'text-borde'}`}>({contador})</span>
+      )}
+    </button>
+  )
+}
+
 function MisCartasPage() {
   useTitulo('Mis Cartas')
   const { usuario } = useAuth()
   const toast = useToast()
   const queryClient = useQueryClient()
+  const [pestana, setPestana] = useState('mano')
   const [idCartaEligiendoPartido, setIdCartaEligiendoPartido] = useState(null)
   const [idCartaEligiendoRival, setIdCartaEligiendoRival] = useState(null)
   const [cartaAbriendose, setCartaAbriendose] = useState(null)
@@ -278,7 +292,7 @@ function MisCartasPage() {
 
       <BotonAbrirSobres sinAbrir={data.sin_abrir} onAbrir={() => abrirSiguiente.mutate()} abriendo={abrirSiguiente.isPending} />
 
-      <div className="bg-fondo border border-borde/30 rounded-lg overflow-hidden mb-6">
+      <div className="bg-fondo border border-borde/30 rounded-lg overflow-hidden">
         <TicketHeader
           titulo="Mis Cartas"
           accion={
@@ -287,6 +301,7 @@ function MisCartasPage() {
             </span>
           }
         />
+
         {sobreTope && (
           <div className="bg-red-500/10 border-t border-red-500/20 px-4 py-2.5">
             <p className="font-body text-xs text-red-500 font-semibold">
@@ -294,113 +309,129 @@ function MisCartasPage() {
             </p>
           </div>
         )}
-      </div>
 
-      {data.faltas_recibidas.length > 0 && (
-        <div className="mb-8">
-          <p className="font-body text-sm font-semibold text-red-500 mb-3">⚠️ Faltas activas contra ti</p>
-          <div className="flex flex-col gap-2">
-            {data.faltas_recibidas.map((falta) => <FaltaRecibida key={falta.id} falta={falta} />)}
-          </div>
+        <div className="flex border-t border-b border-borde/20">
+          <Pestana activa={pestana === 'mano'} onClick={() => setPestana('mano')} contador={data.cartas.length}>
+            Mano
+          </Pestana>
+          <Pestana activa={pestana === 'jugadas'} onClick={() => setPestana('jugadas')} contador={data.jugadas.length} colorContador="text-premio">
+            Jugadas
+          </Pestana>
+          <Pestana activa={pestana === 'amenazas'} onClick={() => setPestana('amenazas')} contador={data.faltas_recibidas.length} colorContador="text-red-500">
+            Amenazas
+          </Pestana>
         </div>
-      )}
 
-      <p className="font-body text-sm font-semibold text-texto mb-3">Tu mano</p>
+        <div className="p-5">
+          {pestana === 'mano' && (
+            data.cartas.length === 0 ? (
+              <p className="font-body text-sm text-borde text-center py-8">
+                {data.sin_abrir > 0 ? 'Abre tus sobres pendientes para ver tus cartas aquí.' : 'Aún no tienes ninguna carta. Llegarán cuando el admin reparta la próxima jornada.'}
+              </p>
+            ) : (
+              <div className="flex flex-wrap gap-5 justify-center">
+                {data.cartas.map((carta) => {
+                  const esJugada = carta.tipo_carta.categoria.nombre === 'Jugadas'
+                  const esFalta = carta.tipo_carta.categoria.nombre === 'Faltas'
+                  const esEscudo = carta.tipo_carta.codigo_efecto === 'FAL-PCOM-ESCUDO'
 
-      {data.cartas.length === 0 ? (
-        <p className="font-body text-sm text-borde text-center py-8">
-          {data.sin_abrir > 0 ? 'Abre tus sobres pendientes para ver tus cartas aquí.' : 'Aún no tienes ninguna carta. Llegarán cuando el admin reparta la próxima jornada.'}
-        </p>
-      ) : (
-        <div className="flex flex-wrap gap-5 justify-center mb-8">
-          {data.cartas.map((carta) => {
-            const esJugada = carta.tipo_carta.categoria.nombre === 'Jugadas'
-            const esFalta = carta.tipo_carta.categoria.nombre === 'Faltas'
-            const esEscudo = carta.tipo_carta.codigo_efecto === 'FAL-PCOM-ESCUDO'
-
-            return (
-              <div key={carta.id} className="flex flex-col items-center gap-2">
-                <CartaJuego carta={carta.tipo_carta} categoriaNombre={carta.tipo_carta.categoria.nombre} categoriaIcono={carta.tipo_carta.categoria.icono} />
-                <div className="flex gap-3">
-                  {esJugada && carta.requiere_partido && hayJornadaJugable && (
-                    <button
-                      onClick={() => setIdCartaEligiendoPartido(carta.id)}
-                      disabled={sobreTope}
-                      className="font-body text-xs text-acento hover:underline disabled:opacity-40 disabled:no-underline disabled:cursor-not-allowed"
-                      title={sobreTope ? 'Descarta alguna carta primero para poder jugar' : undefined}
-                    >
-                      Jugar
-                    </button>
-                  )}
-                  {esJugada && !carta.requiere_partido && (
-                    <button
-                      onClick={() => jugar.mutate({ idCarta: carta.id, idPartido: null })}
-                      disabled={sobreTope || jugar.isPending}
-                      className="font-body text-xs text-acento hover:underline disabled:opacity-40 disabled:no-underline disabled:cursor-not-allowed"
-                      title={sobreTope ? 'Descarta alguna carta primero para poder jugar' : undefined}
-                    >
-                      Jugar
-                    </button>
-                  )}
-                  {esFalta && esEscudo && (
-                    <button
-                      onClick={() => jugarFalta.mutate({ idCarta: carta.id, idUsuarioObjetivo: null, mensaje: null })}
-                      disabled={sobreTope || jugarFalta.isPending}
-                      className="font-body text-xs text-acento hover:underline disabled:opacity-40 disabled:no-underline disabled:cursor-not-allowed"
-                      title={sobreTope ? 'Descarta alguna carta primero para poder jugar' : undefined}
-                    >
-                      {jugarFalta.isPending ? 'Activando...' : 'Activar'}
-                    </button>
-                  )}
-                  {esFalta && !esEscudo && miembros && (
-                    <button
-                      onClick={() => setIdCartaEligiendoRival(carta.id)}
-                      disabled={sobreTope}
-                      className="font-body text-xs text-acento hover:underline disabled:opacity-40 disabled:no-underline disabled:cursor-not-allowed"
-                      title={sobreTope ? 'Descarta alguna carta primero para poder jugar' : undefined}
-                    >
-                      Jugar
-                    </button>
-                  )}
-                  <button
-                    onClick={() => descartar.mutate(carta.id)}
-                    disabled={descartar.isPending}
-                    className="font-body text-xs text-borde hover:text-red-500 underline"
-                  >
-                    Descartar
-                  </button>
-                </div>
-                {idCartaEligiendoPartido === carta.id && (
-                  <SelectorPartido
-                    partidos={partidosDisponibles}
-                    jornada={jornadaJugable.jornada}
-                    onJugar={(idPartido) => jugar.mutate({ idCarta: carta.id, idPartido })}
-                    onCancelar={() => setIdCartaEligiendoPartido(null)}
-                    jugando={jugar.isPending}
-                  />
-                )}
-                {idCartaEligiendoRival === carta.id && (
-                  <SelectorRival
-                    miembros={miembros.filter((m) => m.id !== usuario?.id)}
-                    onJugar={(idRival, mensaje) => jugarFalta.mutate({ idCarta: carta.id, idUsuarioObjetivo: idRival, mensaje })}
-                    onCancelar={() => setIdCartaEligiendoRival(null)}
-                    jugando={jugarFalta.isPending}
-                  />
-                )}
+                  return (
+                    <div key={carta.id} className="flex flex-col items-center gap-2">
+                      <CartaJuego carta={carta.tipo_carta} categoriaNombre={carta.tipo_carta.categoria.nombre} categoriaIcono={carta.tipo_carta.categoria.icono} />
+                      <div className="flex gap-3">
+                        {esJugada && carta.requiere_partido && hayJornadaJugable && (
+                          <button
+                            onClick={() => setIdCartaEligiendoPartido(carta.id)}
+                            disabled={sobreTope}
+                            className="font-body text-xs text-acento hover:underline disabled:opacity-40 disabled:no-underline disabled:cursor-not-allowed"
+                            title={sobreTope ? 'Descarta alguna carta primero para poder jugar' : undefined}
+                          >
+                            Jugar
+                          </button>
+                        )}
+                        {esJugada && !carta.requiere_partido && (
+                          <button
+                            onClick={() => jugar.mutate({ idCarta: carta.id, idPartido: null })}
+                            disabled={sobreTope || jugar.isPending}
+                            className="font-body text-xs text-acento hover:underline disabled:opacity-40 disabled:no-underline disabled:cursor-not-allowed"
+                            title={sobreTope ? 'Descarta alguna carta primero para poder jugar' : undefined}
+                          >
+                            Jugar
+                          </button>
+                        )}
+                        {esFalta && esEscudo && (
+                          <button
+                            onClick={() => jugarFalta.mutate({ idCarta: carta.id, idUsuarioObjetivo: null, mensaje: null })}
+                            disabled={sobreTope || jugarFalta.isPending}
+                            className="font-body text-xs text-acento hover:underline disabled:opacity-40 disabled:no-underline disabled:cursor-not-allowed"
+                            title={sobreTope ? 'Descarta alguna carta primero para poder jugar' : undefined}
+                          >
+                            {jugarFalta.isPending ? 'Activando...' : 'Activar'}
+                          </button>
+                        )}
+                        {esFalta && !esEscudo && miembros && (
+                          <button
+                            onClick={() => setIdCartaEligiendoRival(carta.id)}
+                            disabled={sobreTope}
+                            className="font-body text-xs text-acento hover:underline disabled:opacity-40 disabled:no-underline disabled:cursor-not-allowed"
+                            title={sobreTope ? 'Descarta alguna carta primero para poder jugar' : undefined}
+                          >
+                            Jugar
+                          </button>
+                        )}
+                        <button
+                          onClick={() => descartar.mutate(carta.id)}
+                          disabled={descartar.isPending}
+                          className="font-body text-xs text-borde hover:text-red-500 underline"
+                        >
+                          Descartar
+                        </button>
+                      </div>
+                      {idCartaEligiendoPartido === carta.id && (
+                        <SelectorPartido
+                          partidos={partidosDisponibles}
+                          jornada={jornadaJugable.jornada}
+                          onJugar={(idPartido) => jugar.mutate({ idCarta: carta.id, idPartido })}
+                          onCancelar={() => setIdCartaEligiendoPartido(null)}
+                          jugando={jugar.isPending}
+                        />
+                      )}
+                      {idCartaEligiendoRival === carta.id && (
+                        <SelectorRival
+                          miembros={miembros.filter((m) => m.id !== usuario?.id)}
+                          onJugar={(idRival, mensaje) => jugarFalta.mutate({ idCarta: carta.id, idUsuarioObjetivo: idRival, mensaje })}
+                          onCancelar={() => setIdCartaEligiendoRival(null)}
+                          jugando={jugarFalta.isPending}
+                        />
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             )
-          })}
-        </div>
-      )}
+          )}
 
-      {data.jugadas.length > 0 && (
-        <>
-          <p className="font-body text-sm font-semibold text-texto mb-3">Cartas jugadas, esperando resolución</p>
-          <div className="flex flex-col gap-2">
-            {data.jugadas.map((jugada) => <CartaJugada key={jugada.id} jugada={jugada} />)}
-          </div>
-        </>
-      )}
+          {pestana === 'jugadas' && (
+            data.jugadas.length === 0 ? (
+              <p className="font-body text-sm text-borde text-center py-8">No tienes ninguna carta jugada esperando resolución ahora mismo.</p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {data.jugadas.map((jugada) => <CartaJugada key={jugada.id} jugada={jugada} />)}
+              </div>
+            )
+          )}
+
+          {pestana === 'amenazas' && (
+            data.faltas_recibidas.length === 0 ? (
+              <p className="font-body text-sm text-borde text-center py-8">Nadie te ha jugado ninguna Falta activa ahora mismo. 🍀</p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {data.faltas_recibidas.map((falta) => <FaltaRecibida key={falta.id} falta={falta} />)}
+              </div>
+            )
+          )}
+        </div>
+      </div>
     </div>
   )
 }

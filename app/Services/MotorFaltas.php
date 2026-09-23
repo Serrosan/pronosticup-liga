@@ -37,6 +37,16 @@ class MotorFaltas
     ];
 
     /**
+     * Sin Comodines: no bloquea una categoría entera, bloquea cartas
+     * concretas por su codigo_efecto — pensado para las de "red de
+     * seguridad" (Amuleto, Pleno Garantizado), no para toda una categoría.
+     */
+    private const CODIGOS_BLOQUEADOS_POR_SIN_COMODINES = [
+        'JUG-PCOM-AMULETO', 'JUG-RAR-AMULETO', 'JUG-LEG-AMULETO',
+        'JUG-RAR-PLENOGARANTIZADO',
+    ];
+
+    /**
      * ¿El objetivo tiene un Escudo activo protegiéndolo justo en la jornada
      * en la que caería esta Falta? Si lo hay, lo consume (queda resuelto) y
      * lo devuelve — quien llama decide qué hacer con ese dato.
@@ -115,6 +125,24 @@ class MotorFaltas
         }
 
         return false;
+    }
+
+    /**
+     * ¿Esta carta concreta está bloqueada por un "Sin Comodines" activo
+     * contra este usuario, justo en esta jornada?
+     */
+    public function estaBloqueadaPorSinComodines(int $idLiga, int $idUsuario, int $jornada, string $codigoEfecto): bool
+    {
+        if (! in_array($codigoEfecto, self::CODIGOS_BLOQUEADOS_POR_SIN_COMODINES, true)) {
+            return false;
+        }
+
+        return CartaUsuario::where('id_liga', $idLiga)
+            ->where('id_usuario_objetivo', $idUsuario)
+            ->where('jornada_efecto', $jornada)
+            ->whereIn('estado', ['jugada', 'resuelta_cumplida'])
+            ->whereHas('tipoCarta', fn ($q) => $q->where('codigo_efecto', 'FAL-PCOM-SINCOMODINES'))
+            ->exists();
     }
 
     /**

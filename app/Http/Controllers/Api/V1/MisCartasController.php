@@ -333,6 +333,10 @@ class MisCartasController extends Controller
             return $error;
         }
 
+        if ($this->motorFaltas->estaBloqueadaPorSinComodines($liga->id, $request->user()->id, $partido->jornada, $cartaUsuario->tipoCarta->codigo_efecto)) {
+            return response()->json(['message' => 'Tienes una Falta "Sin Comodines" activa esta jornada — no puedes jugar Amuleto ni Pleno Garantizado.'], 422);
+        }
+
         $cartaUsuario->update([
             'estado' => 'jugada',
             'id_partido' => $partido->id,

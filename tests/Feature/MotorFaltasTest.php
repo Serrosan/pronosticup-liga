@@ -199,4 +199,30 @@ class MotorFaltasTest extends TestCase
         $this->assertTrue($motor->tieneFalloClamorosoActivo($liga->id, $victima->id, 6));
         $this->assertFalse($motor->tieneFalloClamorosoActivo($liga->id, $victima->id, 7));
     }
+
+    public function test_sin_comodines_bloquea_amuleto_y_pleno_garantizado(): void
+    {
+        [$liga, $tipoCartaSilbato] = $this->crearLigaConCartaFalta();
+        $categoria = $tipoCartaSilbato->categoria;
+
+        $tipoSinComodines = \App\Models\TipoCarta::create([
+            'id_categoria' => $categoria->id, 'rareza' => 'PocoComun', 'nombre' => 'Sin Comodines',
+            'descripcion' => 'test', 'codigo_efecto' => 'FAL-PCOM-SINCOMODINES', 'activa' => true,
+        ]);
+
+        $atacante = User::factory()->create();
+        $victima = User::factory()->create();
+
+        CartaUsuario::create([
+            'id_usuario' => $atacante->id, 'id_liga' => $liga->id, 'id_tipo_carta' => $tipoSinComodines->id,
+            'jornada_obtenida' => 5, 'obtenida_en' => now(), 'origen' => 'manual', 'estado' => 'jugada',
+            'id_usuario_objetivo' => $victima->id, 'jornada_efecto' => 6, 'jugada_en' => now(),
+        ]);
+
+        $motor = app(MotorFaltas::class);
+
+        $this->assertTrue($motor->estaBloqueadaPorSinComodines($liga->id, $victima->id, 6, 'JUG-PCOM-AMULETO'));
+        $this->assertTrue($motor->estaBloqueadaPorSinComodines($liga->id, $victima->id, 6, 'JUG-RAR-PLENOGARANTIZADO'));
+        $this->assertFalse($motor->estaBloqueadaPorSinComodines($liga->id, $victima->id, 6, 'JUG-COM-CHUTE'));
+    }
 }

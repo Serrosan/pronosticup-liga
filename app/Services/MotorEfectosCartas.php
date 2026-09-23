@@ -54,7 +54,10 @@ class MotorEfectosCartas
     private function comparadoresMayoria(): array
     {
         return [
-            // 'JUG-COM-PALOMITAS' => new BonusSiCoincideMayoria(1),
+            'JUG-COM-PALOMITAS' => new BonusSiCoincideMayoria(1),
+            'JUG-PCOM-PALOMITAS' => new BonusSiCoincideMayoria(2),
+            'JUG-RAR-PALOMITAS' => new BonusSiCoincideMayoria(3),
+            'JUG-LEG-PALOMITAS' => new BonusSiCoincideMayoria(5),
         ];
     }
 

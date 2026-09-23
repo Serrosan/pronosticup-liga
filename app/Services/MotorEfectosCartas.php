@@ -20,6 +20,7 @@ use App\Services\EfectosCartas\PlenoGarantizado;
 use App\Services\EfectosCartas\ProtegeAutomatico;
 use App\Services\EfectosCartas\ProtegeElegido;
 use Illuminate\Support\Collection;
+use App\Services\EfectosCartas\BonusSiGolEnFranja;
 
 class MotorEfectosCartas
 {
@@ -263,6 +264,9 @@ class MotorEfectosCartas
     {
         return [
             'JUG-COM-AMIGOARBITRO' => new BonusSiTarjetaRoja(2),
+            'JUG-COM-MADRUGADOR' => new BonusSiGolEnFranja(0, 30, 1),
+            'JUG-PCOM-FILODESCANSO' => new BonusSiGolEnFranja(30, 60, 2),
+            'JUG-RAR-TIEMPO' => new BonusSiGolEnFranja(60, 90, 3),
         ];
     }
 

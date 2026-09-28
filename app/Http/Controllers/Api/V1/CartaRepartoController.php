@@ -141,7 +141,7 @@ class CartaRepartoController extends Controller
         }
 
         $mensajeAviso = count($idsUsuariosSobreElTope) > 0
-            ? ' ⚠️ '.count($idsUsuariosSobreElTope).' usuario(s) han superado el tope de su mano — tendrán que descartar alguna carta ellos mismos cuando esté disponible esa opción.'
+            ? ' ⚠️ '.count($idsUsuariosSobreElTope).' usuario(s) han superado el tope de su mano — tendrán que descartar alguna carta ellos mismos desde Mis Cartas antes de poder jugar más.'
             : '';
 
         return response()->json([

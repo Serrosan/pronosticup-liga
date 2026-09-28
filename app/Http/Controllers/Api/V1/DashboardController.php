@@ -121,6 +121,7 @@ class DashboardController extends Controller
         $misEventos = EventoPuntos::where('id_liga', $liga->id)
             ->where('id_usuario', $userId)
             ->whereIn('id_partido', $idsUltimos)
+            ->whereIn('tipo_evento', ['AciertoExacto', 'AciertoDiferencia', 'Acierto1x2', 'Fallo'])
             ->get()
             ->keyBy('id_partido');
 

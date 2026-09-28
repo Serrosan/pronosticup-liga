@@ -2,31 +2,39 @@
 
 namespace App\Services;
 
-use App\Models\CartaPartido;
 use App\Models\CartaUsuario;
 use App\Models\ConfiguracionPuntos;
 use App\Models\EventoPartido;
 use App\Models\EventoPuntos;
 use App\Models\Pronostico;
-use App\Services\EfectosCartas\BonoMultiPartidoJornada;
 use App\Services\EfectosCartas\BonusFijoPartido;
 use App\Services\EfectosCartas\BonusSiCoincideMayoria;
 use App\Services\EfectosCartas\BonusSiDosExactos;
 use App\Services\EfectosCartas\BonusSiExacto;
-use App\Services\EfectosCartas\BonusSiNoCoincideMayoria;
+use App\Services\EfectosCartas\BonusSiGolEnFranja;
 use App\Services\EfectosCartas\BonusSiTarjetaRoja;
 use App\Services\EfectosCartas\Doblete;
 use App\Services\EfectosCartas\PlenoGarantizado;
 use App\Services\EfectosCartas\ProtegeAutomatico;
 use App\Services\EfectosCartas\ProtegeElegido;
 use Illuminate\Support\Collection;
-use App\Services\EfectosCartas\BonusSiGolEnFranja;
 
 class MotorEfectosCartas
 {
+    /**
+     * Estados en los que una carta jugada sigue siendo "recalculable". Todo el
+     * motor busca cartas en cualquiera de los 3, y RE-DERIVA su estado en cada
+     * pasada — así cerrar, recalcular puntos o recalcular eventos se puede
+     * repetir las veces que haga falta sin perder bonus ni duplicarlos.
+     */
+    private const ESTADOS_RESOLVIBLES = ['jugada', 'resuelta_cumplida', 'resuelta_no_cumplida'];
+
     // ------------------------------------------------------------------
     // FORMA 1 — ajusta los puntos de UN partido elegido de antemano.
-    // Se resuelve al calcular los puntos de cada pronóstico (cierre/recalculo).
+    // FORMA 2 — compara tu signo contra la mayoría del resto de la liga.
+    // Ambas se resuelven al calcular los puntos de cada pronóstico, por eso
+    // comparten método de entrada. Si hay varias cartas sobre el mismo
+    // partido se aplican en el orden en que se jugaron.
     // ------------------------------------------------------------------
 
     private function ajustadoresPartido(): array
@@ -43,15 +51,6 @@ class MotorEfectosCartas
         ];
     }
 
-    // ------------------------------------------------------------------
-    // FORMA 2 — compara tu signo contra la mayoría del resto de tu liga en
-    // ese partido. Se resuelve en el mismo punto que la Forma 1 (1 partido
-    // elegido de antemano), por eso comparten método de entrada.
-    //
-    // TODO: registrar aquí Palomitas/Visionario en cuanto existan en el
-    // catálogo real, 1 línea por rareza — sin tocar nada más.
-    // ------------------------------------------------------------------
-
     private function comparadoresMayoria(): array
     {
         return [
@@ -59,14 +58,14 @@ class MotorEfectosCartas
             'JUG-PCOM-PALOMITAS' => new BonusSiCoincideMayoria(2),
             'JUG-RAR-PALOMITAS' => new BonusSiCoincideMayoria(3),
             'JUG-LEG-PALOMITAS' => new BonusSiCoincideMayoria(5),
+            // Visionario, cuando exista: new BonusSiNoCoincideMayoria(1)
         ];
     }
 
     /**
-     * Desempate al azar si 2+ resultados empatan como más votados (decidido
-     * explícitamente así, no hay criterio "correcto" objetivo para desempatar).
-     * Nunca cuenta el propio pronóstico del usuario, solo el resto de la liga.
-     * Devuelve null si nadie más de la liga pronosticó ese partido todavía.
+     * Si 2+ signos empatan como más votados se desempata "al azar", pero de
+     * forma ESTABLE (según partido y usuario) para que recalcular la jornada
+     * nunca cambie el resultado. Nunca cuenta el voto del propio usuario.
      */
     private function calcularMayoriaSigno(int $idLiga, int $idPartido, int $idUsuarioExcluir): ?string
     {
@@ -82,8 +81,9 @@ class MotorEfectosCartas
         }
 
         $maximo = $conteos->max();
+        $empatados = $conteos->filter(fn ($total) => $total === $maximo)->keys()->sort()->values();
 
-        return $conteos->filter(fn ($total) => $total === $maximo)->keys()->random();
+        return $empatados[($idPartido + $idUsuarioExcluir) % $empatados->count()];
     }
 
     /**
@@ -91,50 +91,51 @@ class MotorEfectosCartas
      */
     public function ajustarPuntosPartido(int $idLiga, int $idUsuario, int $idPartido, int $puntosBase, string $tipoEventoReal, string $miSigno, ConfiguracionPuntos $config): array
     {
-        $carta = CartaUsuario::where('id_liga', $idLiga)
+        $cartas = CartaUsuario::where('id_liga', $idLiga)
             ->where('id_usuario', $idUsuario)
             ->where('id_partido', $idPartido)
-            ->where('estado', 'jugada')
+            ->whereIn('estado', self::ESTADOS_RESOLVIBLES)
             ->with('tipoCarta')
-            ->first();
+            ->orderBy('jugada_en')
+            ->orderBy('id')
+            ->get();
 
-        if (! $carta) {
-            return ['puntos' => $puntosBase, 'nota' => null];
-        }
-
-        $codigoEfecto = $carta->tipoCarta->codigo_efecto;
         $ajustadores = $this->ajustadoresPartido();
-
-        if (isset($ajustadores[$codigoEfecto])) {
-            $resultado = $ajustadores[$codigoEfecto]->calcular($puntosBase, $tipoEventoReal, $config);
-
-            $carta->update(['estado' => 'resuelta_cumplida', 'puntos_generados' => $resultado['puntos'] - $puntosBase]);
-
-            return $resultado;
-        }
-
         $comparadores = $this->comparadoresMayoria();
 
-        if (isset($comparadores[$codigoEfecto])) {
-            $mayoria = $this->calcularMayoriaSigno($idLiga, $idPartido, $idUsuario);
-            $resultado = $comparadores[$codigoEfecto]->evaluar($miSigno, $mayoria);
-            $puntosFinales = $puntosBase + $resultado['puntos'];
+        $puntos = $puntosBase;
+        $nota = null;
+
+        foreach ($cartas as $carta) {
+            $codigo = $carta->tipoCarta->codigo_efecto;
+            $antes = $puntos;
+
+            if (isset($ajustadores[$codigo])) {
+                $resultado = $ajustadores[$codigo]->calcular($puntos, $tipoEventoReal, $config);
+                $puntos = $resultado['puntos'];
+                $nota = $resultado['nota'] ?? $nota;
+            } elseif (isset($comparadores[$codigo])) {
+                $mayoria = $this->calcularMayoriaSigno($idLiga, $idPartido, $idUsuario);
+                $puntos += $comparadores[$codigo]->evaluar($miSigno, $mayoria)['puntos'];
+            } else {
+                continue; // carta de otra forma (Amuleto, eventos...) sobre este partido
+            }
+
+            $delta = $puntos - $antes;
 
             $carta->update([
-                'estado' => $resultado['puntos'] > 0 ? 'resuelta_cumplida' : 'resuelta_no_cumplida',
-                'puntos_generados' => $resultado['puntos'],
+                'estado' => $delta > 0 ? 'resuelta_cumplida' : 'resuelta_no_cumplida',
+                'puntos_generados' => $delta,
             ]);
-
-            return ['puntos' => $puntosFinales, 'nota' => null];
         }
 
-        return ['puntos' => $puntosBase, 'nota' => null];
+        return ['puntos' => $puntos, 'nota' => $nota];
     }
 
     // ------------------------------------------------------------------
     // FORMA 4 — modifica qué cuenta como "acierto" para el bonus de pleno.
     // Se resuelve una vez por usuario, tras conocer TODOS los fallos de la
-    // jornada (no partido a partido como la Forma 1).
+    // jornada. Solo mira cartas cuyo efecto cae en ESTA jornada.
     // ------------------------------------------------------------------
 
     private function protectoresBonus(): array
@@ -146,29 +147,24 @@ class MotorEfectosCartas
         ];
     }
 
-    /**
-     * Devuelve el número de aciertos "efectivos" a usar para calcular el bonus de
-     * pleno — el real, más los partidos fallados que algún Amuleto jugado protege.
-     * El historial de esos partidos sigue mostrando Fallo real, esto solo afecta
-     * al cálculo del bonus.
-     */
     public function ajustarAciertosParaBonus(int $idLiga, int $idUsuario, int $jornada, int $aciertosReales, Collection $partidosFallidos): int
     {
         $registro = $this->protectoresBonus();
 
-        $cartasJugadas = CartaUsuario::where('id_liga', $idLiga)
+        $cartas = CartaUsuario::where('id_liga', $idLiga)
             ->where('id_usuario', $idUsuario)
-            ->where('estado', 'jugada')
+            ->where('jornada_efecto', $jornada)
+            ->whereIn('estado', self::ESTADOS_RESOLVIBLES)
             ->with('tipoCarta')
+            ->orderBy('id')
             ->get()
             ->filter(fn ($c) => isset($registro[$c->tipoCarta->codigo_efecto]));
 
         $protegidos = collect();
 
-        foreach ($cartasJugadas as $carta) {
+        foreach ($cartas as $carta) {
             $disponibles = $partidosFallidos->diff($protegidos);
-            $protector = $registro[$carta->tipoCarta->codigo_efecto];
-            $protegidosPorEstaCarta = $protector->partidosAProteger($carta, $disponibles);
+            $protegidosPorEstaCarta = $registro[$carta->tipoCarta->codigo_efecto]->partidosAProteger($carta, $disponibles);
 
             if ($protegidosPorEstaCarta->isNotEmpty()) {
                 $protegidos = $protegidos->merge($protegidosPorEstaCarta);
@@ -182,10 +178,7 @@ class MotorEfectosCartas
     }
 
     // ------------------------------------------------------------------
-    // FORMA 3 — bono sobre varios partidos de la jornada, SIN elegir ninguno
-    // de antemano. Se juega "en genérico" para toda la jornada siguiente, y
-    // se resuelve al cerrar (junto con el resto de puntos), mirando el
-    // conjunto de resultados ya calculados de esa jornada.
+    // FORMA 3 — bono sobre varios partidos de la jornada, SIN elegir ninguno.
     // ------------------------------------------------------------------
 
     private function bonosMultiPartido(): array
@@ -196,13 +189,17 @@ class MotorEfectosCartas
     }
 
     /**
-     * Usado por MisCartasController al jugar una carta, para saber si debe
-     * pedir que se elija un partido (Formas 1 y 4) o jugarse "en genérico"
-     * sobre toda la jornada (Forma 3).
+     * Usado por MisCartasController al jugar una carta: ¿pide elegir un partido?
+     * No lo piden las de Forma 3 (bono de toda la jornada) ni los Amuletos
+     * "automáticos" (Rara y Legendaria: protegen los partidos que falles).
      */
     public function requiereEleccionDePartido(string $codigoEfecto): bool
     {
-        return ! array_key_exists($codigoEfecto, $this->bonosMultiPartido());
+        if (array_key_exists($codigoEfecto, $this->bonosMultiPartido())) {
+            return false;
+        }
+
+        return ! (($this->protectoresBonus()[$codigoEfecto] ?? null) instanceof ProtegeAutomatico);
     }
 
     /**
@@ -217,16 +214,16 @@ class MotorEfectosCartas
 
         $registro = $this->bonosMultiPartido();
 
-        $cartasJugadas = CartaUsuario::where('id_liga', $idLiga)
+        $cartas = CartaUsuario::where('id_liga', $idLiga)
             ->where('jornada_efecto', $jornada)
-            ->where('estado', 'jugada')
+            ->whereIn('estado', self::ESTADOS_RESOLVIBLES)
             ->with('tipoCarta')
             ->get()
             ->filter(fn ($c) => isset($registro[$c->tipoCarta->codigo_efecto]));
 
         $puntosPorUsuario = [];
 
-        foreach ($cartasJugadas as $carta) {
+        foreach ($cartas as $carta) {
             $eventosDeLaJornada = EventoPuntos::where('id_liga', $idLiga)
                 ->where('id_usuario', $carta->id_usuario)
                 ->where('jornada', $jornada)
@@ -256,8 +253,9 @@ class MotorEfectosCartas
     }
 
     // ------------------------------------------------------------------
-    // FORMA 5 — depende de eventos del partido (tarjetas/goles), no del
-    // resultado. Se resuelve al recalcular eventos, NUNCA al cerrar jornada.
+    // FORMA 5 — depende de eventos del partido (tarjetas/goles). Se resuelve
+    // al recalcular eventos, NUNCA al cerrar jornada. Recalcular es seguro:
+    // borra y recrea sus propios puntos, y re-deriva el estado de la carta.
     // ------------------------------------------------------------------
 
     private function efectosEventosPartido(): array
@@ -270,10 +268,6 @@ class MotorEfectosCartas
         ];
     }
 
-    /**
-     * Idempotente a propósito — se puede llamar varias veces según se van
-     * cargando eventos de más partidos, sin duplicar puntos nunca.
-     */
     public function resolverEfectosDeEventos(int $idLiga, int $jornada, Collection $idsPartidos): int
     {
         EventoPuntos::where('id_liga', $idLiga)
@@ -283,16 +277,16 @@ class MotorEfectosCartas
 
         $registro = $this->efectosEventosPartido();
 
-        $cartasJugadas = CartaUsuario::whereIn('id_partido', $idsPartidos)
+        $cartas = CartaUsuario::whereIn('id_partido', $idsPartidos)
             ->where('id_liga', $idLiga)
-            ->where('estado', 'jugada')
+            ->whereIn('estado', self::ESTADOS_RESOLVIBLES)
             ->with('tipoCarta')
             ->get()
             ->filter(fn ($c) => isset($registro[$c->tipoCarta->codigo_efecto]));
 
         $creados = 0;
 
-        foreach ($cartasJugadas as $carta) {
+        foreach ($cartas as $carta) {
             $eventosDelPartido = EventoPartido::where('id_partido', $carta->id_partido)->get();
             $resultado = $registro[$carta->tipoCarta->codigo_efecto]->evaluar($eventosDelPartido);
 
@@ -308,6 +302,8 @@ class MotorEfectosCartas
 
                 $carta->update(['estado' => 'resuelta_cumplida', 'puntos_generados' => $resultado['puntos']]);
                 $creados++;
+            } else {
+                $carta->update(['estado' => 'resuelta_no_cumplida', 'puntos_generados' => 0]);
             }
         }
 
@@ -315,15 +311,8 @@ class MotorEfectosCartas
     }
 
     // ------------------------------------------------------------------
-    // FORMA 6 — bono si aciertas el 1X2 de 2 partidos ELEGIDOS de antemano
-    // (a diferencia de la Forma 3, aquí sí se eligen). Se resuelve al cerrar
-    // jornada, igual que la Forma 3, pero mirando solo los 2 partidos
-    // concretos guardados en la tabla pivote carta_partidos.
-    //
-    // TODO: registrar aquí Doble Filo en cuanto exista en el catálogo real,
-    // 1 línea con su bonus — sin tocar nada más. La interfaz frontend para
-    // elegir 2 partidos aún no está construida, a propósito: mejor diseñarla
-    // viendo la carta real que adivinarla ahora.
+    // FORMA 6 — bono si aciertas el 1X2 de 2 partidos ELEGIDOS de antemano.
+    // Registro vacío hasta que exista Doble Filo en el catálogo.
     // ------------------------------------------------------------------
 
     private function bonosDoblePartidoElegido(): array
@@ -333,10 +322,6 @@ class MotorEfectosCartas
         ];
     }
 
-    /**
-     * Usado por MisCartasController para saber si una carta necesita el
-     * flujo de "elegir 2 partidos" en vez del de 1 partido o ninguno.
-     */
     public function requiereDosPartidos(string $codigoEfecto): bool
     {
         return array_key_exists($codigoEfecto, $this->bonosDoblePartidoElegido());
@@ -358,16 +343,16 @@ class MotorEfectosCartas
             return [];
         }
 
-        $cartasJugadas = CartaUsuario::where('id_liga', $idLiga)
+        $cartas = CartaUsuario::where('id_liga', $idLiga)
             ->where('jornada_efecto', $jornada)
-            ->where('estado', 'jugada')
+            ->whereIn('estado', self::ESTADOS_RESOLVIBLES)
             ->with(['tipoCarta', 'cartaPartidos'])
             ->get()
             ->filter(fn ($c) => isset($registro[$c->tipoCarta->codigo_efecto]));
 
         $puntosPorUsuario = [];
 
-        foreach ($cartasJugadas as $carta) {
+        foreach ($cartas as $carta) {
             $partidosElegidos = $carta->cartaPartidos;
 
             if ($partidosElegidos->count() !== 2) {
@@ -403,5 +388,27 @@ class MotorEfectosCartas
         }
 
         return $puntosPorUsuario;
+    }
+
+    // ------------------------------------------------------------------
+    // BARRIDO FINAL — al cerrar/recalcular una jornada, las Jugadas que
+    // ningún efecto llegó a tocar (p. ej. Chute Extra sobre un partido que
+    // el usuario no pronosticó) pasan a "no cumplida" en vez de quedarse
+    // eternamente "esperando". Las de Forma 5 se excluyen a propósito: se
+    // resuelven después, al cargar eventos.
+    // ------------------------------------------------------------------
+
+    public function cerrarCartasPendientes(int $idLiga, int $jornada): void
+    {
+        $codigosDeEventos = array_keys($this->efectosEventosPartido());
+
+        CartaUsuario::where('id_liga', $idLiga)
+            ->where('estado', 'jugada')
+            ->where('jornada_efecto', '<=', $jornada)
+            ->whereHas('tipoCarta.categoria', fn ($q) => $q->where('nombre', 'Jugadas'))
+            ->with('tipoCarta')
+            ->get()
+            ->reject(fn ($c) => in_array($c->tipoCarta->codigo_efecto, $codigosDeEventos, true))
+            ->each(fn ($c) => $c->update(['estado' => 'resuelta_no_cumplida', 'puntos_generados' => 0]));
     }
 }

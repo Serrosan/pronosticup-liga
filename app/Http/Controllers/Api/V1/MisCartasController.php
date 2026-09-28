@@ -88,7 +88,7 @@ class MisCartasController extends Controller
             ->map(fn ($c) => [
                 'id' => $c->id,
                 'tipo_carta' => $c->tipoCarta,
-                'atacante' => $c->usuario->nombre_visible ?? $c->usuario->name,
+                'atacante' => $c->tipoCarta->codigo_efecto === 'FAL-COM-INVISIBLE' ? 'Alguien...' : ($c->usuario->nombre_visible ?? $c->usuario->name),
                 'jornada_efecto' => $c->jornada_efecto,
                 'mensaje_falta' => $c->mensaje_falta,
             ]);
@@ -185,20 +185,21 @@ class MisCartasController extends Controller
 
         $liga = $request->user()->ligaActiva;
 
+        $proximaJornada = $this->proximaJornadaNumero($liga);
+
+        if (! $proximaJornada) {
+            return response()->json(['message' => 'No hay ninguna jornada disponible ahora mismo.'], 422);
+        }
+
         $yaJugadaEstaJornada = CartaUsuario::where('id_liga', $liga->id)
             ->where('id_usuario', $request->user()->id)
             ->where('estado', 'jugada')
+            ->where('jornada_efecto', $proximaJornada + 1)
             ->whereHas('tipoCarta.categoria', fn ($q) => $q->where('nombre', 'Faltas'))
             ->exists();
 
         if ($yaJugadaEstaJornada) {
             return response()->json(['message' => 'Solo puedes jugar 1 Falta por jornada.'], 422);
-        }
-
-        $proximaJornada = $this->proximaJornadaNumero($liga);
-
-        if (! $proximaJornada) {
-            return response()->json(['message' => 'No hay ninguna jornada disponible ahora mismo.'], 422);
         }
 
         if ($error = $this->comprobarExpulsion($liga, $request->user(), $proximaJornada, 'Faltas')) {
@@ -303,6 +304,10 @@ class MisCartasController extends Controller
 
             if ($error = $this->comprobarExpulsion($liga, $request->user(), $proximaJornada, 'Jugadas')) {
                 return $error;
+            }
+
+            if ($this->motorFaltas->estaBloqueadaPorSinComodines($liga->id, $request->user()->id, $proximaJornada, $cartaUsuario->tipoCarta->codigo_efecto)) {
+                return response()->json(['message' => 'Tienes una Falta "Sin Comodines" activa esta jornada — no puedes jugar Amuleto ni Pleno Garantizado.'], 422);
             }
 
             $cartaUsuario->update([

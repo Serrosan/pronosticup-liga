@@ -210,4 +210,27 @@ class MotorFaltas
             ->pluck('id_jugador')
             ->all();
     }
+
+    /**
+     * Al cerrar/recalcular una jornada, las Faltas cuyo efecto ya ha pasado
+     * salen de "jugada" (así ni bloquean jugar otra Falta ni se acumulan en
+     * "Amenazas"). Un Escudo que nadie llegó a gastar pasa a "no cumplida".
+     */
+    public function resolverFaltasDeLaJornada(int $idLiga, int $jornada): void
+    {
+        CartaUsuario::where('id_liga', $idLiga)
+            ->where('estado', 'jugada')
+            ->where('jornada_efecto', '<=', $jornada)
+            ->whereHas('tipoCarta.categoria', fn ($q) => $q->where('nombre', 'Faltas'))
+            ->with('tipoCarta')
+            ->get()
+            ->each(function ($carta) {
+                $escudoSinGastar = in_array($carta->tipoCarta->codigo_efecto, self::CODIGOS_ESCUDO, true);
+
+                $carta->update([
+                    'estado' => $escudoSinGastar ? 'resuelta_no_cumplida' : 'resuelta_cumplida',
+                    'puntos_generados' => 0,
+                ]);
+            });
+    }
 }

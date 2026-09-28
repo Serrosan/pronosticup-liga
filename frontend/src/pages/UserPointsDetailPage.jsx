@@ -66,24 +66,43 @@ function ResultadoComparado({ prediccion, oculto, golesCasa, golesFuera, tipoEve
 
 function FilaPartido({ partido }) {
   return (
-    <div className="flex items-center gap-3 px-4 py-3 border-b border-borde/10 last:border-0 odd:bg-borde/5">
-      <div className="flex items-center gap-1.5 min-w-0 flex-1">
-        <Escudo url={partido.escudo_local} alt={partido.equipo_local} />
-        <p className="font-body text-xs text-texto truncate">{partido.equipo_local}</p>
-        <span className="text-borde text-xs shrink-0">–</span>
-        <p className="font-body text-xs text-texto truncate">{partido.equipo_visitante}</p>
-        <Escudo url={partido.escudo_visitante} alt={partido.equipo_visitante} />
+    <div className="border-b border-borde/10 last:border-0 odd:bg-borde/5">
+      <div className="flex items-center gap-3 px-4 py-3">
+        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+          <Escudo url={partido.escudo_local} alt={partido.equipo_local} />
+          <p className="font-body text-xs text-texto truncate">{partido.equipo_local}</p>
+          <span className="text-borde text-xs shrink-0">–</span>
+          <p className="font-body text-xs text-texto truncate">{partido.equipo_visitante}</p>
+          <Escudo url={partido.escudo_visitante} alt={partido.equipo_visitante} />
+        </div>
+
+        <ResultadoComparado
+          prediccion={partido.mi_pronostico}
+          oculto={partido.oculto}
+          golesCasa={partido.goles_casa}
+          golesFuera={partido.goles_fuera}
+          tipoEvento={partido.tipo_evento}
+          puntos={partido.puntos}
+          estadoPartido={partido.estado_partido}
+        />
       </div>
 
-      <ResultadoComparado
-        prediccion={partido.mi_pronostico}
-        oculto={partido.oculto}
-        golesCasa={partido.goles_casa}
-        golesFuera={partido.goles_fuera}
-        tipoEvento={partido.tipo_evento}
-        puntos={partido.puntos}
-        estadoPartido={partido.estado_partido}
-      />
+      {partido.cartas?.length > 0 && (
+        <div className="px-4 pb-2.5 -mt-1 flex flex-wrap gap-1.5">
+          {partido.cartas.map((c, i) => (
+            <span
+              key={i}
+              className={`font-body text-[11px] rounded-full px-2 py-0.5 border ${c.cumplida ? 'border-premio/40 text-premio bg-premio/10' : 'border-borde/25 text-borde'}`}
+            >
+              🃏 {c.nombre} {c.cumplida ? (c.puntos > 0 ? `+${c.puntos}` : 'activada') : '· sin efecto'}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {partido.nota_carta && (
+        <p className="px-4 pb-2.5 -mt-1 font-body text-[11px] text-premio">{partido.nota_carta}</p>
+      )}
     </div>
   )
 }
@@ -149,6 +168,12 @@ function BloqueJornada({ bloque }) {
               <span className="font-marcador text-xs font-bold text-acento">+{bloque.bonus_pleno}pt</span>
             </div>
           )}
+          {bloque.bonus_cartas > 0 && (
+            <div className="px-4 py-2 bg-premio/5 border-t border-borde/10 flex items-center justify-between">
+              <p className="font-body text-xs text-premio font-semibold">🃏 Bonus de cartas</p>
+              <span className="font-marcador text-xs font-bold text-premio">+{bloque.bonus_cartas}pt</span>
+            </div>
+          )}
           <SeccionGoleadores goleadores={bloque.goleadores} />
         </div>
       )}
@@ -162,6 +187,10 @@ function DesgloseTotal({ desglose }) {
     { label: 'Bonus de pleno', valor: desglose.bonus_pleno, icono: '🎯' },
     { label: 'Goleadores', valor: desglose.goleadores, icono: '🥅' },
   ]
+
+  if ((desglose.bonus_cartas ?? 0) > 0) {
+    items.splice(2, 0, { label: 'Bonus de cartas', valor: desglose.bonus_cartas, icono: '🃏' })
+  }
 
   return (
     <div className="bg-fondo border-x border-borde/30 px-6 py-4">

@@ -95,6 +95,15 @@ class GoleadoresController extends Controller
             ]);
         }
 
-        return response()->json(['message' => 'Goleadores guardados correctamente.']);
+        $elegidos = count($validated['jugadores']);
+        $completo = $elegidos >= 5;
+
+        return response()->json([
+            'message' => $completo
+                ? 'Goleadores guardados correctamente.'
+                : "Goleadores guardados, pero tu selección está incompleta: has elegido {$elegidos} de 5.",
+            'completo' => $completo,
+            'elegidos' => $elegidos,
+        ]);
     }
 }

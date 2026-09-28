@@ -16,6 +16,7 @@ use App\Notifications\JornadaCerradaConPuntos;
 use App\Services\MotorEfectosCartas;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Services\MotorFaltas;
 
 class JornadaController extends Controller
 {
@@ -330,6 +331,10 @@ class JornadaController extends Controller
         foreach ($puntosDoblePartido as $idUsuario => $puntosExtra) {
             $puntosPorUsuario[$idUsuario] = ($puntosPorUsuario[$idUsuario] ?? 0) + $puntosExtra;
         }
+
+        // Barrido final: lo que ningún efecto tocó deja de estar "esperando".
+        $motor->cerrarCartasPendientes($liga->id, $jornada);
+        app(MotorFaltas::class)->resolverFaltasDeLaJornada($liga->id, $jornada);
 
         return [$puntosPorUsuario, $pronosticos->count()];
     }

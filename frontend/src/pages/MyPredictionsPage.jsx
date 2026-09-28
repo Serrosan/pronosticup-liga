@@ -198,6 +198,23 @@ function FilaPartido({ partido, jornada, jornadaBloqueada }) {
         />
       </div>
 
+      {partido.cartas?.length > 0 && (
+        <div className="px-4 pb-2.5 -mt-1 flex flex-wrap gap-1.5">
+          {partido.cartas.map((c, i) => (
+            <span
+              key={i}
+              className={`font-body text-[11px] rounded-full px-2 py-0.5 border ${c.cumplida ? 'border-premio/40 text-premio bg-premio/10' : 'border-borde/25 text-borde'}`}
+            >
+              🃏 {c.nombre} {c.cumplida ? (c.puntos > 0 ? `+${c.puntos}` : 'activada') : '· sin efecto'}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {partido.nota_carta && (
+        <p className="px-4 pb-2.5 -mt-1 font-body text-[11px] text-premio">{partido.nota_carta}</p>
+      )}
+
       {jornadaBloqueada && (
         <div className="px-4 pb-2.5 -mt-1">
           <button
@@ -281,6 +298,12 @@ function BloqueJornada({ bloque }) {
             <div className="px-4 py-2 bg-acento/5 border-t border-borde/10 flex items-center justify-between">
               <p className="font-body text-xs text-acento font-semibold">🎯 Bonus por buena jornada</p>
               <span className="font-marcador text-xs font-bold text-acento">+{bloque.bonus_pleno}pt</span>
+            </div>
+          )}
+          {bloque.bonus_cartas > 0 && (
+            <div className="px-4 py-2 bg-premio/5 border-t border-borde/10 flex items-center justify-between">
+              <p className="font-body text-xs text-premio font-semibold">🃏 Bonus de cartas</p>
+              <span className="font-marcador text-xs font-bold text-premio">+{bloque.bonus_cartas}pt</span>
             </div>
           )}
           <SeccionGoleadores goleadores={bloque.goleadores} />

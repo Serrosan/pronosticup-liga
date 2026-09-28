@@ -165,6 +165,41 @@ class ResolucionCartasTest extends TestCase
         $this->assertSame('jugada', $madrugador->fresh()->estado);               // espera a los eventos
     }
 
+    public function test_una_falta_contra_un_escudo_pierde_las_dos_cartas(): void
+    {
+        $this->usuario->update(['liga_activa_id' => $this->liga->id]);
+        $victima = User::factory()->create();
+        $this->liga->usuarios()->attach($this->usuario->id, ['rol' => 'Miembro']);
+        $this->liga->usuarios()->attach($victima->id, ['rol' => 'Miembro']);
+        $this->liga->usuarios()->attach(User::factory()->create()->id, ['rol' => 'Miembro']);
+        $this->liga->usuarios()->attach(User::factory()->create()->id, ['rol' => 'Miembro']);
+
+        CalendarioPartido::factory()->create([
+            'id_temporada' => $this->liga->id_temporada,
+            'jornada' => 6,
+            'id_equipo_local' => Equipo::factory()->create()->id,
+            'id_equipo_visitante' => Equipo::factory()->create()->id,
+            'estado' => 'Programado',
+            'horario_estimado' => now()->addDays(3),
+        ]);
+
+        $escudo = $this->carta($this->tipo($this->faltas, 'Escudo', 'FAL-PCOM-ESCUDO', 'PocoComun'), [
+            'id_usuario' => $victima->id, 'id_usuario_objetivo' => $victima->id, 'jornada_efecto' => 7,
+        ]);
+
+        $silbato = $this->carta($this->tipo($this->faltas, 'Silbato', 'FAL-COM-SILBATO'), [
+            'estado' => 'en_mano', 'jugada_en' => null,
+        ]);
+
+        $respuesta = $this->actingAs($this->usuario)->postJson("/api/v1/mis-cartas/{$silbato->id}/jugar-falta", [
+            'id_usuario_objetivo' => $victima->id,
+        ]);
+
+        $respuesta->assertStatus(422);
+        $this->assertSame('resuelta_no_cumplida', $silbato->fresh()->estado);
+        $this->assertSame('resuelta_cumplida', $escudo->fresh()->estado);
+    }
+
     public function test_sin_comodines_bloquea_tambien_al_amuleto_automatico(): void
     {
         $this->usuario->update(['liga_activa_id' => $this->liga->id]);

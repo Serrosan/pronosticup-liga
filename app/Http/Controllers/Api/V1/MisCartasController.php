@@ -248,7 +248,18 @@ class MisCartasController extends Controller
 
         $escudoConsumido = $this->motorFaltas->consumirEscudoSiActivo($liga->id, $validated['id_usuario_objetivo'], $jornadaEfecto);
         if ($escudoConsumido) {
-            return response()->json(['message' => 'Ese jugador tenía un Escudo activo esta semana — tu Falta no ha podido jugarse.'], 422);
+            // El Escudo detiene el ataque, pero el intento también le cuesta la carta
+            // al atacante — si no, el Escudo solo pararía el primer intento y el
+            // atacante podría repetir sin coste hasta colarla.
+            $cartaUsuario->update([
+                'estado' => 'resuelta_no_cumplida',
+                'id_usuario_objetivo' => $validated['id_usuario_objetivo'],
+                'jornada_efecto' => $jornadaEfecto,
+                'jugada_en' => now(),
+                'puntos_generados' => 0,
+            ]);
+
+            return response()->json(['message' => 'Ese jugador tenía un Escudo activo esta semana — tu Falta se ha perdido, el Escudo la ha bloqueado.'], 422);
         }
 
         $cartaUsuario->update([

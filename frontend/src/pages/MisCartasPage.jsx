@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import client from '../api/client'
 import { useAuth } from '../context/AuthContext'
@@ -9,6 +9,12 @@ import SelectTema from '../components/SelectTema'
 import SkeletonLista from '../components/SkeletonLista'
 import useTitulo from '../hooks/useTitulo'
 import { useToast } from '../context/ToastContext'
+
+const CLAVE_GUIA_VISTA = 'pronosticup_guia_cartas_vista'
+
+function formatearInicio(iso) {
+  return new Date(iso).toLocaleString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+}
 
 function Escudo({ url, alt }) {
   if (!url) return <span className="w-5 h-5 rounded-full bg-borde/15 flex items-center justify-center text-xs shrink-0">⚽</span>
@@ -96,6 +102,27 @@ function SelectorRival({ miembros, onJugar, onCancelar, jugando }) {
   )
 }
 
+// Confirmación en línea para las acciones de un solo toque que no se pueden deshacer
+function ConfirmacionInline({ texto, textoBoton, onConfirmar, onCancelar, cargando, peligro }) {
+  return (
+    <div className="bg-borde/10 border border-borde/30 rounded-lg p-3 mt-2 w-64">
+      <p className="font-body text-xs text-texto mb-2 leading-snug">{texto}</p>
+      <div className="flex gap-2">
+        <button
+          onClick={onConfirmar}
+          disabled={cargando}
+          className={`font-body text-xs font-semibold rounded px-3 py-1.5 hover:brightness-110 disabled:opacity-50 flex-1 ${peligro ? 'bg-red-500 text-white' : 'bg-acento text-fondo'}`}
+        >
+          {cargando ? '...' : textoBoton}
+        </button>
+        <button onClick={onCancelar} className="font-body text-xs text-borde hover:text-texto px-2">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function CartaJugada({ jugada }) {
   return (
     <div className="flex items-center gap-3 bg-fondo border border-borde/20 rounded-lg p-3">
@@ -107,6 +134,12 @@ function CartaJugada({ jugada }) {
             Jugada sobre: <span className="font-semibold">{jugada.partido.equipo_local} vs {jugada.partido.equipo_visitante}</span>
             <br />
             <span className="text-borde">Jornada {jugada.partido.jornada}</span>
+            {jugada.partido_pronosticado === false && (
+              <>
+                <br />
+                <span className="text-red-500 font-semibold">⚠️ Aún no has pronosticado este partido: si no lo haces, la carta se pierde.</span>
+              </>
+            )}
           </p>
         ) : jugada.objetivo ? (
           <p className="font-body text-xs text-texto mt-0.5">
@@ -123,6 +156,50 @@ function CartaJugada({ jugada }) {
           <p className="font-body text-xs text-borde mt-0.5">Jugada para la jornada {jugada.jornada_efecto}</p>
         )}
       </div>
+    </div>
+  )
+}
+
+// Una carta que ya se resolvió: qué hizo al final
+function CartaHistorial({ item }) {
+  const esFalta = item.tipo_carta.categoria.nombre === 'Faltas'
+  const cumplida = item.estado === 'resuelta_cumplida'
+
+  let resultado
+  let claseResultado
+
+  if (esFalta) {
+    resultado = cumplida ? 'Efecto aplicado' : 'No llegó a usarse'
+    claseResultado = cumplida ? 'text-premio border-premio/40 bg-premio/10' : 'text-borde border-borde/25'
+  } else if (cumplida) {
+    resultado = item.puntos_generados > 0 ? `+${item.puntos_generados} pts` : 'Activada'
+    claseResultado = 'text-acento border-acento/40 bg-acento/10'
+  } else {
+    resultado = 'Sin efecto'
+    claseResultado = 'text-borde border-borde/25'
+  }
+
+  return (
+    <div className="flex items-center gap-3 bg-fondo border border-borde/20 rounded-lg p-3">
+      <CartaJuego carta={item.tipo_carta} categoriaNombre={item.tipo_carta.categoria.nombre} categoriaIcono={item.tipo_carta.categoria.icono} tamano="pequena" />
+      <div className="min-w-0 flex-1">
+        <p className="font-body text-xs font-semibold text-texto">{item.tipo_carta.nombre}</p>
+        {item.partido ? (
+          <p className="font-body text-xs text-borde mt-0.5">
+            {item.partido.equipo_local} vs {item.partido.equipo_visitante} · Jornada {item.partido.jornada}
+          </p>
+        ) : item.objetivo ? (
+          <p className="font-body text-xs text-borde mt-0.5">
+            {item.objetivo.es_uno_mismo ? 'Te protegiste a ti mismo' : `Contra ${item.objetivo.nombre}`} · Jornada {item.jornada_efecto}
+          </p>
+        ) : (
+          <p className="font-body text-xs text-borde mt-0.5">Jornada {item.jornada_efecto}</p>
+        )}
+        {item.mensaje_falta && <p className="font-body text-xs italic text-borde mt-0.5">"{item.mensaje_falta}"</p>}
+      </div>
+      <span className={`font-body text-[11px] font-semibold rounded-full px-2.5 py-1 border shrink-0 ${claseResultado}`}>
+        {resultado}
+      </span>
     </div>
   )
 }
@@ -185,11 +262,57 @@ function BotonAbrirSobres({ sinAbrir, onAbrir, abriendo }) {
   )
 }
 
+function GuiaCartas({ tope }) {
+  const puntos = [
+    { icono: '🎁', titulo: 'Cómo llegan', texto: 'Cuando se cierra cada jornada se reparten cartas nuevas, y los 3 primeros de esa jornada reciben una extra. Llegan en sobres cerrados: ábrelos desde aquí.' },
+    { icono: '⚡', titulo: 'Jugadas', texto: 'Las juegas sobre ti mismo, para la próxima jornada y antes de que empiece. Algunas piden elegir un partido (acuérdate de pronosticarlo: si no, la carta no cuenta); otras se aplican solas a toda la jornada. Se resuelven cuando la jornada se cierra.' },
+    { icono: '🎯', titulo: 'Faltas', texto: 'Se las juegas a un rival y afectan a la jornada siguiente. Solo puedes jugar 1 Falta por jornada, y no puedes repetir rival dos semanas seguidas.' },
+    { icono: '✋', titulo: 'Tu mano', texto: `Puedes guardar hasta ${tope} cartas. Si te pasas, no podrás jugar hasta descartar. Una carta jugada o descartada no se puede recuperar.` },
+  ]
+
+  return (
+    <div className="border-t border-borde/20 bg-borde/5 px-4 py-4 grid gap-3 sm:grid-cols-2">
+      {puntos.map((p) => (
+        <div key={p.titulo} className="flex gap-2.5">
+          <span className="text-lg shrink-0">{p.icono}</span>
+          <div>
+            <p className="font-body text-xs font-semibold text-texto">{p.titulo}</p>
+            <p className="font-body text-xs text-borde leading-snug mt-0.5">{p.texto}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function EstadoJornadaCartas({ jornadaJugable }) {
+  if (!jornadaJugable) return null
+
+  const { jornada, bloqueada, cierra_en: cierraEn } = jornadaJugable
+
+  let texto
+  if (jornada == null) {
+    texto = 'Ahora mismo no hay ninguna jornada por jugar.'
+  } else if (bloqueada) {
+    texto = `La jornada ${jornada} ya ha empezado: las Jugadas se juegan antes de que empiece cada jornada. Las Faltas sí puedes jugarlas ahora, y afectarán a la jornada ${jornada + 1}.`
+  } else {
+    texto = `Puedes jugar Jugadas para la jornada ${jornada}${cierraEn ? ` hasta el ${formatearInicio(cierraEn)}` : ''}. Las Faltas que juegues afectarán a la jornada ${jornada + 1}.`
+  }
+
+  const clases = bloqueada || jornada == null ? 'bg-premio/5 border-premio/25' : 'bg-acento/5 border-acento/20'
+
+  return (
+    <div className={`border rounded-lg px-3 py-2 mb-4 ${clases}`}>
+      <p className="font-body text-xs text-texto">🕒 {texto}</p>
+    </div>
+  )
+}
+
 function Pestana({ activa, onClick, children, contador, colorContador }) {
   return (
     <button
       onClick={onClick}
-      className={`flex-1 font-body text-sm font-semibold px-3 py-2.5 border-b-2 transition ${
+      className={`flex-1 font-body text-xs sm:text-sm font-semibold px-2 sm:px-3 py-2.5 border-b-2 transition ${
         activa ? 'border-acento text-texto' : 'border-transparent text-borde hover:text-texto'
       }`}
     >
@@ -207,9 +330,25 @@ function MisCartasPage() {
   const toast = useToast()
   const queryClient = useQueryClient()
   const [pestana, setPestana] = useState('mano')
-  const [idCartaEligiendoPartido, setIdCartaEligiendoPartido] = useState(null)
-  const [idCartaEligiendoRival, setIdCartaEligiendoRival] = useState(null)
+  // Un solo panel abierto a la vez en toda la página: { tipo, idCarta }
+  const [panel, setPanel] = useState(null)
   const [cartaAbriendose, setCartaAbriendose] = useState(null)
+  const [guiaAbierta, setGuiaAbierta] = useState(() => {
+    try {
+      return !localStorage.getItem(CLAVE_GUIA_VISTA)
+    } catch {
+      return true
+    }
+  })
+
+  // La guía se enseña abierta solo la primera vez que entras
+  useEffect(() => {
+    try {
+      localStorage.setItem(CLAVE_GUIA_VISTA, '1')
+    } catch {
+      // sin almacenamiento disponible: no pasa nada
+    }
+  }, [])
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['mis-cartas'],
@@ -232,6 +371,7 @@ function MisCartasPage() {
     mutationFn: (id) => client.post(`/api/v1/mis-cartas/${id}/descartar`),
     onSuccess: () => {
       toast.exito('Carta descartada.')
+      setPanel(null)
       queryClient.invalidateQueries({ queryKey: ['mis-cartas'] })
     },
     onError: (err) => toast.error(err.response?.data?.message ?? 'No se pudo descartar.'),
@@ -241,7 +381,7 @@ function MisCartasPage() {
     mutationFn: ({ idCarta, idPartido }) => client.post(`/api/v1/mis-cartas/${idCarta}/jugar`, { id_partido: idPartido }),
     onSuccess: () => {
       toast.exito('Carta jugada. Se resolverá cuando se cierre la jornada.')
-      setIdCartaEligiendoPartido(null)
+      setPanel(null)
       queryClient.invalidateQueries({ queryKey: ['mis-cartas'] })
     },
     onError: (err) => toast.error(err.response?.data?.message ?? 'No se pudo jugar la carta.'),
@@ -252,7 +392,7 @@ function MisCartasPage() {
       client.post(`/api/v1/mis-cartas/${idCarta}/jugar-falta`, idUsuarioObjetivo ? { id_usuario_objetivo: idUsuarioObjetivo, mensaje: mensaje || undefined } : {}),
     onSuccess: (respuesta) => {
       toast.exito(respuesta.data.message)
-      setIdCartaEligiendoRival(null)
+      setPanel(null)
       queryClient.invalidateQueries({ queryKey: ['mis-cartas'] })
     },
     onError: (err) => toast.error(err.response?.data?.message ?? 'No se pudo jugar la Falta.'),
@@ -282,9 +422,18 @@ function MisCartasPage() {
     )
   }
 
+  const historial = data.historial ?? []
   const sobreTope = data.cartas.length > data.tope_mano_cartas
   const partidosDisponibles = jornadaJugable?.partidos ?? []
-  const hayJornadaJugable = jornadaJugable?.jornada != null && partidosDisponibles.length > 0
+  const cargandoJornada = !jornadaJugable
+  const sinJornada = jornadaJugable?.jornada == null
+  const jornadaEmpezada = jornadaJugable?.bloqueada === true
+
+  const abrir = (tipo, idCarta) => setPanel({ tipo, idCarta })
+  const cerrar = () => setPanel(null)
+  const panelAbierto = (tipo, idCarta) => panel?.tipo === tipo && panel?.idCarta === idCarta
+
+  const clasesBoton = 'font-body text-xs text-acento hover:underline disabled:opacity-40 disabled:no-underline disabled:cursor-not-allowed'
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
@@ -301,6 +450,14 @@ function MisCartasPage() {
             </span>
           }
         />
+
+        <div className="border-t border-borde/20 px-4 py-2">
+          <button onClick={() => setGuiaAbierta(!guiaAbierta)} className="font-body text-xs text-acento hover:underline">
+            {guiaAbierta ? '▲ Ocultar cómo funciona' : '❓ Cómo funciona'}
+          </button>
+        </div>
+
+        {guiaAbierta && <GuiaCartas tope={data.tope_mano_cartas} />}
 
         {sobreTope && (
           <div className="bg-red-500/10 border-t border-red-500/20 px-4 py-2.5">
@@ -320,95 +477,136 @@ function MisCartasPage() {
           <Pestana activa={pestana === 'amenazas'} onClick={() => setPestana('amenazas')} contador={data.faltas_recibidas.length} colorContador="text-red-500">
             Amenazas
           </Pestana>
+          <Pestana activa={pestana === 'historial'} onClick={() => setPestana('historial')}>
+            Historial
+          </Pestana>
         </div>
 
         <div className="p-5">
           {pestana === 'mano' && (
-            data.cartas.length === 0 ? (
-              <p className="font-body text-sm text-borde text-center py-8">
-                {data.sin_abrir > 0 ? 'Abre tus sobres pendientes para ver tus cartas aquí.' : 'Aún no tienes ninguna carta. Llegarán cuando el admin reparta la próxima jornada.'}
-              </p>
-            ) : (
-              <div className="flex flex-wrap gap-5 justify-center">
-                {data.cartas.map((carta) => {
-                  const esJugada = carta.tipo_carta.categoria.nombre === 'Jugadas'
-                  const esFalta = carta.tipo_carta.categoria.nombre === 'Faltas'
-                  const esEscudo = carta.tipo_carta.codigo_efecto === 'FAL-PCOM-ESCUDO'
+            <>
+              <EstadoJornadaCartas jornadaJugable={jornadaJugable} />
 
-                  return (
-                    <div key={carta.id} className="flex flex-col items-center gap-2">
-                      <CartaJuego carta={carta.tipo_carta} categoriaNombre={carta.tipo_carta.categoria.nombre} categoriaIcono={carta.tipo_carta.categoria.icono} />
-                      <div className="flex gap-3">
-                        {esJugada && carta.requiere_partido && hayJornadaJugable && (
+              {data.cartas.length === 0 ? (
+                <p className="font-body text-sm text-borde text-center py-8">
+                  {data.sin_abrir > 0 ? 'Abre tus sobres pendientes para ver tus cartas aquí.' : 'Aún no tienes ninguna carta. Llegarán cuando el admin reparta la próxima jornada.'}
+                </p>
+              ) : (
+                <div className="flex flex-wrap gap-5 justify-center">
+                  {data.cartas.map((carta) => {
+                    const esJugada = carta.tipo_carta.categoria.nombre === 'Jugadas'
+                    const esFalta = carta.tipo_carta.categoria.nombre === 'Faltas'
+                    const esEscudo = carta.tipo_carta.codigo_efecto === 'FAL-PCOM-ESCUDO'
+
+                    // Las Jugadas no se pueden jugar con la jornada ya empezada; las Faltas sí (afectan a la siguiente)
+                    const noDisponible = sobreTope || cargandoJornada || sinJornada || (esJugada && jornadaEmpezada)
+                    const sinPartidos = esJugada && carta.requiere_partido && partidosDisponibles.length === 0
+                    const titulo = sobreTope ? 'Descarta alguna carta primero para poder jugar' : undefined
+
+                    return (
+                      <div key={carta.id} className="flex flex-col items-center gap-2">
+                        <CartaJuego carta={carta.tipo_carta} categoriaNombre={carta.tipo_carta.categoria.nombre} categoriaIcono={carta.tipo_carta.categoria.icono} />
+                        <div className="flex gap-3">
+                          {esJugada && carta.requiere_partido && (
+                            <button
+                              onClick={() => abrir('partido', carta.id)}
+                              disabled={noDisponible || sinPartidos}
+                              className={clasesBoton}
+                              title={titulo}
+                            >
+                              Jugar
+                            </button>
+                          )}
+                          {esJugada && !carta.requiere_partido && (
+                            <button
+                              onClick={() => abrir('confirmar-jugar', carta.id)}
+                              disabled={noDisponible || jugar.isPending}
+                              className={clasesBoton}
+                              title={titulo}
+                            >
+                              Jugar
+                            </button>
+                          )}
+                          {esFalta && esEscudo && (
+                            <button
+                              onClick={() => abrir('confirmar-escudo', carta.id)}
+                              disabled={noDisponible || jugarFalta.isPending}
+                              className={clasesBoton}
+                              title={titulo}
+                            >
+                              Activar
+                            </button>
+                          )}
+                          {esFalta && !esEscudo && (
+                            <button
+                              onClick={() => abrir('rival', carta.id)}
+                              disabled={noDisponible || !miembros}
+                              className={clasesBoton}
+                              title={titulo}
+                            >
+                              Jugar
+                            </button>
+                          )}
                           <button
-                            onClick={() => setIdCartaEligiendoPartido(carta.id)}
-                            disabled={sobreTope}
-                            className="font-body text-xs text-acento hover:underline disabled:opacity-40 disabled:no-underline disabled:cursor-not-allowed"
-                            title={sobreTope ? 'Descarta alguna carta primero para poder jugar' : undefined}
+                            onClick={() => abrir('confirmar-descartar', carta.id)}
+                            disabled={descartar.isPending}
+                            className="font-body text-xs text-borde hover:text-red-500 underline"
                           >
-                            Jugar
+                            Descartar
                           </button>
+                        </div>
+
+                        {panelAbierto('partido', carta.id) && (
+                          <SelectorPartido
+                            partidos={partidosDisponibles}
+                            jornada={jornadaJugable.jornada}
+                            onJugar={(idPartido) => jugar.mutate({ idCarta: carta.id, idPartido })}
+                            onCancelar={cerrar}
+                            jugando={jugar.isPending}
+                          />
                         )}
-                        {esJugada && !carta.requiere_partido && (
-                          <button
-                            onClick={() => jugar.mutate({ idCarta: carta.id, idPartido: null })}
-                            disabled={sobreTope || jugar.isPending}
-                            className="font-body text-xs text-acento hover:underline disabled:opacity-40 disabled:no-underline disabled:cursor-not-allowed"
-                            title={sobreTope ? 'Descarta alguna carta primero para poder jugar' : undefined}
-                          >
-                            Jugar
-                          </button>
+                        {panelAbierto('rival', carta.id) && (
+                          <SelectorRival
+                            miembros={miembros.filter((m) => m.id !== usuario?.id)}
+                            onJugar={(idRival, mensaje) => jugarFalta.mutate({ idCarta: carta.id, idUsuarioObjetivo: idRival, mensaje })}
+                            onCancelar={cerrar}
+                            jugando={jugarFalta.isPending}
+                          />
                         )}
-                        {esFalta && esEscudo && (
-                          <button
-                            onClick={() => jugarFalta.mutate({ idCarta: carta.id, idUsuarioObjetivo: null, mensaje: null })}
-                            disabled={sobreTope || jugarFalta.isPending}
-                            className="font-body text-xs text-acento hover:underline disabled:opacity-40 disabled:no-underline disabled:cursor-not-allowed"
-                            title={sobreTope ? 'Descarta alguna carta primero para poder jugar' : undefined}
-                          >
-                            {jugarFalta.isPending ? 'Activando...' : 'Activar'}
-                          </button>
+                        {panelAbierto('confirmar-jugar', carta.id) && (
+                          <ConfirmacionInline
+                            texto={`¿Jugar esta carta ahora? Se aplicará a la jornada ${jornadaJugable?.jornada} y no se puede deshacer.`}
+                            textoBoton="Sí, jugar"
+                            onConfirmar={() => jugar.mutate({ idCarta: carta.id, idPartido: null })}
+                            onCancelar={cerrar}
+                            cargando={jugar.isPending}
+                          />
                         )}
-                        {esFalta && !esEscudo && miembros && (
-                          <button
-                            onClick={() => setIdCartaEligiendoRival(carta.id)}
-                            disabled={sobreTope}
-                            className="font-body text-xs text-acento hover:underline disabled:opacity-40 disabled:no-underline disabled:cursor-not-allowed"
-                            title={sobreTope ? 'Descarta alguna carta primero para poder jugar' : undefined}
-                          >
-                            Jugar
-                          </button>
+                        {panelAbierto('confirmar-escudo', carta.id) && (
+                          <ConfirmacionInline
+                            texto={`¿Activar el Escudo? Te protegerá de la primera Falta que te lleguen en la jornada ${(jornadaJugable?.jornada ?? 0) + 1}. No se puede deshacer.`}
+                            textoBoton="Sí, activar"
+                            onConfirmar={() => jugarFalta.mutate({ idCarta: carta.id, idUsuarioObjetivo: null, mensaje: null })}
+                            onCancelar={cerrar}
+                            cargando={jugarFalta.isPending}
+                          />
                         )}
-                        <button
-                          onClick={() => descartar.mutate(carta.id)}
-                          disabled={descartar.isPending}
-                          className="font-body text-xs text-borde hover:text-red-500 underline"
-                        >
-                          Descartar
-                        </button>
+                        {panelAbierto('confirmar-descartar', carta.id) && (
+                          <ConfirmacionInline
+                            texto="¿Descartar esta carta? Se pierde y no se puede recuperar."
+                            textoBoton="Sí, descartar"
+                            peligro
+                            onConfirmar={() => descartar.mutate(carta.id)}
+                            onCancelar={cerrar}
+                            cargando={descartar.isPending}
+                          />
+                        )}
                       </div>
-                      {idCartaEligiendoPartido === carta.id && (
-                        <SelectorPartido
-                          partidos={partidosDisponibles}
-                          jornada={jornadaJugable.jornada}
-                          onJugar={(idPartido) => jugar.mutate({ idCarta: carta.id, idPartido })}
-                          onCancelar={() => setIdCartaEligiendoPartido(null)}
-                          jugando={jugar.isPending}
-                        />
-                      )}
-                      {idCartaEligiendoRival === carta.id && (
-                        <SelectorRival
-                          miembros={miembros.filter((m) => m.id !== usuario?.id)}
-                          onJugar={(idRival, mensaje) => jugarFalta.mutate({ idCarta: carta.id, idUsuarioObjetivo: idRival, mensaje })}
-                          onCancelar={() => setIdCartaEligiendoRival(null)}
-                          jugando={jugarFalta.isPending}
-                        />
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            )
+                    )
+                  })}
+                </div>
+              )}
+            </>
           )}
 
           {pestana === 'jugadas' && (
@@ -427,6 +625,16 @@ function MisCartasPage() {
             ) : (
               <div className="flex flex-col gap-2">
                 {data.faltas_recibidas.map((falta) => <FaltaRecibida key={falta.id} falta={falta} />)}
+              </div>
+            )
+          )}
+
+          {pestana === 'historial' && (
+            historial.length === 0 ? (
+              <p className="font-body text-sm text-borde text-center py-8">Aquí verás qué pasó con cada carta que juegues, cuando se cierre su jornada.</p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {historial.map((item) => <CartaHistorial key={item.id} item={item} />)}
               </div>
             )
           )}

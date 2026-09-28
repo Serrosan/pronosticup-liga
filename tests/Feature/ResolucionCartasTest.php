@@ -193,6 +193,49 @@ class ResolucionCartasTest extends TestCase
         $this->assertSame('en_mano', $amuleto->fresh()->estado);
     }
 
+    public function test_no_se_puede_jugar_una_carta_generica_con_la_jornada_ya_empezada(): void
+    {
+        $this->usuario->update(['liga_activa_id' => $this->liga->id]);
+
+        CalendarioPartido::factory()->create([
+            'id_temporada' => $this->liga->id_temporada,
+            'jornada' => 6,
+            'id_equipo_local' => Equipo::factory()->create()->id,
+            'id_equipo_visitante' => Equipo::factory()->create()->id,
+            'estado' => 'En juego',
+            'horario_estimado' => now()->subHour(),
+        ]);
+
+        $crack = $this->carta($this->tipo($this->jugadas, 'Crack', 'JUG-LEG-CRACK', 'Legendaria'), [
+            'estado' => 'en_mano', 'jugada_en' => null,
+        ]);
+
+        $this->actingAs($this->usuario)->postJson("/api/v1/mis-cartas/{$crack->id}/jugar")->assertStatus(422);
+
+        $this->assertSame('en_mano', $crack->fresh()->estado);
+    }
+
+    public function test_la_proxima_jornada_jugable_informa_del_plazo(): void
+    {
+        $this->usuario->update(['liga_activa_id' => $this->liga->id]);
+
+        CalendarioPartido::factory()->create([
+            'id_temporada' => $this->liga->id_temporada,
+            'jornada' => 6,
+            'id_equipo_local' => Equipo::factory()->create()->id,
+            'id_equipo_visitante' => Equipo::factory()->create()->id,
+            'estado' => 'Programado',
+            'horario_estimado' => now()->addDays(3),
+        ]);
+
+        $datos = $this->actingAs($this->usuario)->getJson('/api/v1/mis-cartas/proxima-jornada-jugable')->assertOk()->json('data');
+
+        $this->assertSame(6, $datos['jornada']);
+        $this->assertFalse($datos['bloqueada']);
+        $this->assertNotNull($datos['cierra_en']);
+        $this->assertCount(1, $datos['partidos']);
+    }
+
     public function test_mis_pronosticos_suma_los_bonus_de_cartas_sin_pisar_los_puntos_del_partido(): void
     {
         $this->usuario->update(['liga_activa_id' => $this->liga->id]);

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\CalendarioPartido;
 use App\Models\CartaUsuario;
 use App\Models\Liga;
+use App\Models\Pronostico;
 use App\Models\User;
 use App\Notifications\FaltaJugadaContraTi;
 use App\Services\MotorEfectosCartas;
@@ -29,7 +30,7 @@ class MisCartasController extends Controller
         }
 
         if ($liga->tipo !== 'ConExtras') {
-            return response()->json(['data' => ['activo' => false, 'cartas' => [], 'jugadas' => [], 'faltas_recibidas' => [], 'sin_abrir' => 0, 'tope_mano_cartas' => null]]);
+            return response()->json(['data' => ['activo' => false, 'cartas' => [], 'jugadas' => [], 'historial' => [], 'faltas_recibidas' => [], 'sin_abrir' => 0, 'tope_mano_cartas' => null]]);
         }
 
         // Solo mostramos en la mano las cartas ya "abiertas" — las que aún no se han
@@ -53,28 +54,26 @@ class MisCartasController extends Controller
             ->whereNull('revelada_en')
             ->count();
 
+        $relacionesResumen = ['tipoCarta.categoria', 'partido.equipoLocal', 'partido.equipoVisitante', 'usuarioObjetivo'];
+
         $cartasJugadas = CartaUsuario::where('id_liga', $liga->id)
             ->where('id_usuario', $request->user()->id)
             ->whereIn('estado', ['jugada', 'pendiente_resolucion'])
-            ->with(['tipoCarta.categoria', 'partido.equipoLocal', 'partido.equipoVisitante', 'usuarioObjetivo'])
+            ->with($relacionesResumen)
             ->orderByDesc('jugada_en')
             ->get()
-            ->map(fn ($c) => [
-                'id' => $c->id,
-                'tipo_carta' => $c->tipoCarta,
-                'jugada_en' => $c->jugada_en?->toIso8601String(),
-                'jornada_efecto' => $c->jornada_efecto,
-                'partido' => $c->partido ? [
-                    'equipo_local' => $c->partido->equipoLocal->nombre_corto ?? $c->partido->equipoLocal->nombre,
-                    'equipo_visitante' => $c->partido->equipoVisitante->nombre_corto ?? $c->partido->equipoVisitante->nombre,
-                    'jornada' => $c->partido->jornada,
-                ] : null,
-                'objetivo' => $c->usuarioObjetivo ? [
-                    'nombre' => $c->usuarioObjetivo->nombre_visible ?? $c->usuarioObjetivo->name,
-                    'es_uno_mismo' => $c->usuarioObjetivo->id === $request->user()->id,
-                ] : null,
-                'mensaje_falta' => $c->mensaje_falta,
-            ]);
+            ->map(fn ($c) => $this->resumenCartaJugada($c, $request->user()->id));
+
+        // Qué pasó con las cartas que ya se resolvieron (las 30 más recientes)
+        $historial = CartaUsuario::where('id_liga', $liga->id)
+            ->where('id_usuario', $request->user()->id)
+            ->whereIn('estado', ['resuelta_cumplida', 'resuelta_no_cumplida'])
+            ->with($relacionesResumen)
+            ->orderByDesc('jugada_en')
+            ->orderByDesc('id')
+            ->limit(30)
+            ->get()
+            ->map(fn ($c) => $this->resumenCartaJugada($c, $request->user()->id));
 
         // Faltas que otros te han jugado a ti — para que sepas qué tienes
         // encima, sin tener que descubrirlo solo cuando algo te bloquea.
@@ -99,6 +98,7 @@ class MisCartasController extends Controller
                 'tope_mano_cartas' => $liga->tope_mano_cartas ?? 8,
                 'cartas' => $cartasEnMano,
                 'jugadas' => $cartasJugadas,
+                'historial' => $historial,
                 'faltas_recibidas' => $faltasRecibidas,
                 'sin_abrir' => $sinAbrir,
             ],
@@ -145,7 +145,7 @@ class MisCartasController extends Controller
         $proximaJornadaNumero = $this->proximaJornadaNumero($liga);
 
         if (! $proximaJornadaNumero) {
-            return response()->json(['data' => ['jornada' => null, 'partidos' => []]]);
+            return response()->json(['data' => ['jornada' => null, 'bloqueada' => false, 'cierra_en' => null, 'partidos' => []]]);
         }
 
         $partidos = CalendarioPartido::where('id_temporada', $liga->id_temporada)
@@ -163,7 +163,14 @@ class MisCartasController extends Controller
                 'horario_estimado' => $p->horario_estimado?->format('d/m H:i'),
             ]);
 
-        return response()->json(['data' => ['jornada' => $proximaJornadaNumero, 'partidos' => $partidos]]);
+        return response()->json(['data' => [
+            'jornada' => $proximaJornadaNumero,
+            // ¿La jornada ya ha empezado? Entonces las Jugadas ya no se pueden jugar sobre ella.
+            'bloqueada' => CalendarioPartido::jornadaBloqueada($liga->id_temporada, $proximaJornadaNumero),
+            // Cuándo empieza (= cuándo se acaba el plazo para jugar Jugadas en esta jornada)
+            'cierra_en' => $this->inicioEfectivoDeJornada($liga, $proximaJornadaNumero)?->toIso8601String(),
+            'partidos' => $partidos,
+        ]]);
     }
 
     /**
@@ -302,6 +309,12 @@ class MisCartasController extends Controller
                 return response()->json(['message' => 'No hay ninguna jornada disponible para jugar esta carta ahora mismo.'], 422);
             }
 
+            // Sin esta comprobación se podría jugar Crack o un Amuleto automático con la
+            // jornada ya en marcha, sabiendo ya cuántos exactos llevas o qué partidos fallaste.
+            if (CalendarioPartido::jornadaBloqueada($liga->id_temporada, $proximaJornada)) {
+                return response()->json(['message' => 'Esa jornada ya ha empezado: las Jugadas se juegan antes de que empiece la jornada.'], 422);
+            }
+
             if ($error = $this->comprobarExpulsion($liga, $request->user(), $proximaJornada, 'Jugadas')) {
                 return $error;
             }
@@ -350,6 +363,63 @@ class MisCartasController extends Controller
         ]);
 
         return response()->json(['message' => 'Carta jugada sobre ese partido.']);
+    }
+
+    /**
+     * Resumen de una carta ya jugada, compartido por "Jugadas" (esperando) y el
+     * "Historial" (ya resueltas), para que ambas pestañas cuenten lo mismo igual.
+     */
+    private function resumenCartaJugada(CartaUsuario $c, int $idUsuarioActual): array
+    {
+        return [
+            'id' => $c->id,
+            'tipo_carta' => $c->tipoCarta,
+            'estado' => $c->estado,
+            'puntos_generados' => (int) $c->puntos_generados,
+            'jugada_en' => $c->jugada_en?->toIso8601String(),
+            'jornada_efecto' => $c->jornada_efecto,
+            'partido' => $c->partido ? [
+                'equipo_local' => $c->partido->equipoLocal->nombre_corto ?? $c->partido->equipoLocal->nombre,
+                'equipo_visitante' => $c->partido->equipoVisitante->nombre_corto ?? $c->partido->equipoVisitante->nombre,
+                'jornada' => $c->partido->jornada,
+            ] : null,
+            // Una carta jugada sobre un partido que no pronosticas se pierde: avisamos de ello
+            'partido_pronosticado' => $c->id_partido
+                ? Pronostico::where('id_liga', $c->id_liga)->where('id_usuario', $c->id_usuario)->where('id_partido', $c->id_partido)->exists()
+                : null,
+            'objetivo' => $c->usuarioObjetivo ? [
+                'nombre' => $c->usuarioObjetivo->nombre_visible ?? $c->usuarioObjetivo->name,
+                'es_uno_mismo' => $c->usuarioObjetivo->id === $idUsuarioActual,
+            ] : null,
+            'mensaje_falta' => $c->mensaje_falta,
+        ];
+    }
+
+    /**
+     * Cuándo empieza de verdad una jornada: el primer partido de su "grueso principal".
+     * Misma idea que CalendarioPartido::jornadaBloqueada() — un partido adelantado o
+     * aplazado que caiga a más de 5 días de la mediana no cuenta como inicio.
+     */
+    private function inicioEfectivoDeJornada(Liga $liga, int $jornada): ?\Carbon\CarbonInterface
+    {
+        $partidos = CalendarioPartido::where('id_temporada', $liga->id_temporada)
+            ->where('jornada', $jornada)
+            ->whereNotNull('horario_estimado')
+            ->get();
+
+        if ($partidos->isEmpty()) {
+            return null;
+        }
+
+        $timestamps = $partidos->map(fn ($p) => $p->horario_estimado->timestamp)->sort()->values();
+        $mediana = $timestamps[intdiv($timestamps->count(), 2)];
+        $ventanaSegundos = 5 * 24 * 60 * 60;
+
+        return $partidos
+            ->filter(fn ($p) => abs($p->horario_estimado->timestamp - $mediana) <= $ventanaSegundos)
+            ->sortBy('horario_estimado')
+            ->first()
+            ?->horario_estimado;
     }
 
     /**

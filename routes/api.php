@@ -73,6 +73,7 @@ Route::prefix('v1')->group(function () {
     Route::post('/liga-activa/personalizar', [\App\Http\Controllers\Api\V1\LigaPersonalizacionController::class, 'actualizar']);
     Route::post('/jornadas/{jornada}/repartir-cartas', [\App\Http\Controllers\Api\V1\CartaRepartoController::class, 'repartirJornada']);
     Route::get('/mis-cartas', [\App\Http\Controllers\Api\V1\MisCartasController::class, 'index']);
+    Route::get('/mis-cartas/proxima-jornada-jugable', [\App\Http\Controllers\Api\V1\MisCartasController::class, 'proximaJornadaJugable']);
     Route::post('/mis-cartas/abrir-siguiente', [\App\Http\Controllers\Api\V1\MisCartasController::class, 'abrirSiguiente']);
     Route::get('/catalogo-cartas', [\App\Http\Controllers\Api\V1\CatalogoCartasController::class, 'index']);
     Route::post('/mis-cartas/{cartaUsuario}/descartar', [\App\Http\Controllers\Api\V1\MisCartasController::class, 'descartar']);

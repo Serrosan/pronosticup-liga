@@ -10,6 +10,8 @@ use App\Models\CierreJornada;
 use App\Models\ConfiguracionCartasLiga;
 use App\Models\EventoPuntos;
 use App\Models\RarezaProbabilidadLiga;
+use App\Models\User;
+use App\Notifications\CartasRepartidas;
 use App\Services\ProbabilidadesPorDefecto;
 use App\Services\SorteoCartasService;
 use Illuminate\Http\Request;
@@ -64,6 +66,10 @@ class CartaRepartoController extends Controller
         $cartasBaseCreadas = 0;
         $idsUsuariosSobreElTope = [];
 
+        // Para avisar a cada jugador de lo que ha recibido: cuántas cartas, y si alguna es del bonus Top 3
+        $recibidas = [];
+        $posicionTop3 = [];
+
         foreach ($miembros as $miembro) {
             foreach ($categorias as $categoria) {
                 $cantidad = $configuraciones->get($categoria->id)->cantidad_reparto_semanal ?? 1;
@@ -83,6 +89,7 @@ class CartaRepartoController extends Controller
                             'estado' => 'en_mano',
                         ]);
                         $cartasBaseCreadas++;
+                        $recibidas[$miembro->id] = ($recibidas[$miembro->id] ?? 0) + 1;
                     }
                 }
             }
@@ -132,6 +139,8 @@ class CartaRepartoController extends Controller
                     'estado' => 'en_mano',
                 ]);
                 $cartasBonusCreadas++;
+                $recibidas[$fila->id_usuario] = ($recibidas[$fila->id_usuario] ?? 0) + 1;
+                $posicionTop3[$fila->id_usuario] = $posicion;
 
                 $manoFinal = CartaUsuario::where('id_liga', $liga->id)->where('id_usuario', $fila->id_usuario)->where('estado', 'en_mano')->count();
                 if ($manoFinal > $topeMano && ! in_array($fila->id_usuario, $idsUsuariosSobreElTope)) {
@@ -140,6 +149,8 @@ class CartaRepartoController extends Controller
             }
         }
 
+        $this->avisarReparto($recibidas, $posicionTop3, $idsUsuariosSobreElTope, $jornada);
+
         $mensajeAviso = count($idsUsuariosSobreElTope) > 0
             ? ' ⚠️ '.count($idsUsuariosSobreElTope).' usuario(s) han superado el tope de su mano — tendrán que descartar alguna carta ellos mismos desde Mis Cartas antes de poder jugar más.'
             : '';
@@ -147,6 +158,31 @@ class CartaRepartoController extends Controller
         return response()->json([
             'message' => "Reparto completado: {$cartasBaseCreadas} carta(s) base + {$cartasBonusCreadas} carta(s) de bonus Top 3.{$mensajeAviso}",
         ]);
+    }
+
+    /**
+     * Avisa por la campana a cada jugador de las cartas que ha recibido. Un fallo al
+     * avisar NUNCA debe deshacer ni repetir el reparto (las cartas ya están creadas),
+     * así que cada aviso va protegido por separado.
+     */
+    private function avisarReparto(array $recibidas, array $posicionTop3, array $idsSobreElTope, int $jornada): void
+    {
+        if (empty($recibidas)) {
+            return;
+        }
+
+        User::whereIn('id', array_keys($recibidas))->get()->each(function (User $usuario) use ($recibidas, $posicionTop3, $idsSobreElTope, $jornada) {
+            try {
+                $usuario->notify(new CartasRepartidas(
+                    cantidad: $recibidas[$usuario->id],
+                    jornada: $jornada,
+                    posicionTop3: $posicionTop3[$usuario->id] ?? null,
+                    sobreElTope: in_array($usuario->id, $idsSobreElTope),
+                ));
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        });
     }
 
     private function porcentajesDeCategoria(Collection $rarezasPorCategoria, int $idCategoria): array

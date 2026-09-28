@@ -8,6 +8,8 @@ use App\Models\CartaUsuario;
 use App\Models\CategoriaCarta;
 use App\Models\Liga;
 use App\Models\RarezaProbabilidadLiga;
+use App\Models\User;
+use App\Notifications\CartasRepartidas;
 use App\Services\ProbabilidadesPorDefecto;
 use App\Services\SorteoCartasService;
 use Illuminate\Http\Request;
@@ -46,6 +48,7 @@ class CartaRepartoInicialAdminController extends Controller
         $jornadaActual = CalendarioPartido::jornadaActualParaTemporada($liga->id_temporada);
 
         $creadas = 0;
+        $recibidas = [];
 
         foreach ($miembros as $miembro) {
             for ($i = 0; $i < $validated['cantidad']; $i++) {
@@ -69,12 +72,45 @@ class CartaRepartoInicialAdminController extends Controller
                         'estado' => 'en_mano',
                     ]);
                     $creadas++;
+                    $recibidas[$miembro->id] = ($recibidas[$miembro->id] ?? 0) + 1;
                 }
             }
         }
 
+        $this->avisarReparto($liga, $recibidas);
+
         return response()->json([
             'message' => "Reparto inicial completado: {$creadas} carta(s) repartidas entre {$miembros->count()} miembro(s) ({$validated['cantidad']} cada uno).",
         ]);
+    }
+
+    /**
+     * Avisa por la campana a cada miembro de lo que ha recibido. Un fallo al avisar
+     * nunca debe hacer que el admin repita un reparto que ya está hecho.
+     */
+    private function avisarReparto(Liga $liga, array $recibidas): void
+    {
+        if (empty($recibidas)) {
+            return;
+        }
+
+        $topeMano = $liga->tope_mano_cartas ?? 8;
+
+        User::whereIn('id', array_keys($recibidas))->get()->each(function (User $usuario) use ($liga, $recibidas, $topeMano) {
+            try {
+                $enMano = CartaUsuario::where('id_liga', $liga->id)
+                    ->where('id_usuario', $usuario->id)
+                    ->where('estado', 'en_mano')
+                    ->count();
+
+                $usuario->notify(new CartasRepartidas(
+                    cantidad: $recibidas[$usuario->id],
+                    sobreElTope: $enMano > $topeMano,
+                    inicial: true,
+                ));
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        });
     }
 }

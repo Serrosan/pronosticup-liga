@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\CalendarioPartido;
+use App\Models\CartaUsuario;
 use App\Models\CierreJornada;
 use App\Models\ConfiguracionPuntos;
 use App\Models\EventoPartido;
@@ -12,6 +13,7 @@ use App\Models\GoleadorJornada;
 use App\Models\Novedad;
 use App\Models\Pronostico;
 use App\Models\User;
+use App\Notifications\CartasResueltas;
 use App\Notifications\JornadaCerradaConPuntos;
 use App\Services\MotorEfectosCartas;
 use Illuminate\Http\Request;
@@ -95,6 +97,7 @@ class JornadaController extends Controller
 
         $this->notificarCierre($liga, $jornada, $puntosPorUsuario);
         $this->generarResumenJornada($liga, $jornada, $puntosPorUsuario);
+        $this->notificarCartasResueltas($liga, $jornada);
 
         $totalEventos = EventoPuntos::where('id_liga', $liga->id)->where('jornada', $jornada)->count();
 
@@ -384,6 +387,34 @@ class JornadaController extends Controller
                 $posicion === false ? null : $posicion + 1,
                 $liga->nombre,
             ));
+        }
+    }
+
+    /**
+     * Avisa a cada jugador de qué ha pasado con sus cartas de esta jornada. Solo entran las
+     * que ya están resueltas (las de eventos de partido se resuelven después, al cargar los
+     * eventos). Se llama únicamente al cerrar, nunca al recalcular, para no avisar dos veces,
+     * y un fallo al avisar nunca debe estropear un cierre que ya está hecho.
+     */
+    private function notificarCartasResueltas($liga, int $jornada): void
+    {
+        $cartasPorUsuario = CartaUsuario::where('id_liga', $liga->id)
+            ->where('jornada_efecto', $jornada)
+            ->whereIn('estado', ['resuelta_cumplida', 'resuelta_no_cumplida'])
+            ->get()
+            ->groupBy('id_usuario');
+
+        foreach ($cartasPorUsuario as $idUsuario => $cartas) {
+            try {
+                User::find($idUsuario)?->notify(new CartasResueltas(
+                    jornada: $jornada,
+                    total: $cartas->count(),
+                    cumplidas: $cartas->where('estado', 'resuelta_cumplida')->count(),
+                    puntos: (int) $cartas->sum('puntos_generados'),
+                ));
+            } catch (\Throwable $e) {
+                report($e);
+            }
         }
     }
 

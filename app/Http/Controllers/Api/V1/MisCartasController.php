@@ -134,6 +134,32 @@ class MisCartasController extends Controller
         return response()->json(['data' => $carta]);
     }
 
+    /**
+     * Para el selector de rivales: qué candidatos quedarían bloqueados y por qué,
+     * antes de que el jugador elija — no hace falta intentarlo para enterarse.
+     */
+    public function rivalesBloqueados(Request $request)
+    {
+        $liga = $request->user()->ligaActiva;
+
+        if (! $liga) {
+            return response()->json(['message' => 'No tienes ninguna liga activa.'], 409);
+        }
+
+        $proximaJornada = $this->proximaJornadaNumero($liga);
+
+        if (! $proximaJornada) {
+            return response()->json(['data' => ['jornada_efecto' => null, 'motivos' => new \stdClass]]);
+        }
+
+        $jornadaEfecto = $proximaJornada + 1;
+        $totalMiembros = $liga->usuarios()->count();
+
+        $motivos = $this->motorFaltas->motivosBloqueoPorRival($liga->id, $request->user()->id, $jornadaEfecto, $totalMiembros);
+
+        return response()->json(['data' => ['jornada_efecto' => $jornadaEfecto, 'motivos' => (object) $motivos]]);
+    }
+
     public function proximaJornadaJugable(Request $request)
     {
         $liga = $request->user()->ligaActiva;

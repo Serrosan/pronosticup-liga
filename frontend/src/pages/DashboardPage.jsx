@@ -34,6 +34,37 @@ function EmpateLiderato({ empate }) {
   )
 }
 
+// Aviso de Cartas: sobres sin abrir y/o Amenazas activas, con acceso directo a la
+// pestaña que corresponde en Mis Cartas — no aparece si no hay nada que avisar.
+function AvisoCartas({ cartas }) {
+  if (!cartas || (cartas.sin_abrir === 0 && cartas.amenazas === 0)) return null
+
+  const partes = []
+  if (cartas.sin_abrir > 0) {
+    partes.push(`${cartas.sin_abrir} sobre${cartas.sin_abrir > 1 ? 's' : ''} sin abrir`)
+  }
+  if (cartas.amenazas > 0) {
+    partes.push(`${cartas.amenazas} Falta${cartas.amenazas > 1 ? 's' : ''} activa${cartas.amenazas > 1 ? 's' : ''} contra ti`)
+  }
+
+  const pestanaDestino = cartas.amenazas > 0 ? 'amenazas' : 'mano'
+  const urgente = cartas.amenazas > 0
+
+  return (
+    <Link
+      to="/mis-cartas"
+      state={{ pestana: pestanaDestino }}
+      className={`block rounded-lg px-4 py-2.5 mb-6 text-center transition hover:brightness-110 ${
+        urgente ? 'bg-red-500/10 border border-red-500/30' : 'bg-premio/10 border border-premio/30'
+      }`}
+    >
+      <p className={`font-body text-sm font-semibold ${urgente ? 'text-red-500' : 'text-premio'}`}>
+        🃏 Tienes {partes.join(' y ')} — entra a Mis Cartas →
+      </p>
+    </Link>
+  )
+}
+
 function ResumenRendimiento() {
   const { data } = useQuery({
     queryKey: ['resumen-rendimiento'],
@@ -220,6 +251,7 @@ function DashboardPage() {
       </div>
 
       <EmpateLiderato empate={data.empate_liderato} />
+      <AvisoCartas cartas={data.cartas} />
       <ResumenRendimiento />
 
       {data.avisos.length > 0 && (

@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import client from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import UserMenu from './UserMenu'
 import CampanaNotificaciones from './CampanaNotificaciones'
@@ -61,6 +63,22 @@ function MenuDesplegable({ etiqueta, opciones, activo }) {
   )
 }
 
+// Punto naranja/dorado con el nº de sobres sin abrir, o un punto rojo si solo hay una
+// Amenaza (Falta recibida) pendiente. Prioriza el número: es la acción más concreta.
+function BadgeCartas({ sinAbrir, hayAmenaza }) {
+  if (sinAbrir === 0 && !hayAmenaza) return null
+
+  if (sinAbrir > 0) {
+    return (
+      <span className="absolute -top-1.5 -right-2 bg-premio text-fondo font-marcador text-[10px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1 leading-none">
+        {sinAbrir > 9 ? '9+' : sinAbrir}
+      </span>
+    )
+  }
+
+  return <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-red-500" title="Tienes una Falta activa" />
+}
+
 function NavBar() {
   const { usuario } = useAuth()
   const location = useLocation()
@@ -76,6 +94,18 @@ function NavBar() {
   const enLaLiga = ['/clasificacion-liga', '/calendario', '/estadios'].some((p) => location.pathname.startsWith(p))
   const enQuiniela = location.pathname.startsWith('/quinielas')
   const tieneCartas = usuario?.liga_activa?.tipo === 'ConExtras'
+
+  // Misma clave que usa Mis Cartas: si esa pantalla ya está cargada, React Query
+  // reutiliza el dato en vez de pedirlo otra vez.
+  const { data: misCartas } = useQuery({
+    queryKey: ['mis-cartas'],
+    queryFn: async () => (await client.get('/api/v1/mis-cartas')).data.data,
+    enabled: tieneCartas,
+    staleTime: 60_000,
+  })
+
+  const sinAbrir = misCartas?.sin_abrir ?? 0
+  const hayAmenaza = (misCartas?.faltas_recibidas?.length ?? 0) > 0
 
   return (
     <header className="bg-fondo border-b border-borde/30 sticky top-0 z-30">
@@ -94,8 +124,9 @@ function NavBar() {
               </Link>
             ))}
             {tieneCartas && (
-              <Link to="/mis-cartas" className={claseEnlace('/mis-cartas')}>
+              <Link to="/mis-cartas" className={`relative ${claseEnlace('/mis-cartas')}`}>
                 🃏 Cartas
+                <BadgeCartas sinAbrir={sinAbrir} hayAmenaza={hayAmenaza} />
               </Link>
             )}
             {tieneCartas && (
@@ -126,8 +157,9 @@ function NavBar() {
               </Link>
             ))}
             {tieneCartas && (
-              <Link to="/mis-cartas" onClick={() => setMenuAbierto(false)} className={claseEnlace('/mis-cartas')}>
+              <Link to="/mis-cartas" onClick={() => setMenuAbierto(false)} className={`relative ${claseEnlace('/mis-cartas')}`}>
                 🃏 Cartas
+                <BadgeCartas sinAbrir={sinAbrir} hayAmenaza={hayAmenaza} />
               </Link>
             )}
             <p className="font-body text-[10px] uppercase tracking-widest text-borde px-3 pt-3 pb-1">LaLiga</p>

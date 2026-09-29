@@ -1,6 +1,18 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query'
 import client from '../api/client'
+
+// A qué pestaña de Mis Cartas debe llevar cada tipo de notificación, cuando la
+// pulsas. Solo se mapean los tipos que sabemos con certeza — cualquier otro
+// (incluidas las que no son de Cartas) simplemente no navega, como hasta ahora.
+const DESTINO_POR_TIPO = {
+  cartas_repartidas: { to: '/mis-cartas', pestana: 'mano' },
+  cartas_sin_jugar: { to: '/mis-cartas', pestana: 'mano' },
+  carta_manual: { to: '/mis-cartas', pestana: 'mano' },
+  cartas_resueltas: { to: '/mis-cartas', pestana: 'historial' },
+  falta_recibida: { to: '/mis-cartas', pestana: 'amenazas' },
+}
 
 function tiempoRelativo(fechaISO) {
   const minutos = Math.round((Date.now() - new Date(fechaISO)) / 60000)
@@ -14,6 +26,7 @@ function tiempoRelativo(fechaISO) {
 function CampanaNotificaciones() {
   const [abierto, setAbierto] = useState(false)
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
 
   const { data: noLeidas } = useQuery({
     queryKey: ['notificaciones-no-leidas'],
@@ -78,6 +91,16 @@ function CampanaNotificaciones() {
     }
   }, [abierto, lista])
 
+  function abrirNotificacion(n) {
+    if (!n.leida) marcarLeida.mutate(n.id)
+
+    const destino = DESTINO_POR_TIPO[n.tipo]
+    if (destino) {
+      setAbierto(false)
+      navigate(destino.to, { state: { pestana: destino.pestana } })
+    }
+  }
+
   const total = noLeidas?.total ?? 0
   const hayLeidas = lista?.some((n) => n.leida) ?? false
 
@@ -126,41 +149,44 @@ function CampanaNotificaciones() {
                 <p className="font-body text-xs text-borde text-center py-6">No tienes notificaciones todavía.</p>
               ) : (
                 <>
-                  {lista.map((n) => (
-                    <div
-                      key={n.id}
-                      className={`group px-4 py-3 border-b border-borde/10 last:border-0 hover:bg-borde/5 ${!n.leida ? 'bg-acento/5' : ''}`}
-                    >
-                      <div className="flex items-start gap-2">
-                        <div
-                          onClick={() => !n.leida && marcarLeida.mutate(n.id)}
-                          className="flex items-start gap-2 flex-1 min-w-0 cursor-pointer"
-                        >
-                          {!n.leida ? (
-                            <span className="w-1.5 h-1.5 rounded-full bg-acento mt-1.5 shrink-0" />
-                          ) : (
-                            <span className="w-1.5 h-1.5 mt-1.5 shrink-0" />
-                          )}
-                          <div className="min-w-0">
-                            <p className={`font-body text-xs ${n.leida ? 'text-borde' : 'font-semibold text-texto'}`}>
-                              {n.titulo}
-                            </p>
-                            <p className={`font-body text-xs mt-0.5 ${n.leida ? 'text-borde/70' : 'text-borde'}`}>
-                              {n.mensaje}
-                            </p>
-                            <p className="font-body text-[10px] text-borde/60 mt-1">{tiempoRelativo(n.creada_en)}</p>
+                  {lista.map((n) => {
+                    const navegable = !!DESTINO_POR_TIPO[n.tipo]
+                    return (
+                      <div
+                        key={n.id}
+                        className={`group px-4 py-3 border-b border-borde/10 last:border-0 hover:bg-borde/5 ${!n.leida ? 'bg-acento/5' : ''}`}
+                      >
+                        <div className="flex items-start gap-2">
+                          <div
+                            onClick={() => abrirNotificacion(n)}
+                            className={`flex items-start gap-2 flex-1 min-w-0 ${navegable || !n.leida ? 'cursor-pointer' : ''}`}
+                          >
+                            {!n.leida ? (
+                              <span className="w-1.5 h-1.5 rounded-full bg-acento mt-1.5 shrink-0" />
+                            ) : (
+                              <span className="w-1.5 h-1.5 mt-1.5 shrink-0" />
+                            )}
+                            <div className="min-w-0">
+                              <p className={`font-body text-xs ${n.leida ? 'text-borde' : 'font-semibold text-texto'}`}>
+                                {n.titulo}
+                              </p>
+                              <p className={`font-body text-xs mt-0.5 ${n.leida ? 'text-borde/70' : 'text-borde'}`}>
+                                {n.mensaje}
+                              </p>
+                              <p className="font-body text-[10px] text-borde/60 mt-1">{tiempoRelativo(n.creada_en)}</p>
+                            </div>
                           </div>
+                          <button
+                            onClick={() => eliminar.mutate(n.id)}
+                            className="font-body text-borde/40 hover:text-red-500 text-xs shrink-0 opacity-0 group-hover:opacity-100 transition"
+                            title="Eliminar"
+                          >
+                            🗑️
+                          </button>
                         </div>
-                        <button
-                          onClick={() => eliminar.mutate(n.id)}
-                          className="font-body text-borde/40 hover:text-red-500 text-xs shrink-0 opacity-0 group-hover:opacity-100 transition"
-                          title="Eliminar"
-                        >
-                          🗑️
-                        </button>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
 
                   {hasNextPage && (
                     <button

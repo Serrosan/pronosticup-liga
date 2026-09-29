@@ -19,6 +19,7 @@ const LEYENDA = [
   { icono: '%', color: '#0ea5e9', texto: 'Porcentaje de acierto (aciertos / resueltos)' },
   { icono: '🔥', color: '#F59E0B', texto: 'Racha de aciertos seguidos (solo si llevas 2 o más)' },
   { icono: '🥅', color: '#a855f7', texto: 'Puntos ganados por tus goleadores elegidos' },
+  { icono: '🃏', color: '#10b981', texto: 'Puntos ganados gracias a tus Cartas' },
 ]
 
 function Avatar({ url, nombre }) {
@@ -268,6 +269,9 @@ function FilaClasificacion({ fila, index, usuario, puntosLider }) {
           )}
           {fila.puntos_goleadores > 0 && (
             <Chip color="#a855f7" titulo="Puntos de goleadores">🥅 {fila.puntos_goleadores}</Chip>
+          )}
+          {fila.puntos_cartas > 0 && (
+            <Chip color="#10b981" titulo="Puntos ganados gracias a tus Cartas">🃏 {fila.puntos_cartas}</Chip>
           )}
         </div>
       </div>

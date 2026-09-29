@@ -74,6 +74,7 @@ Route::prefix('v1')->group(function () {
     Route::post('/jornadas/{jornada}/repartir-cartas', [\App\Http\Controllers\Api\V1\CartaRepartoController::class, 'repartirJornada']);
     Route::get('/mis-cartas', [\App\Http\Controllers\Api\V1\MisCartasController::class, 'index']);
     Route::get('/mis-cartas/proxima-jornada-jugable', [\App\Http\Controllers\Api\V1\MisCartasController::class, 'proximaJornadaJugable']);
+    Route::get('/mis-cartas/rivales-bloqueados', [\App\Http\Controllers\Api\V1\MisCartasController::class, 'rivalesBloqueados']);
     Route::post('/mis-cartas/abrir-siguiente', [\App\Http\Controllers\Api\V1\MisCartasController::class, 'abrirSiguiente']);
     Route::get('/catalogo-cartas', [\App\Http\Controllers\Api\V1\CatalogoCartasController::class, 'index']);
     Route::post('/mis-cartas/{cartaUsuario}/descartar', [\App\Http\Controllers\Api\V1\MisCartasController::class, 'descartar']);

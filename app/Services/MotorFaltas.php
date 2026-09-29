@@ -102,6 +102,47 @@ class MotorFaltas
     }
 
     /**
+     * Igual que comprobarAntiAbuso(), pero para TODOS los posibles rivales a la vez —
+     * pensado para que el selector muestre el motivo antes de elegir, no después de
+     * confirmar. Solo devuelve entradas para los rivales que sí quedan bloqueados.
+     *
+     * @return array<int, string> id_usuario => motivo
+     */
+    public function motivosBloqueoPorRival(int $idLiga, int $idAtacante, int $jornadaEfecto, int $totalMiembrosLiga): array
+    {
+        $motivos = [];
+
+        CartaUsuario::where('id_liga', $idLiga)
+            ->where('id_usuario', $idAtacante)
+            ->where('jornada_efecto', $jornadaEfecto - 1)
+            ->whereIn('estado', ['jugada', 'resuelta_cumplida', 'resuelta_no_cumplida'])
+            ->whereNotNull('id_usuario_objetivo')
+            ->pluck('id_usuario_objetivo')
+            ->unique()
+            ->each(function ($idRival) use (&$motivos) {
+                $motivos[$idRival] = 'Ya le jugaste una Falta la semana pasada.';
+            });
+
+        $maximoRecibidas = intdiv($totalMiembrosLiga, 2);
+
+        if ($maximoRecibidas > 0) {
+            CartaUsuario::where('id_liga', $idLiga)
+                ->where('jornada_efecto', $jornadaEfecto)
+                ->whereIn('estado', ['jugada', 'resuelta_cumplida', 'resuelta_no_cumplida'])
+                ->whereNotNull('id_usuario_objetivo')
+                ->selectRaw('id_usuario_objetivo, COUNT(*) as total')
+                ->groupBy('id_usuario_objetivo')
+                ->havingRaw('COUNT(*) >= ?', [$maximoRecibidas])
+                ->pluck('id_usuario_objetivo')
+                ->each(function ($idRival) use (&$motivos, $maximoRecibidas) {
+                    $motivos[$idRival] ??= "Ya ha alcanzado el máximo de Faltas recibidas esta jornada ({$maximoRecibidas}).";
+                });
+        }
+
+        return $motivos;
+    }
+
+    /**
      * ¿Este usuario tiene una Expulsión activa que le impide jugar cartas de
      * esta categoría, justo en esta jornada? Se comprueba con el número de
      * jornada que está a punto de abrirse (donde caería el efecto).

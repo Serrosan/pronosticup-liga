@@ -203,6 +203,66 @@ class ResolucionCartasTest extends TestCase
         $this->assertTrue($datos['jornadas'][0]['bonus_pleno_con_amuleto']);
     }
 
+    public function test_el_selector_de_rivales_marca_a_quien_ya_le_jugaste_una_falta_la_semana_pasada(): void
+    {
+        $this->usuario->update(['liga_activa_id' => $this->liga->id]);
+        $this->liga->usuarios()->attach($this->usuario->id, ['rol' => 'Miembro']);
+        $victima = User::factory()->create();
+        $this->liga->usuarios()->attach($victima->id, ['rol' => 'Miembro']);
+
+        CalendarioPartido::factory()->create([
+            'id_temporada' => $this->liga->id_temporada,
+            'jornada' => 6,
+            'id_equipo_local' => Equipo::factory()->create()->id,
+            'id_equipo_visitante' => Equipo::factory()->create()->id,
+            'estado' => 'Programado',
+            'horario_estimado' => now()->addDays(3),
+        ]);
+
+        // Falta ya jugada contra la víctima justo la jornada anterior a la que viene ahora (7-1=6)
+        $this->carta($this->tipo($this->faltas, 'Silbato', 'FAL-COM-SILBATO'), [
+            'id_usuario_objetivo' => $victima->id, 'jornada_efecto' => 6, 'estado' => 'resuelta_cumplida',
+        ]);
+
+        $datos = $this->actingAs($this->usuario)->getJson('/api/v1/mis-cartas/rivales-bloqueados')->assertOk()->json('data');
+
+        $this->assertSame(7, $datos['jornada_efecto']);
+        $this->assertArrayHasKey((string) $victima->id, $datos['motivos']);
+        $this->assertStringContainsString('la semana pasada', $datos['motivos'][(string) $victima->id]);
+    }
+
+    public function test_el_selector_de_rivales_marca_a_quien_ya_alcanzo_el_maximo(): void
+    {
+        $this->usuario->update(['liga_activa_id' => $this->liga->id]);
+        $this->liga->usuarios()->attach($this->usuario->id, ['rol' => 'Miembro']);
+        $victima = User::factory()->create();
+        $this->liga->usuarios()->attach($victima->id, ['rol' => 'Miembro']);
+        $this->liga->usuarios()->attach(User::factory()->create()->id, ['rol' => 'Miembro']);
+        $this->liga->usuarios()->attach(User::factory()->create()->id, ['rol' => 'Miembro']); // 4 miembros -> máximo 2
+
+        CalendarioPartido::factory()->create([
+            'id_temporada' => $this->liga->id_temporada,
+            'jornada' => 6,
+            'id_equipo_local' => Equipo::factory()->create()->id,
+            'id_equipo_visitante' => Equipo::factory()->create()->id,
+            'estado' => 'Programado',
+            'horario_estimado' => now()->addDays(3),
+        ]);
+
+        // La víctima ya recibió 2 Faltas para la jornada 7 — justo el máximo con 4 miembros
+        foreach ([1, 2] as $i) {
+            $this->carta($this->tipo($this->faltas, 'Silbato', 'FAL-COM-SILBATO'), [
+                'id_usuario' => User::factory()->create()->id, 'id_usuario_objetivo' => $victima->id,
+                'jornada_efecto' => 7, 'estado' => 'jugada',
+            ]);
+        }
+
+        $datos = $this->actingAs($this->usuario)->getJson('/api/v1/mis-cartas/rivales-bloqueados')->assertOk()->json('data');
+
+        $this->assertArrayHasKey((string) $victima->id, $datos['motivos']);
+        $this->assertStringContainsString('máximo', $datos['motivos'][(string) $victima->id]);
+    }
+
     public function test_una_falta_contra_un_escudo_pierde_las_dos_cartas(): void
     {
         $this->usuario->update(['liga_activa_id' => $this->liga->id]);

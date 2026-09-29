@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import client from '../api/client'
 import { useAuth } from '../context/AuthContext'
@@ -62,9 +63,10 @@ function SelectorPartido({ partidos, jornada, onJugar, onCancelar, jugando }) {
   )
 }
 
-function SelectorRival({ miembros, onJugar, onCancelar, jugando }) {
+function SelectorRival({ miembros, motivosBloqueo, onJugar, onCancelar, jugando }) {
   const [idRival, setIdRival] = useState('')
   const [mensaje, setMensaje] = useState('')
+  const motivo = idRival ? motivosBloqueo[idRival] : null
 
   return (
     <div className="bg-borde/10 border border-borde/30 rounded-lg p-3 mt-2 w-64">
@@ -74,10 +76,16 @@ function SelectorRival({ miembros, onJugar, onCancelar, jugando }) {
         onChange={(e) => setIdRival(e.target.value)}
         options={[
           { value: '', label: 'Elige un rival...' },
-          ...miembros.map((m) => ({ value: String(m.id), label: m.nombre })),
+          ...miembros.map((m) => ({
+            value: String(m.id),
+            label: motivosBloqueo[m.id] ? `${m.nombre} (no disponible)` : m.nombre,
+          })),
         ]}
         className="w-full bg-fondo text-xs"
       />
+      {motivo && (
+        <p className="font-body text-xs text-red-500 mt-2">⚠️ {motivo}</p>
+      )}
       <textarea
         value={mensaje}
         onChange={(e) => setMensaje(e.target.value)}
@@ -89,7 +97,7 @@ function SelectorRival({ miembros, onJugar, onCancelar, jugando }) {
       <div className="flex gap-2 mt-2">
         <button
           onClick={() => onJugar(idRival, mensaje)}
-          disabled={!idRival || jugando}
+          disabled={!idRival || !!motivo || jugando}
           className="font-body text-xs font-semibold bg-acento text-fondo rounded px-3 py-1.5 hover:brightness-110 disabled:opacity-50 flex-1"
         >
           {jugando ? 'Jugando...' : 'Confirmar'}
@@ -332,7 +340,8 @@ function MisCartasPage() {
   const { usuario } = useAuth()
   const toast = useToast()
   const queryClient = useQueryClient()
-  const [pestana, setPestana] = useState('mano')
+  const location = useLocation()
+  const [pestana, setPestana] = useState(() => location.state?.pestana ?? 'mano')
   // Un solo panel abierto a la vez en toda la página: { tipo, idCarta }
   const [panel, setPanel] = useState(null)
   const [cartaAbriendose, setCartaAbriendose] = useState(null)
@@ -367,6 +376,12 @@ function MisCartasPage() {
   const { data: miembros } = useQuery({
     queryKey: ['liga-activa-miembros'],
     queryFn: async () => (await client.get('/api/v1/liga-activa/miembros')).data.data,
+    enabled: data?.activo === true,
+  })
+
+  const { data: rivalesBloqueados } = useQuery({
+    queryKey: ['rivales-bloqueados'],
+    queryFn: async () => (await client.get('/api/v1/mis-cartas/rivales-bloqueados')).data.data,
     enabled: data?.activo === true,
   })
 
@@ -571,6 +586,7 @@ function MisCartasPage() {
                         {panelAbierto('rival', carta.id) && (
                           <SelectorRival
                             miembros={miembros.filter((m) => m.id !== usuario?.id)}
+                            motivosBloqueo={rivalesBloqueados?.motivos ?? {}}
                             onJugar={(idRival, mensaje) => jugarFalta.mutate({ idCarta: carta.id, idUsuarioObjetivo: idRival, mensaje })}
                             onCancelar={cerrar}
                             jugando={jugarFalta.isPending}

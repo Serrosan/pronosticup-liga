@@ -382,6 +382,10 @@ class MisCartasController extends Controller
      */
     private function resumenCartaJugada(CartaUsuario $c, int $idUsuarioActual): array
     {
+        $partidoPronosticado = $c->id_partido
+            ? Pronostico::where('id_liga', $c->id_liga)->where('id_usuario', $c->id_usuario)->where('id_partido', $c->id_partido)->exists()
+            : null;
+
         return [
             'id' => $c->id,
             'tipo_carta' => $c->tipoCarta,
@@ -395,15 +399,42 @@ class MisCartasController extends Controller
                 'jornada' => $c->partido->jornada,
             ] : null,
             // Una carta jugada sobre un partido que no pronosticas se pierde: avisamos de ello
-            'partido_pronosticado' => $c->id_partido
-                ? Pronostico::where('id_liga', $c->id_liga)->where('id_usuario', $c->id_usuario)->where('id_partido', $c->id_partido)->exists()
-                : null,
+            'partido_pronosticado' => $partidoPronosticado,
             'objetivo' => $c->usuarioObjetivo ? [
                 'nombre' => $c->usuarioObjetivo->nombre_visible ?? $c->usuarioObjetivo->name,
                 'es_uno_mismo' => $c->usuarioObjetivo->id === $idUsuarioActual,
             ] : null,
             'mensaje_falta' => $c->mensaje_falta,
+            // Por qué una carta resuelta como "no cumplida" no hizo nada — solo para Jugadas,
+            // y solo cuando de verdad no tuvo efecto (no cuando el motivo ya lo cuenta el nota_carta).
+            'motivo_sin_efecto' => $c->estado === 'resuelta_no_cumplida'
+                ? $this->motivoSinEfecto($c->tipoCarta->codigo_efecto, $partidoPronosticado)
+                : null,
         ];
+    }
+
+    /**
+     * Explicación en lenguaje llano de por qué una Jugada no tuvo efecto, según el
+     * tipo de carta y lo único que sabemos con certeza (si pronosticaste el partido).
+     * No inventamos detalles que no tenemos guardados (p. ej. el resultado exacto que
+     * hubiera hecho falta) — solo lo explicamos al nivel que podemos garantizar.
+     */
+    private function motivoSinEfecto(string $codigoEfecto, ?bool $partidoPronosticado): ?string
+    {
+        if ($partidoPronosticado === false) {
+            return 'No llegaste a pronosticar ese partido, así que la carta no pudo aplicarse.';
+        }
+
+        return match (true) {
+            str_contains($codigoEfecto, 'OJOHALCON') => 'No acertaste el resultado exacto de ese partido.',
+            str_contains($codigoEfecto, 'DOBLETE') => 'Tu pronóstico de ese partido fue un fallo — no había puntos que duplicar.',
+            str_contains($codigoEfecto, 'PLENOGARANTIZADO') => 'Ya habías acertado el resultado exacto por tu cuenta, así que la carta no tuvo nada que mejorar.',
+            str_contains($codigoEfecto, 'PALOMITAS') => 'Tu pronóstico no coincidió con la mayoría de tu liga en ese partido (o nadie más había pronosticado todavía).',
+            str_contains($codigoEfecto, 'CRACK') => 'No conseguiste el resultado exacto en 2 partidos de la jornada.',
+            str_contains($codigoEfecto, 'AMIGOARBITRO') => 'No hubo tarjeta roja en ese partido.',
+            str_contains($codigoEfecto, 'MADRUGADOR') || str_contains($codigoEfecto, 'FILODESCANSO') || str_contains($codigoEfecto, 'TIEMPO') => 'No hubo ningún gol en la franja de minutos de esta carta.',
+            default => null,
+        };
     }
 
     /**

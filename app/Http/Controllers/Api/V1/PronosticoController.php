@@ -266,6 +266,24 @@ class PronosticoController extends Controller
             ->groupBy('jornada')
             ->map(fn ($grupo) => (int) $grupo->sum('puntos'));
 
+        // En qué jornadas un Amuleto ayudó de verdad — para poder explicar el bonus de pleno
+        $jornadasConAmuletoActivo = CartaUsuario::where('id_liga', $liga->id)
+            ->where('id_usuario', $userId)
+            ->where('estado', 'resuelta_cumplida')
+            ->whereHas('tipoCarta', fn ($q) => $q->whereIn('codigo_efecto', ['JUG-PCOM-AMULETO', 'JUG-RAR-AMULETO', 'JUG-LEG-AMULETO']))
+            ->pluck('jornada_efecto')
+            ->flip();
+
+        // Puntos de cartas ligadas a un partido concreto (Chute Extra, Ojo de Halcón, Doblete,
+        // Pleno Garantizado, Palomitas, Amigo del Árbitro, las de minuto...) — ya vienen sumados
+        // DENTRO de 'puntos' de cada partido, así que para un desglose sin duplicar hay que
+        // restarlos de "pronósticos" en vez de sumarlos aparte.
+        $puntosCartasPorPartidoTotal = (int) CartaUsuario::where('id_liga', $liga->id)
+            ->where('id_usuario', $userId)
+            ->where('estado', 'resuelta_cumplida')
+            ->whereNotNull('id_partido')
+            ->sum('puntos_generados');
+
         $filasPorPartido = $pronosticos->map(function ($p) use ($eventosPorPartido, $cartasPorPartido, $tiposBase) {
             $eventos = $eventosPorPartido->get($p->id_partido, collect());
             $base = $eventos->first(fn ($e) => in_array($e->tipo_evento, $tiposBase, true));
@@ -299,7 +317,7 @@ class PronosticoController extends Controller
 
         $numerosJornada = $filasPorPartido->pluck('jornada')->unique()->sortDesc()->values();
 
-        $jornadas = $numerosJornada->map(function ($jornada) use ($liga, $userId, $filasPorPartido, $bonusPlenoPorJornada, $bonusCartasPorJornada, $config) {
+        $jornadas = $numerosJornada->map(function ($jornada) use ($liga, $userId, $filasPorPartido, $bonusPlenoPorJornada, $bonusCartasPorJornada, $jornadasConAmuletoActivo, $config) {
             $partidosDeEstaJornada = $filasPorPartido->where('jornada', $jornada)->sortBy('horario_estimado')->values();
 
             $bloqueada = CalendarioPartido::jornadaBloqueada($liga->id_temporada, $jornada);
@@ -339,6 +357,9 @@ class PronosticoController extends Controller
                 'bloqueada' => $bloqueada,
                 'puntos_totales_jornada' => $puntosPartidos + $puntosBonus + $puntosBonusCartas + $puntosGoleadores,
                 'bonus_pleno' => $puntosBonus,
+                // Si algún Amuleto de esa jornada protegió un fallo, el bonus de pleno puede
+                // deberse en parte a él — se lo decimos al jugador para que no parezca un error.
+                'bonus_pleno_con_amuleto' => $puntosBonus > 0 && $jornadasConAmuletoActivo->has($jornada),
                 'bonus_cartas' => $puntosBonusCartas,
                 'partidos' => $partidosDeEstaJornada,
                 'goleadores' => $goleadores,
@@ -346,14 +367,25 @@ class PronosticoController extends Controller
         });
 
         $puntosGoleadoresTotal = (int) $jornadas->sum(fn ($j) => collect($j['goleadores'])->sum('puntos'));
+        $puntosBonusCartasTotal = (int) $bonusCartasPorJornada->sum();
+        $puntosBonusPlenoTotal = (int) $bonusPlenoPorJornada->sum();
 
         return response()->json([
             'data' => [
                 'stats' => [
                     'total' => $filasPorPartido->count(),
-                    'puntos_totales' => (int) $filasPorPartido->sum('puntos') + (int) $bonusPlenoPorJornada->sum() + (int) $bonusCartasPorJornada->sum() + $puntosGoleadoresTotal,
+                    'puntos_totales' => (int) $filasPorPartido->sum('puntos') + $puntosBonusPlenoTotal + $puntosBonusCartasTotal + $puntosGoleadoresTotal,
                     'aciertos' => $filasPorPartido->whereIn('tipo_evento', ['AciertoExacto', 'AciertoDiferencia', 'Acierto1x2'])->count(),
                     'exactos' => $filasPorPartido->where('tipo_evento', 'AciertoExacto')->count(),
+                ],
+                // Desglose global, pensado para que "pronósticos + bono de pleno + cartas +
+                // goleadores" sume EXACTAMENTE el total — "pronósticos" resta lo que ya
+                // aportaron las cartas, para no contarlo dos veces.
+                'desglose' => [
+                    'pronosticos' => (int) $filasPorPartido->sum('puntos') - $puntosCartasPorPartidoTotal,
+                    'bonus_pleno' => $puntosBonusPlenoTotal,
+                    'cartas' => $puntosCartasPorPartidoTotal + $puntosBonusCartasTotal,
+                    'goleadores' => $puntosGoleadoresTotal,
                 ],
                 'jornadas' => $jornadas,
             ],

@@ -196,6 +196,9 @@ function CartaHistorial({ item }) {
           <p className="font-body text-xs text-borde mt-0.5">Jornada {item.jornada_efecto}</p>
         )}
         {item.mensaje_falta && <p className="font-body text-xs italic text-borde mt-0.5">"{item.mensaje_falta}"</p>}
+        {!cumplida && !esFalta && item.motivo_sin_efecto && (
+          <p className="font-body text-xs text-borde mt-0.5">{item.motivo_sin_efecto}</p>
+        )}
       </div>
       <span className={`font-body text-[11px] font-semibold rounded-full px-2.5 py-1 border shrink-0 ${claseResultado}`}>
         {resultado}

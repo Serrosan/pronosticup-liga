@@ -41,6 +41,17 @@ class ClasificacionController extends Controller
 
         $porUsuario = $eventosParaFilas->groupBy('id_usuario');
 
+        // Puntos que vienen de cartas (cualquier forma), para el mismo rango de jornadas que
+        // el resto de la tabla — usando puntos_generados de la propia carta, la fuente que el
+        // motor ya calcula con exactitud, así no hay que reconstruir nada.
+        $cartasQuery = CartaUsuario::where('id_liga', $liga->id)->where('estado', 'resuelta_cumplida');
+        if ($jornadaSeleccionada) {
+            $cartasQuery->where('jornada_efecto', $jornadaSeleccionada);
+        }
+        $puntosCartasPorUsuario = $cartasQuery->selectRaw('id_usuario, SUM(puntos_generados) as total')
+            ->groupBy('id_usuario')
+            ->pluck('total', 'id_usuario');
+
         $jornadaParaComparar = $jornadaSeleccionada ?? CierreJornada::where('id_liga', $liga->id)->where('cerrada', true)->max('jornada');
 
         $posicionesAnteriores = [];
@@ -55,7 +66,7 @@ class ClasificacionController extends Controller
                 ->toArray();
         }
 
-        $filas = $porUsuario->map(function ($grupo, $idUsuario) {
+        $filas = $porUsuario->map(function ($grupo, $idUsuario) use ($puntosCartasPorUsuario) {
             $usuario = User::find($idUsuario);
 
             // Solo cuentan para la racha los eventos de RESULTADO: una carta de evento
@@ -81,6 +92,8 @@ class ClasificacionController extends Controller
                 'avatar_url' => $usuario->avatar_url ? url($usuario->avatar_url) : null,
                 'puntos_totales' => (int) $grupo->sum('puntos'),
                 'puntos_goleadores' => (int) $grupo->where('tipo_evento', 'GolesGoleadorElegido')->sum('puntos'),
+                // Del total de arriba, cuánto vino de cartas — informativo, ya incluido en el total.
+                'puntos_cartas' => (int) ($puntosCartasPorUsuario[$idUsuario] ?? 0),
                 'aciertos' => $aciertos,
                 'fallos' => $fallos,
                 'exactos' => $grupo->where('tipo_evento', 'AciertoExacto')->count(),
@@ -188,6 +201,23 @@ class ClasificacionController extends Controller
             ->groupBy('jornada')
             ->map(fn ($grupo) => (int) $grupo->sum('puntos'));
 
+        // En qué jornadas un Amuleto ayudó de verdad — para poder explicar el bonus de pleno
+        $jornadasConAmuletoActivo = CartaUsuario::where('id_liga', $liga->id)
+            ->where('id_usuario', $usuario->id)
+            ->where('estado', 'resuelta_cumplida')
+            ->whereHas('tipoCarta', fn ($q) => $q->whereIn('codigo_efecto', ['JUG-PCOM-AMULETO', 'JUG-RAR-AMULETO', 'JUG-LEG-AMULETO']))
+            ->pluck('jornada_efecto')
+            ->flip();
+
+        // Puntos de cartas ligadas a un partido concreto — ya vienen sumados DENTRO de
+        // 'puntos' de cada partido, así que para el desglose se restan de "pronósticos"
+        // en vez de sumarse aparte (evita duplicar la cifra en la pantalla).
+        $puntosCartasPorPartidoTotal = (int) CartaUsuario::where('id_liga', $liga->id)
+            ->where('id_usuario', $usuario->id)
+            ->where('estado', 'resuelta_cumplida')
+            ->whereNotNull('id_partido')
+            ->sum('puntos_generados');
+
         $filasPorPartido = $pronosticos->map(function ($p) use ($eventosPorPartido, $cartasPorPartido, $esUnoMismo) {
             $eventos = $eventosPorPartido->get($p->id_partido, collect());
             $base = $eventos->first(fn ($e) => in_array($e->tipo_evento, self::TIPOS_RESULTADO, true));
@@ -227,7 +257,7 @@ class ClasificacionController extends Controller
 
         $numerosJornada = $filasPorPartido->pluck('jornada')->unique()->sortDesc()->values();
 
-        $jornadas = $numerosJornada->map(function ($jornada) use ($liga, $usuario, $filasPorPartido, $bonusPlenoPorJornada, $bonusCartasPorJornada, $config, $esUnoMismo, $goleadoresCalculadosPorJornada) {
+        $jornadas = $numerosJornada->map(function ($jornada) use ($liga, $usuario, $filasPorPartido, $bonusPlenoPorJornada, $bonusCartasPorJornada, $jornadasConAmuletoActivo, $config, $esUnoMismo, $goleadoresCalculadosPorJornada) {
             $partidosDeEstaJornada = $filasPorPartido->where('jornada', $jornada)->values();
 
             $bloqueada = CalendarioPartido::jornadaBloqueada($liga->id_temporada, $jornada);
@@ -277,16 +307,18 @@ class ClasificacionController extends Controller
                 'goleadores_calculados' => $goleadoresCalculadosOficial,
                 'puntos_totales_jornada' => $puntosPartidos + $puntosBonus + $puntosBonusCartas + $puntosGoleadores,
                 'bonus_pleno' => $puntosBonus,
+                'bonus_pleno_con_amuleto' => $puntosBonus > 0 && $jornadasConAmuletoActivo->has($jornada),
                 'bonus_cartas' => $puntosBonusCartas,
                 'partidos' => $partidosDeEstaJornada,
                 'goleadores' => $goleadores,
             ];
         });
 
-        $puntosPronosticos = (int) $filasPorPartido->sum('puntos');
+        $puntosPronosticosBase = (int) $filasPorPartido->sum('puntos');
         $puntosBonusTotal = (int) $bonusPlenoPorJornada->sum();
         $puntosBonusCartasTotal = (int) $bonusCartasPorJornada->sum();
         $puntosGoleadoresTotal = (int) $jornadas->sum(fn ($j) => collect($j['goleadores'])->pluck('puntos')->filter(fn ($p) => ! is_null($p))->sum());
+        $puntosCartasTotal = $puntosCartasPorPartidoTotal + $puntosBonusCartasTotal;
 
         return response()->json([
             'data' => [
@@ -297,14 +329,16 @@ class ClasificacionController extends Controller
                 ],
                 'stats' => [
                     'total' => $filasPorPartido->count(),
-                    'puntos_totales' => $puntosPronosticos + $puntosBonusTotal + $puntosBonusCartasTotal + $puntosGoleadoresTotal,
+                    'puntos_totales' => $puntosPronosticosBase + $puntosBonusTotal + $puntosBonusCartasTotal + $puntosGoleadoresTotal,
                     'aciertos' => $filasPorPartido->whereIn('tipo_evento', ['AciertoExacto', 'AciertoDiferencia', 'Acierto1x2'])->count(),
                     'exactos' => $filasPorPartido->where('tipo_evento', 'AciertoExacto')->count(),
                 ],
+                // "pronósticos" resta lo que ya aportaron las cartas, para que la suma de las
+                // 4 líneas del desglose coincida EXACTAMENTE con puntos_totales, sin duplicar nada.
                 'desglose' => [
-                    'pronosticos' => $puntosPronosticos,
+                    'pronosticos' => $puntosPronosticosBase - $puntosCartasPorPartidoTotal,
                     'bonus_pleno' => $puntosBonusTotal,
-                    'bonus_cartas' => $puntosBonusCartasTotal,
+                    'cartas' => $puntosCartasTotal,
                     'goleadores' => $puntosGoleadoresTotal,
                 ],
                 'jornadas' => $jornadas,

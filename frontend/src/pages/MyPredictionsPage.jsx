@@ -296,7 +296,12 @@ function BloqueJornada({ bloque }) {
           ))}
           {bloque.bonus_pleno > 0 && (
             <div className="px-4 py-2 bg-acento/5 border-t border-borde/10 flex items-center justify-between">
-              <p className="font-body text-xs text-acento font-semibold">🎯 Bonus por buena jornada</p>
+              <div>
+                <p className="font-body text-xs text-acento font-semibold">🎯 Bonus por buena jornada</p>
+                {bloque.bonus_pleno_con_amuleto && (
+                  <p className="font-body text-[11px] text-borde mt-0.5">🍀 En parte, gracias a tu Amuleto</p>
+                )}
+              </div>
               <span className="font-marcador text-xs font-bold text-acento">+{bloque.bonus_pleno}pt</span>
             </div>
           )}

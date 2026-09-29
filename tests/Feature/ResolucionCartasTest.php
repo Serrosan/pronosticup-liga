@@ -165,6 +165,44 @@ class ResolucionCartasTest extends TestCase
         $this->assertSame('jugada', $madrugador->fresh()->estado);               // espera a los eventos
     }
 
+    public function test_el_desglose_de_puntos_suma_exacto_sin_duplicar_las_cartas(): void
+    {
+        $this->usuario->update(['liga_activa_id' => $this->liga->id]);
+
+        Pronostico::create([
+            'id_usuario' => $this->usuario->id, 'id_liga' => $this->liga->id, 'id_partido' => $this->partido->id,
+            'resultado_1x2' => 'Local', 'goles_local_predicho' => 1, 'goles_visitante_predicho' => 0, 'enviado_en' => now(),
+        ]);
+
+        // Partido base: acierto de signo (1pt) + Chute Extra Común (+1) = 2pt, ya sumados en el evento
+        EventoPuntos::create([
+            'id_usuario' => $this->usuario->id, 'id_liga' => $this->liga->id, 'id_partido' => $this->partido->id,
+            'jornada' => 5, 'tipo_evento' => 'Acierto1x2', 'puntos' => 2,
+        ]);
+        $this->carta($this->tipo($this->jugadas, 'Chute Extra', 'JUG-COM-CHUTE'), [
+            'id_partido' => $this->partido->id, 'jornada_efecto' => 5, 'estado' => 'resuelta_cumplida', 'puntos_generados' => 1,
+        ]);
+
+        // Bono de pleno de la jornada, conseguido gracias a un Amuleto que protegió un fallo
+        EventoPuntos::create([
+            'id_usuario' => $this->usuario->id, 'id_liga' => $this->liga->id, 'id_partido' => null,
+            'jornada' => 5, 'tipo_evento' => 'BonusPleno', 'puntos' => 4,
+        ]);
+        $this->carta($this->tipo($this->jugadas, 'Amuleto', 'JUG-RAR-AMULETO', 'Rara'), [
+            'jornada_efecto' => 5, 'estado' => 'resuelta_cumplida', 'puntos_generados' => 0,
+        ]);
+
+        $datos = $this->actingAs($this->usuario)->getJson('/api/v1/pronosticos')->assertOk()->json('data');
+
+        $desglose = $datos['desglose'];
+        $suma = $desglose['pronosticos'] + $desglose['bonus_pleno'] + $desglose['cartas'] + $desglose['goleadores'];
+
+        $this->assertSame($datos['stats']['puntos_totales'], $suma);
+        $this->assertSame(1, $desglose['pronosticos']);   // 2pt del partido menos el +1 del Chute Extra
+        $this->assertSame(1, $desglose['cartas']);         // solo el Chute Extra: el Amuleto no suma puntos, solo protege
+        $this->assertTrue($datos['jornadas'][0]['bonus_pleno_con_amuleto']);
+    }
+
     public function test_una_falta_contra_un_escudo_pierde_las_dos_cartas(): void
     {
         $this->usuario->update(['liga_activa_id' => $this->liga->id]);

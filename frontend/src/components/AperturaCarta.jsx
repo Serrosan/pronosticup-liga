@@ -12,7 +12,9 @@ const COLORES_RAREZA = {
 
 const TOTAL_SLOTS = 22
 const INDICE_GANADOR = 18
-const ANCHO_SLOT = 155 // px — ajustado para que quepa la escala base de 1.1 sin que las cartas se pisen
+// Carta a tamaño 'normal' (240px) en vez de 'pequena' — con descripción legible en vez
+// de una miniatura. El hueco extra es para que la ganadora respire al centrarse.
+const ANCHO_SLOT = 264
 
 // Genera los "tics" de un carrusel que empieza rápido y va frenando, imitando la
 // misma curva de frenado que usa la animación visual (cubic-bezier decelerando).
@@ -63,13 +65,13 @@ function SlotCarrusel({ carta, esGanador, centrando }) {
   return (
     <div
       className="shrink-0 flex items-center justify-center transition-transform duration-300"
-      style={{ width: ANCHO_SLOT, transform: esGanador && centrando ? 'scale(1.5)' : 'scale(1.1)', zIndex: esGanador && centrando ? 10 : 1 }}
+      style={{ width: ANCHO_SLOT, transform: esGanador && centrando ? 'scale(1.1)' : 'scale(1.02)', zIndex: esGanador && centrando ? 10 : 1 }}
     >
       <CartaJuego
         carta={carta}
         categoriaNombre={carta.categoria_nombre}
         categoriaIcono={carta.categoria_icono}
-        tamano="pequena"
+        tamano="normal"
       />
     </div>
   )
@@ -134,10 +136,10 @@ function AperturaCarta({ cartaGanada, onCerrar }) {
   return (
     <div className="fixed inset-0 bg-black/95 flex items-center justify-center z-50 p-4">
       {fase !== 'revelada' ? (
-        <div className="w-full max-w-3xl">
+        <div className="w-full max-w-4xl">
           <p className="font-body text-sm text-white/70 text-center mb-4">Abriendo carta...</p>
           <div
-            className="relative overflow-hidden h-56"
+            className="relative overflow-hidden h-[420px]"
             style={{ maskImage: 'linear-gradient(to right, transparent, black 15%, black 85%, transparent)', WebkitMaskImage: 'linear-gradient(to right, transparent, black 15%, black 85%, transparent)' }}
           >
             <div

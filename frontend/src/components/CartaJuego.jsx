@@ -25,6 +25,17 @@ const PUNTOS_RAREZA = {
   Legendaria: 4,
 }
 
+// La misma textura diagonal sutil que ya usa el reverso de la carta — para que el
+// dorso y el frente se sientan de la misma familia, en vez de un color plano seco.
+const TEXTURA_FONDO = 'repeating-linear-gradient(135deg, rgba(255,255,255,0.035) 0, rgba(255,255,255,0.035) 1px, transparent 1px, transparent 9px)'
+
+// Resplandor de la carta entera, según rareza — más intenso en Legendaria, para que
+// esa sensación de "algo especial" no dependa solo del color de la cabecera.
+function resplandorCarta(colorBorde, rareza) {
+  const intensidad = rareza === 'Legendaria' ? '4D' : '26'
+  return `0 0 20px ${colorBorde}${intensidad}`
+}
+
 // min-h + line-clamp en la descripción garantizan que TODAS las cartas midan lo mismo,
 // sin importar si el texto es corto o largo.
 const TAMANOS = {
@@ -77,9 +88,12 @@ function IconoCategoria({ icono, tamano }) {
   )
 }
 
-function Circulo({ imagenUrl, nombre, emojiSize, circuloClase }) {
+function Circulo({ imagenUrl, nombre, emojiSize, circuloClase, colorBorde }) {
   return (
-    <div className={`rounded-full flex items-center justify-center overflow-hidden ${circuloClase}`} style={{ backgroundColor: '#FFFFFF' }}>
+    <div
+      className={`rounded-full flex items-center justify-center overflow-hidden ${circuloClase}`}
+      style={{ backgroundColor: '#FFFFFF', boxShadow: `0 0 16px ${colorBorde}55` }}
+    >
       {imagenUrl ? (
         <img src={imagenUrl} alt={nombre} className="w-full h-full object-contain p-2" />
       ) : (
@@ -96,7 +110,12 @@ function CartaJuego({ carta, categoriaNombre, categoriaIcono, tamano = 'normal' 
     return (
       <div
         className="relative flex flex-col rounded-2xl border-2 overflow-hidden w-36"
-        style={{ borderColor: colores.borde, backgroundColor: '#0E1B2B' }}
+        style={{
+          borderColor: colores.borde,
+          backgroundColor: '#0E1B2B',
+          backgroundImage: TEXTURA_FONDO,
+          boxShadow: resplandorCarta(colores.borde, carta.rareza),
+        }}
       >
         <div
           className="text-center font-display text-xs py-2"
@@ -105,7 +124,7 @@ function CartaJuego({ carta, categoriaNombre, categoriaIcono, tamano = 'normal' 
           {carta.nombre}
         </div>
         <div className="relative flex items-center justify-center py-3.5">
-          <Circulo imagenUrl={carta.imagen_url} nombre={carta.nombre} emojiSize="text-2xl" circuloClase="w-16 h-16" />
+          <Circulo imagenUrl={carta.imagen_url} nombre={carta.nombre} emojiSize="text-2xl" circuloClase="w-16 h-16" colorBorde={colores.borde} />
           {carta.insignia_corta && (
             <span
               className="absolute top-1 right-2 rounded-full flex items-center justify-center font-marcador font-bold border-2 w-7 h-7 text-[10px]"
@@ -128,7 +147,12 @@ function CartaJuego({ carta, categoriaNombre, categoriaIcono, tamano = 'normal' 
   return (
     <div
       className={`relative flex flex-col rounded-2xl border-2 overflow-hidden ${t.ancho}`}
-      style={{ borderColor: colores.borde, backgroundColor: '#0E1B2B' }}
+      style={{
+        borderColor: colores.borde,
+        backgroundColor: '#0E1B2B',
+        backgroundImage: TEXTURA_FONDO,
+        boxShadow: resplandorCarta(colores.borde, carta.rareza),
+      }}
     >
       <div
         className={`text-center font-display ${t.padCabecera} ${t.textoCabecera} truncate px-1`}
@@ -138,7 +162,7 @@ function CartaJuego({ carta, categoriaNombre, categoriaIcono, tamano = 'normal' 
       </div>
 
       <div className={`relative flex items-center justify-center ${t.padCirculo}`}>
-        <Circulo imagenUrl={carta.imagen_url} nombre={carta.nombre} emojiSize={t.emoji} circuloClase={t.circulo} />
+        <Circulo imagenUrl={carta.imagen_url} nombre={carta.nombre} emojiSize={t.emoji} circuloClase={t.circulo} colorBorde={colores.borde} />
 
         {carta.insignia_corta && (
           <span

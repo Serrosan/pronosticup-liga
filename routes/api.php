@@ -22,6 +22,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/jornadas/{jornada}/partidos', [PartidoController::class, 'porJornada']);
     Route::post('/pronosticos', [PronosticoController::class, 'store']);
     Route::get('/pronosticos', [PronosticoController::class, 'todos']);
+    Route::get('/pronosticos/pendientes-cuenta', [\App\Http\Controllers\Api\V1\PronosticoController::class, 'pendientesCuenta']);
     Route::get('/jornadas/{jornada}/pronosticos', [PronosticoController::class, 'misPronosticos']);
     Route::get('/clasificacion', [\App\Http\Controllers\Api\V1\ClasificacionController::class, 'index']);
     Route::get('/dashboard', [\App\Http\Controllers\Api\V1\DashboardController::class, 'index']);

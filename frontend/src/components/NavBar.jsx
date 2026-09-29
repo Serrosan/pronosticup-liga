@@ -65,6 +65,17 @@ function MenuDesplegable({ etiqueta, opciones, activo }) {
 
 // Punto naranja/dorado con el nº de sobres sin abrir, o un punto rojo si solo hay una
 // Amenaza (Falta recibida) pendiente. Prioriza el número: es la acción más concreta.
+// Punto genérico con un número — para contadores simples como "partidos por pronosticar"
+function BadgeContador({ numero }) {
+  if (!numero || numero <= 0) return null
+
+  return (
+    <span className="absolute -top-1.5 -right-2 bg-premio text-fondo font-marcador text-[10px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1 leading-none">
+      {numero > 9 ? '9+' : numero}
+    </span>
+  )
+}
+
 function BadgeCartas({ sinAbrir, hayAmenaza }) {
   if (sinAbrir === 0 && !hayAmenaza) return null
 
@@ -107,6 +118,14 @@ function NavBar() {
   const sinAbrir = misCartas?.sin_abrir ?? 0
   const hayAmenaza = (misCartas?.faltas_recibidas?.length ?? 0) > 0
 
+  const { data: pronosticosPendientes } = useQuery({
+    queryKey: ['pronosticos-pendientes-cuenta'],
+    queryFn: async () => (await client.get('/api/v1/pronosticos/pendientes-cuenta')).data.data,
+    staleTime: 60_000,
+  })
+
+  const pendientes = pronosticosPendientes?.pendientes ?? 0
+
   return (
     <header className="bg-fondo border-b border-borde/30 sticky top-0 z-30">
       <div className="max-w-7xl mx-auto px-4">
@@ -119,8 +138,13 @@ function NavBar() {
           </div>
           <nav className="hidden md:flex items-center gap-1">
             {ENLACES.map((enlace) => (
-              <Link key={enlace.to} to={enlace.to} className={claseEnlace(enlace.match)}>
+              <Link
+                key={enlace.to}
+                to={enlace.to}
+                className={enlace.to === '/pronosticos' ? `relative ${claseEnlace(enlace.match)}` : claseEnlace(enlace.match)}
+              >
                 {enlace.label}
+                {enlace.to === '/pronosticos' && <BadgeContador numero={pendientes} />}
               </Link>
             ))}
             {tieneCartas && (
@@ -152,8 +176,14 @@ function NavBar() {
         {menuAbierto && (
           <nav className="md:hidden flex flex-col gap-1 pb-4">
             {ENLACES.map((enlace) => (
-              <Link key={enlace.to} to={enlace.to} onClick={() => setMenuAbierto(false)} className={claseEnlace(enlace.match)}>
+              <Link
+                key={enlace.to}
+                to={enlace.to}
+                onClick={() => setMenuAbierto(false)}
+                className={enlace.to === '/pronosticos' ? `relative ${claseEnlace(enlace.match)}` : claseEnlace(enlace.match)}
+              >
                 {enlace.label}
+                {enlace.to === '/pronosticos' && <BadgeContador numero={pendientes} />}
               </Link>
             ))}
             {tieneCartas && (

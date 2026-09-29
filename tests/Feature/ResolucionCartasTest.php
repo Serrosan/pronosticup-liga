@@ -165,6 +165,40 @@ class ResolucionCartasTest extends TestCase
         $this->assertSame('jugada', $madrugador->fresh()->estado);               // espera a los eventos
     }
 
+    public function test_pendientes_cuenta_cuantos_partidos_faltan_por_pronosticar(): void
+    {
+        $this->usuario->update(['liga_activa_id' => $this->liga->id]);
+
+        // La 5 (del setUp) ya está Jugada — la próxima Programada es la 6, con 2 partidos
+        $partidoA = CalendarioPartido::factory()->create([
+            'id_temporada' => $this->liga->id_temporada,
+            'jornada' => 6,
+            'id_equipo_local' => Equipo::factory()->create()->id,
+            'id_equipo_visitante' => Equipo::factory()->create()->id,
+            'estado' => 'Programado',
+            'horario_estimado' => now()->addDays(3),
+        ]);
+        $partidoB = CalendarioPartido::factory()->create([
+            'id_temporada' => $this->liga->id_temporada,
+            'jornada' => 6,
+            'id_equipo_local' => Equipo::factory()->create()->id,
+            'id_equipo_visitante' => Equipo::factory()->create()->id,
+            'estado' => 'Programado',
+            'horario_estimado' => now()->addDays(3)->addHour(),
+        ]);
+
+        // Solo pronostica UNO de los 2 — el otro debe quedar como pendiente
+        Pronostico::create([
+            'id_usuario' => $this->usuario->id, 'id_liga' => $this->liga->id, 'id_partido' => $partidoA->id,
+            'resultado_1x2' => 'Local', 'goles_local_predicho' => 1, 'goles_visitante_predicho' => 0, 'enviado_en' => now(),
+        ]);
+
+        $datos = $this->actingAs($this->usuario)->getJson('/api/v1/pronosticos/pendientes-cuenta')->assertOk()->json('data');
+
+        $this->assertSame(6, $datos['jornada']);
+        $this->assertSame(1, $datos['pendientes']);
+    }
+
     public function test_el_desglose_de_puntos_suma_exacto_sin_duplicar_las_cartas(): void
     {
         $this->usuario->update(['liga_activa_id' => $this->liga->id]);

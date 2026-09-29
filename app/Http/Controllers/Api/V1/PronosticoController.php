@@ -392,6 +392,50 @@ class PronosticoController extends Controller
         ]);
     }
 
+    /**
+     * Para el badge de "Pronósticos" en la barra: cuántos partidos de la próxima
+     * jornada aún no has pronosticado. Ligero a propósito — nada de cartas, puntos
+     * ni historial, solo lo justo para pintar un número. Si la jornada ya empezó,
+     * no tiene sentido avisar de nada (ya no se puede actuar), así que sale 0.
+     */
+    public function pendientesCuenta(Request $request)
+    {
+        $liga = $request->user()->ligaActiva;
+
+        if (! $liga) {
+            return response()->json(['data' => ['jornada' => null, 'pendientes' => 0]]);
+        }
+
+        $proximoPartido = CalendarioPartido::where('id_temporada', $liga->id_temporada)
+            ->where('estado', 'Programado')
+            ->orderBy('horario_estimado')
+            ->first();
+
+        if (! $proximoPartido) {
+            return response()->json(['data' => ['jornada' => null, 'pendientes' => 0]]);
+        }
+
+        $jornada = $proximoPartido->jornada;
+
+        if (CalendarioPartido::jornadaBloqueada($liga->id_temporada, $jornada)) {
+            return response()->json(['data' => ['jornada' => $jornada, 'pendientes' => 0]]);
+        }
+
+        $idsPartidos = CalendarioPartido::where('id_temporada', $liga->id_temporada)
+            ->where('jornada', $jornada)
+            ->pluck('id');
+
+        $yaPronosticados = Pronostico::where('id_liga', $liga->id)
+            ->where('id_usuario', $request->user()->id)
+            ->whereIn('id_partido', $idsPartidos)
+            ->count();
+
+        return response()->json(['data' => [
+            'jornada' => $jornada,
+            'pendientes' => max(0, $idsPartidos->count() - $yaPronosticados),
+        ]]);
+    }
+
     private function calcularResultado(int $golesLocal, int $golesVisitante): string
     {
         if ($golesLocal > $golesVisitante) return 'Local';

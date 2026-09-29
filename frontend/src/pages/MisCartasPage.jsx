@@ -12,6 +12,24 @@ import useTitulo from '../hooks/useTitulo'
 import { useToast } from '../context/ToastContext'
 
 const CLAVE_GUIA_VISTA = 'pronosticup_guia_cartas_vista'
+const CLAVE_ORDEN_MANO = 'pronosticup_orden_mano_cartas'
+
+const ORDEN_RAREZA = { Legendaria: 0, Rara: 1, PocoComun: 2, Comun: 3 }
+const ORDEN_CATEGORIA = { Jugadas: 0, Faltas: 1 }
+
+function ordenarMano(cartas, criterio) {
+  const copia = [...cartas]
+
+  if (criterio === 'categoria') {
+    return copia.sort((a, b) => {
+      const cat = (ORDEN_CATEGORIA[a.tipo_carta.categoria.nombre] ?? 9) - (ORDEN_CATEGORIA[b.tipo_carta.categoria.nombre] ?? 9)
+      return cat !== 0 ? cat : (ORDEN_RAREZA[a.tipo_carta.rareza] ?? 9) - (ORDEN_RAREZA[b.tipo_carta.rareza] ?? 9)
+    })
+  }
+
+  // 'rareza' por defecto: las más raras primero
+  return copia.sort((a, b) => (ORDEN_RAREZA[a.tipo_carta.rareza] ?? 9) - (ORDEN_RAREZA[b.tipo_carta.rareza] ?? 9))
+}
 
 function formatearInicio(iso) {
   return new Date(iso).toLocaleString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
@@ -249,27 +267,36 @@ function AbanicoMisterio() {
 function BotonAbrirSobres({ sinAbrir, onAbrir, abriendo }) {
   if (sinAbrir === 0) return null
 
+  const acumulados = sinAbrir >= 15
+
   return (
-    <button
-      onClick={onAbrir}
-      disabled={abriendo}
-      className="relative w-full mb-4 bg-fondo border-2 border-acento/50 rounded-xl overflow-visible flex items-center gap-4 pl-6 pr-5 py-4 hover:border-acento transition disabled:opacity-50"
-      style={{ boxShadow: '0 0 24px rgba(200,255,77,0.15)' }}
-    >
-      <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-fondo border-2 border-acento/50" />
-      <div className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-fondo border-2 border-acento/50" />
+    <div className="mb-4">
+      <button
+        onClick={onAbrir}
+        disabled={abriendo}
+        className="relative w-full bg-fondo border-2 border-acento/50 rounded-xl overflow-visible flex items-center gap-4 pl-6 pr-5 py-4 hover:border-acento transition disabled:opacity-50"
+        style={{ boxShadow: '0 0 24px rgba(200,255,77,0.15)' }}
+      >
+        <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-fondo border-2 border-acento/50" />
+        <div className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-fondo border-2 border-acento/50" />
 
-      <AbanicoMisterio />
+        <AbanicoMisterio />
 
-      <div className="text-left flex-1">
-        <p className="font-display text-lg text-texto">
-          {sinAbrir} carta{sinAbrir > 1 ? 's' : ''} te espera{sinAbrir > 1 ? 'n' : ''}
+        <div className="text-left flex-1">
+          <p className="font-display text-lg text-texto">
+            {sinAbrir} carta{sinAbrir > 1 ? 's' : ''} te espera{sinAbrir > 1 ? 'n' : ''}
+          </p>
+          <p className="font-body text-xs text-premio uppercase tracking-widest font-semibold">Descúbrela{sinAbrir > 1 ? 's' : ''}</p>
+        </div>
+
+        <span className="font-display text-2xl text-acento">→</span>
+      </button>
+      {acumulados && (
+        <p className="font-body text-xs text-borde text-center mt-1.5">
+          Llevas {sinAbrir} sobres acumulados — ábrelos de uno en uno para no perderte ninguna carta.
         </p>
-        <p className="font-body text-xs text-premio uppercase tracking-widest font-semibold">Descúbrela{sinAbrir > 1 ? 's' : ''}</p>
-      </div>
-
-      <span className="font-display text-2xl text-acento">→</span>
-    </button>
+      )}
+    </div>
   )
 }
 
@@ -352,6 +379,22 @@ function MisCartasPage() {
       return true
     }
   })
+  const [ordenMano, setOrdenMano] = useState(() => {
+    try {
+      return localStorage.getItem(CLAVE_ORDEN_MANO) ?? 'rareza'
+    } catch {
+      return 'rareza'
+    }
+  })
+
+  function cambiarOrden(criterio) {
+    setOrdenMano(criterio)
+    try {
+      localStorage.setItem(CLAVE_ORDEN_MANO, criterio)
+    } catch {
+      // sin almacenamiento disponible: no pasa nada, se queda solo para esta sesión
+    }
+  }
 
   // La guía se enseña abierta solo la primera vez que entras
   useEffect(() => {
@@ -510,8 +553,26 @@ function MisCartasPage() {
                   {data.sin_abrir > 0 ? 'Abre tus sobres pendientes para ver tus cartas aquí.' : 'Aún no tienes ninguna carta. Llegarán cuando el admin reparta la próxima jornada.'}
                 </p>
               ) : (
-                <div className="flex flex-wrap gap-5 justify-center">
-                  {data.cartas.map((carta) => {
+                <>
+                  <div className="flex items-center justify-end gap-2 mb-3">
+                    <span className="font-body text-[11px] text-borde">Ordenar por:</span>
+                    {[
+                      { valor: 'rareza', etiqueta: 'Rareza' },
+                      { valor: 'categoria', etiqueta: 'Categoría' },
+                    ].map((op) => (
+                      <button
+                        key={op.valor}
+                        onClick={() => cambiarOrden(op.valor)}
+                        className={`font-body text-[11px] rounded-full px-2.5 py-1 border transition ${
+                          ordenMano === op.valor ? 'bg-acento text-fondo border-acento font-semibold' : 'text-borde border-borde/30 hover:text-texto'
+                        }`}
+                      >
+                        {op.etiqueta}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex flex-wrap gap-5 justify-center">
+                    {ordenarMano(data.cartas, ordenMano).map((carta) => {
                     const esJugada = carta.tipo_carta.categoria.nombre === 'Jugadas'
                     const esFalta = carta.tipo_carta.categoria.nombre === 'Faltas'
                     const esEscudo = carta.tipo_carta.codigo_efecto === 'FAL-PCOM-ESCUDO'
@@ -623,7 +684,8 @@ function MisCartasPage() {
                       </div>
                     )
                   })}
-                </div>
+                  </div>
+                </>
               )}
             </>
           )}

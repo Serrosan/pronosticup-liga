@@ -6,10 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Models\CalendarioPartido;
 use App\Models\EventoPartido;
 use App\Models\Pronostico;
+use App\Services\MotorFaltas;
 use Illuminate\Http\Request;
 
 class PartidoController extends Controller
 {
+    public function __construct(private MotorFaltas $motorFaltas) {}
+
     public function porJornada(Request $request, int $jornada)
     {
         $liga = $request->user()->ligaActiva;
@@ -54,11 +57,20 @@ class PartidoController extends Controller
             ];
         });
 
+        // Si hay una Falta de tipo "requisito" activa contra el usuario esta jornada
+        // (Todo Queda en Casa / Visita Obligada / Resultado Gafas), avisamos con el
+        // progreso real mientras va pronosticando — no solo al guardar el partido que
+        // ya lo rompería. Solo tiene sentido mirarlo en ligas con el modo Cartas.
+        $faltaActiva = $liga->tipo === 'ConExtras'
+            ? $this->motorFaltas->estadoRequisitoPronostico($liga->id, $request->user()->id, $jornada, $partidos->pluck('id'))
+            : null;
+
         return response()->json([
             'data' => $datos,
             'meta' => [
                 'ultima_actualizacion' => $partidos->max('sincronizado_en')?->toIso8601String(),
                 'jornada_bloqueada' => $jornadaBloqueada,
+                'falta_activa' => $faltaActiva,
             ],
         ]);
     }

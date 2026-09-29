@@ -30,7 +30,7 @@ class MisCartasController extends Controller
         }
 
         if ($liga->tipo !== 'ConExtras') {
-            return response()->json(['data' => ['activo' => false, 'cartas' => [], 'jugadas' => [], 'historial' => [], 'faltas_recibidas' => [], 'sin_abrir' => 0, 'tope_mano_cartas' => null]]);
+            return response()->json(['data' => ['activo' => false, 'cartas' => [], 'jugadas' => [], 'faltas_recibidas' => [], 'sin_abrir' => 0, 'tope_mano_cartas' => null]]);
         }
 
         // Solo mostramos en la mano las cartas ya "abiertas" — las que aún no se han
@@ -64,16 +64,9 @@ class MisCartasController extends Controller
             ->get()
             ->map(fn ($c) => $this->resumenCartaJugada($c, $request->user()->id));
 
-        // Qué pasó con las cartas que ya se resolvieron (las 30 más recientes)
-        $historial = CartaUsuario::where('id_liga', $liga->id)
-            ->where('id_usuario', $request->user()->id)
-            ->whereIn('estado', ['resuelta_cumplida', 'resuelta_no_cumplida'])
-            ->with($relacionesResumen)
-            ->orderByDesc('jugada_en')
-            ->orderByDesc('id')
-            ->limit(30)
-            ->get()
-            ->map(fn ($c) => $this->resumenCartaJugada($c, $request->user()->id));
+        // Qué pasó con las cartas que ya se resolvieron: ahora en su propio endpoint
+        // paginado, /mis-cartas/historial — así el fetch de aquí no crece sin límite
+        // con jugadores muy activos, ni carga de más en cada refresco del NavBar.
 
         // Faltas que otros te han jugado a ti — para que sepas qué tienes
         // encima, sin tener que descubrirlo solo cuando algo te bloquea.
@@ -98,7 +91,6 @@ class MisCartasController extends Controller
                 'tope_mano_cartas' => $liga->tope_mano_cartas ?? 8,
                 'cartas' => $cartasEnMano,
                 'jugadas' => $cartasJugadas,
-                'historial' => $historial,
                 'faltas_recibidas' => $faltasRecibidas,
                 'sin_abrir' => $sinAbrir,
             ],
@@ -406,6 +398,47 @@ class MisCartasController extends Controller
      * Resumen de una carta ya jugada, compartido por "Jugadas" (esperando) y el
      * "Historial" (ya resueltas), para que ambas pestañas cuenten lo mismo igual.
      */
+    /**
+     * Historial paginado ("cargar más"), mismo patrón que ya usa la campana de
+     * notificaciones — separado de index() para que ese endpoint (consultado a
+     * menudo, hasta por el NavBar) no cargue de más con jugadores muy activos.
+     */
+    public function historial(Request $request)
+    {
+        $liga = $request->user()->ligaActiva;
+
+        if (! $liga) {
+            return response()->json(['message' => 'No tienes ninguna liga activa.'], 409);
+        }
+
+        $pagina = max(1, (int) $request->query('pagina', 1));
+        $porPagina = 15;
+
+        $relacionesResumen = ['tipoCarta.categoria', 'partido.equipoLocal', 'partido.equipoVisitante', 'usuarioObjetivo'];
+
+        $query = CartaUsuario::where('id_liga', $liga->id)
+            ->where('id_usuario', $request->user()->id)
+            ->whereIn('estado', ['resuelta_cumplida', 'resuelta_no_cumplida'])
+            ->orderByDesc('jugada_en')
+            ->orderByDesc('id');
+
+        $total = $query->count();
+
+        $items = $query->with($relacionesResumen)
+            ->skip(($pagina - 1) * $porPagina)
+            ->take($porPagina)
+            ->get()
+            ->map(fn ($c) => $this->resumenCartaJugada($c, $request->user()->id));
+
+        return response()->json([
+            'data' => $items,
+            'meta' => [
+                'pagina' => $pagina,
+                'hay_mas' => ($pagina * $porPagina) < $total,
+            ],
+        ]);
+    }
+
     private function resumenCartaJugada(CartaUsuario $c, int $idUsuarioActual): array
     {
         $partidoPronosticado = $c->id_partido

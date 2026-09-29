@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query'
 import client from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import TicketHeader from '../components/TicketHeader'
@@ -483,7 +483,20 @@ function MisCartasPage() {
     )
   }
 
-  const historial = data.historial ?? []
+  const {
+    data: paginasHistorial,
+    fetchNextPage: cargarMasHistorial,
+    hasNextPage: hayMasHistorial,
+    isFetchingNextPage: cargandoMasHistorial,
+  } = useInfiniteQuery({
+    queryKey: ['mis-cartas-historial'],
+    queryFn: async ({ pageParam = 1 }) => (await client.get('/api/v1/mis-cartas/historial', { params: { pagina: pageParam } })).data,
+    getNextPageParam: (ultimaPagina) => (ultimaPagina.meta.hay_mas ? ultimaPagina.meta.pagina + 1 : undefined),
+    initialPageParam: 1,
+    enabled: pestana === 'historial',
+  })
+
+  const historial = paginasHistorial?.pages.flatMap((p) => p.data) ?? []
   const sobreTope = data.cartas.length > data.tope_mano_cartas
   const partidosDisponibles = jornadaJugable?.partidos ?? []
   const cargandoJornada = !jornadaJugable
@@ -716,6 +729,15 @@ function MisCartasPage() {
             ) : (
               <div className="flex flex-col gap-2">
                 {historial.map((item) => <CartaHistorial key={item.id} item={item} />)}
+                {hayMasHistorial && (
+                  <button
+                    onClick={() => cargarMasHistorial()}
+                    disabled={cargandoMasHistorial}
+                    className="w-full font-body text-xs text-acento hover:underline py-2.5 disabled:opacity-50"
+                  >
+                    {cargandoMasHistorial ? 'Cargando...' : 'Cargar más'}
+                  </button>
+                )}
               </div>
             )
           )}

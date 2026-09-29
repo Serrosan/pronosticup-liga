@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\CartaUsuario;
 use App\Models\EventoPartido;
+use App\Models\Pronostico;
 use Illuminate\Support\Collection;
 
 class MotorFaltas
@@ -222,6 +223,47 @@ class MotorFaltas
         }
 
         return null;
+    }
+
+    /**
+     * Versión de solo lectura de comprobarRequisitoPronostico() — para avisar mientras
+     * el usuario va pronosticando (con progreso real: cuántos llevas, cuántos te
+     * quedan), en vez de solo rechazarle al guardar el partido que lo rompe.
+     * Devuelve null si no hay ninguna Falta de este tipo activa contra él.
+     */
+    public function estadoRequisitoPronostico(int $idLiga, int $idUsuario, int $jornada, Collection $idsPartidosJornada): ?array
+    {
+        $faltaActiva = CartaUsuario::where('id_liga', $idLiga)
+            ->where('id_usuario_objetivo', $idUsuario)
+            ->where('jornada_efecto', $jornada)
+            ->where('estado', 'jugada')
+            ->whereHas('tipoCarta', fn ($q) => $q->whereIn('codigo_efecto', array_keys(self::REQUISITOS_PRONOSTICO)))
+            ->with('tipoCarta')
+            ->first();
+
+        if (! $faltaActiva) {
+            return null;
+        }
+
+        $requisito = self::REQUISITOS_PRONOSTICO[$faltaActiva->tipoCarta->codigo_efecto];
+
+        $misPronosticos = Pronostico::where('id_liga', $idLiga)
+            ->where('id_usuario', $idUsuario)
+            ->whereIn('id_partido', $idsPartidosJornada)
+            ->pluck('resultado_1x2');
+
+        $cumplidos = $misPronosticos->filter(fn ($tipo) => $tipo === $requisito['tipo'])->count();
+        $partidosSinPronosticar = $idsPartidosJornada->count() - $misPronosticos->count();
+
+        return [
+            'tipo' => $requisito['tipo'],
+            'cantidad' => $requisito['cantidad'],
+            'cumplidos' => $cumplidos,
+            'partidos_sin_pronosticar' => $partidosSinPronosticar,
+            // Sigue siendo posible cumplirlo con lo que queda por pronosticar — si sale
+            // false, el próximo pronóstico que no sea del tipo exigido ya lo rompería.
+            'cumplible' => ($cumplidos + $partidosSinPronosticar) >= $requisito['cantidad'],
+        ];
     }
 
     public function tieneFalloClamorosoActivo(int $idLiga, int $idUsuario, int $jornada): bool

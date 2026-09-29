@@ -297,6 +297,47 @@ class ResolucionCartasTest extends TestCase
         $this->assertStringContainsString('máximo', $datos['motivos'][(string) $victima->id]);
     }
 
+    public function test_estado_requisito_pronostico_da_el_progreso_real(): void
+    {
+        $this->usuario->update(['liga_activa_id' => $this->liga->id]);
+
+        $partidoA = CalendarioPartido::factory()->create([
+            'id_temporada' => $this->liga->id_temporada, 'jornada' => 6,
+            'id_equipo_local' => Equipo::factory()->create()->id, 'id_equipo_visitante' => Equipo::factory()->create()->id,
+            'estado' => 'Programado', 'horario_estimado' => now()->addDays(2),
+        ]);
+        $partidoB = CalendarioPartido::factory()->create([
+            'id_temporada' => $this->liga->id_temporada, 'jornada' => 6,
+            'id_equipo_local' => Equipo::factory()->create()->id, 'id_equipo_visitante' => Equipo::factory()->create()->id,
+            'estado' => 'Programado', 'horario_estimado' => now()->addDays(2)->addHour(),
+        ]);
+        $partidoC = CalendarioPartido::factory()->create([
+            'id_temporada' => $this->liga->id_temporada, 'jornada' => 6,
+            'id_equipo_local' => Equipo::factory()->create()->id, 'id_equipo_visitante' => Equipo::factory()->create()->id,
+            'estado' => 'Programado', 'horario_estimado' => now()->addDays(2)->addHours(2),
+        ]);
+
+        // Todo Queda en Casa Común: exige 2 victorias locales, efecto en la jornada 6
+        $this->carta($this->tipo($this->faltas, 'Todo Queda en Casa', 'FAL-COM-CASA'), [
+            'id_usuario' => User::factory()->create()->id, 'id_usuario_objetivo' => $this->usuario->id,
+            'jornada_efecto' => 6, 'estado' => 'jugada',
+        ]);
+
+        Pronostico::create([
+            'id_usuario' => $this->usuario->id, 'id_liga' => $this->liga->id, 'id_partido' => $partidoA->id,
+            'resultado_1x2' => 'Local', 'goles_local_predicho' => 1, 'goles_visitante_predicho' => 0, 'enviado_en' => now(),
+        ]);
+
+        $idsPartidos = collect([$partidoA->id, $partidoB->id, $partidoC->id]);
+        $estado = app(MotorFaltas::class)->estadoRequisitoPronostico($this->liga->id, $this->usuario->id, 6, $idsPartidos);
+
+        $this->assertSame('Local', $estado['tipo']);
+        $this->assertSame(2, $estado['cantidad']);
+        $this->assertSame(1, $estado['cumplidos']);
+        $this->assertSame(2, $estado['partidos_sin_pronosticar']);
+        $this->assertTrue($estado['cumplible']); // 1 ya cumplido + 2 sin pronosticar >= 2 exigidos
+    }
+
     public function test_una_falta_contra_un_escudo_pierde_las_dos_cartas(): void
     {
         $this->usuario->update(['liga_activa_id' => $this->liga->id]);

@@ -103,13 +103,19 @@ function CampanaNotificaciones() {
 
   const total = noLeidas?.total ?? 0
   const hayLeidas = lista?.some((n) => n.leida) ?? false
+  const hayImportantePendiente = !!noLeidas?.importante_pendiente
 
   return (
     <div className="relative">
       <button onClick={() => setAbierto(!abierto)} className="relative p-1.5 hover:opacity-80 transition" aria-label="Notificaciones">
         <span className="text-xl">🔔</span>
         {total > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1">
+          <span
+            className={`absolute -top-0.5 -right-0.5 text-[10px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1 ${
+              hayImportantePendiente ? 'bg-red-500 text-white' : 'bg-premio text-fondo'
+            }`}
+            title={hayImportantePendiente ? 'Tienes algo importante sin leer' : undefined}
+          >
             {total > 9 ? '9+' : total}
           </span>
         )}
@@ -151,10 +157,13 @@ function CampanaNotificaciones() {
                 <>
                   {lista.map((n) => {
                     const navegable = !!DESTINO_POR_TIPO[n.tipo]
+                    const destacada = n.importante && !n.leida
                     return (
                       <div
                         key={n.id}
-                        className={`group px-4 py-3 border-b border-borde/10 last:border-0 hover:bg-borde/5 ${!n.leida ? 'bg-acento/5' : ''}`}
+                        className={`group px-4 py-3 border-b border-borde/10 last:border-0 hover:bg-borde/5 ${
+                          destacada ? 'bg-red-500/5 border-l-2 border-l-red-500' : !n.leida ? 'bg-acento/5' : ''
+                        }`}
                       >
                         <div className="flex items-start gap-2">
                           <div
@@ -162,7 +171,7 @@ function CampanaNotificaciones() {
                             className={`flex items-start gap-2 flex-1 min-w-0 ${navegable || !n.leida ? 'cursor-pointer' : ''}`}
                           >
                             {!n.leida ? (
-                              <span className="w-1.5 h-1.5 rounded-full bg-acento mt-1.5 shrink-0" />
+                              <span className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${n.importante ? 'bg-red-500' : 'bg-acento'}`} />
                             ) : (
                               <span className="w-1.5 h-1.5 mt-1.5 shrink-0" />
                             )}

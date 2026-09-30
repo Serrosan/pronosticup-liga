@@ -65,7 +65,13 @@ class SincronizarPartidosJob implements ShouldQueue
                     ]);
                 }
 
+                $acabaDeTerminar = $estadoApi === 'FINISHED' && $partido->estado !== 'Jugado';
+
                 $partido->update($datosActualizar);
+
+                if ($acabaDeTerminar) {
+                    \App\Jobs\Partidos\SincronizarPartidoLaligaJob::dispatch($partido->id)->delay(now()->addMinutes(10));
+                }
             }
         }
     }

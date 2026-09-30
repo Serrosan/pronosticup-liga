@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\CalendarioPartido;
 use App\Models\Equipo;
+use App\Models\EstadisticaPartido;
 use App\Models\EventoPuntos;
 use App\Models\GoleadorJornada;
 use App\Models\User;
@@ -151,6 +152,26 @@ class EstadisticasLigaController extends Controller
 
         $usuarioReyExactos = $reyDeLosExactos ? User::find($reyDeLosExactos->id_usuario) : null;
 
+        // --- Equipo con más posesión media (requiere datos del scraper de LaLiga.com) ---
+        $posesionMedia = EstadisticaPartido::whereHas('partido', fn ($q) => $q->where('id_temporada', $liga->id_temporada))
+            ->whereNotNull('posesion')
+            ->selectRaw('id_equipo, AVG(posesion) as media')
+            ->groupBy('id_equipo')
+            ->orderByDesc('media')
+            ->first();
+
+        $equipoMasPosesion = $posesionMedia ? Equipo::find($posesionMedia->id_equipo) : null;
+
+        // --- Equipo más efectivo de cara a portería (goles por remate) ---
+        $efectividadMedia = EstadisticaPartido::whereHas('partido', fn ($q) => $q->where('id_temporada', $liga->id_temporada))
+            ->whereNotNull('efectividad')
+            ->selectRaw('id_equipo, AVG(efectividad) as media')
+            ->groupBy('id_equipo')
+            ->orderByDesc('media')
+            ->first();
+
+        $equipoMasEfectivo = $efectividadMedia ? Equipo::find($efectividadMedia->id_equipo) : null;
+
         return response()->json([
             'data' => [
                 'goles_totales' => (int) $golesTotales,
@@ -188,6 +209,16 @@ class EstadisticasLigaController extends Controller
                     'nombre' => $usuarioReyExactos->nombre_visible ?? $usuarioReyExactos->name,
                     'avatar_url' => $usuarioReyExactos->avatar_url ? url($usuarioReyExactos->avatar_url) : null,
                     'total' => (int) $reyDeLosExactos->total,
+                ] : null,
+                'equipo_mas_posesion' => $equipoMasPosesion ? [
+                    'nombre' => $equipoMasPosesion->nombre_corto ?? $equipoMasPosesion->nombre,
+                    'escudo_url' => $equipoMasPosesion->escudo_url,
+                    'porcentaje' => round($posesionMedia->media, 1),
+                ] : null,
+                'equipo_mas_efectivo' => $equipoMasEfectivo ? [
+                    'nombre' => $equipoMasEfectivo->nombre_corto ?? $equipoMasEfectivo->nombre,
+                    'escudo_url' => $equipoMasEfectivo->escudo_url,
+                    'porcentaje' => round($efectividadMedia->media, 1),
                 ] : null,
             ],
         ]);

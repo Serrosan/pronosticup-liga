@@ -103,6 +103,7 @@ function PlayerDetailPage() {
           <div className="flex flex-wrap gap-1.5 mt-2">
             {data.equipo_actual?.dorsal && <Pastilla label="Dorsal" valor={`#${data.equipo_actual.dorsal}`} />}
             <Pastilla label="Pos." valor={data.posicion} />
+            {stats.convocatorias > 0 && <Pastilla label="Titular" valor={`${stats.titularidades}/${stats.convocatorias}`} />}
             {data.equipo_actual && (
               <div className="bg-borde/10 rounded-full pl-1.5 pr-3 py-1 flex items-center gap-1.5">
                 {data.equipo_actual.escudo_url && <img src={data.equipo_actual.escudo_url} alt="" className="w-4 h-4 object-contain" />}

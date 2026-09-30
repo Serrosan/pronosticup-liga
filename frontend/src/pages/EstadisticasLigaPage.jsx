@@ -137,6 +137,34 @@ function EstadisticasLigaPage() {
             </>
           ) : <SinDatos />}
         </TarjetaDato>
+
+        <TarjetaDato icono="🌀" titulo="El equipo con más posesión de la liga">
+          {data.equipo_mas_posesion ? (
+            <>
+              {data.equipo_mas_posesion.escudo_url && (
+                <img src={data.equipo_mas_posesion.escudo_url} alt={data.equipo_mas_posesion.nombre} className="w-10 h-10 object-contain mx-auto mb-1" />
+              )}
+              <p className="font-body text-base font-semibold text-texto">{data.equipo_mas_posesion.nombre}</p>
+              <p className="font-body text-xs text-borde mt-1">
+                {data.equipo_mas_posesion.porcentaje}% de posesión media
+              </p>
+            </>
+          ) : <SinDatos />}
+        </TarjetaDato>
+
+        <TarjetaDato icono="📈" titulo="El equipo más letal cara a portería">
+          {data.equipo_mas_efectivo ? (
+            <>
+              {data.equipo_mas_efectivo.escudo_url && (
+                <img src={data.equipo_mas_efectivo.escudo_url} alt={data.equipo_mas_efectivo.nombre} className="w-10 h-10 object-contain mx-auto mb-1" />
+              )}
+              <p className="font-body text-base font-semibold text-texto">{data.equipo_mas_efectivo.nombre}</p>
+              <p className="font-body text-xs text-borde mt-1">
+                {data.equipo_mas_efectivo.porcentaje}% de efectividad
+              </p>
+            </>
+          ) : <SinDatos />}
+        </TarjetaDato>
       </div>
     </div>
   )

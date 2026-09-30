@@ -69,11 +69,13 @@ Route::prefix('v1')->group(function () {
     Route::patch('/profile/preferencias-email', [\App\Http\Controllers\Api\V1\ProfileController::class, 'updatePreferenciasEmail']);
     Route::get('/resumen-rendimiento', [\App\Http\Controllers\Api\V1\PronosticoController::class, 'resumenRendimiento']);
     Route::get('/estadisticas-liga', [\App\Http\Controllers\Api\V1\EstadisticasLigaController::class, 'index']);
+    Route::get('/estadisticas-cartas', [\App\Http\Controllers\Api\V1\EstadisticasCartasController::class, 'index']);
     Route::post('/chat/{mensajeChat}/fijar', [\App\Http\Controllers\Api\V1\ChatController::class, 'fijar']);
     Route::get('/logros', [\App\Http\Controllers\Api\V1\LogrosController::class, 'index']);
     Route::post('/liga-activa/personalizar', [\App\Http\Controllers\Api\V1\LigaPersonalizacionController::class, 'actualizar']);
     Route::post('/jornadas/{jornada}/repartir-cartas', [\App\Http\Controllers\Api\V1\CartaRepartoController::class, 'repartirJornada']);
     Route::get('/mis-cartas', [\App\Http\Controllers\Api\V1\MisCartasController::class, 'index']);
+    Route::post('/codigos/canjear', [\App\Http\Controllers\Api\V1\CanjeCodigoController::class, 'canjear']);
     Route::get('/mis-cartas/proxima-jornada-jugable', [\App\Http\Controllers\Api\V1\MisCartasController::class, 'proximaJornadaJugable']);
     Route::get('/mis-cartas/rivales-bloqueados', [\App\Http\Controllers\Api\V1\MisCartasController::class, 'rivalesBloqueados']);
     Route::post('/mis-cartas/abrir-siguiente', [\App\Http\Controllers\Api\V1\MisCartasController::class, 'abrirSiguiente']);
@@ -110,6 +112,8 @@ Route::prefix('v1')->group(function () {
         Route::post('/jugadores/{jugador}/cambiar-dorsal', [\App\Http\Controllers\Api\V1\Admin\FichajeAdminController::class, 'cambiarDorsal']);
         Route::apiResource('estadios', \App\Http\Controllers\Api\V1\Admin\EstadioAdminController::class)->except('show');
         Route::apiResource('arbitros', \App\Http\Controllers\Api\V1\Admin\ArbitroAdminController::class)->except('show');
+    Route::apiResource('codigos-canje', \App\Http\Controllers\Api\V1\Admin\CodigoCanjeAdminController::class);
+    Route::get('/canjes-codigo', [\App\Http\Controllers\Api\V1\Admin\CanjeCodigoAdminController::class, 'index']);
         Route::post('/subir-imagen', [\App\Http\Controllers\Api\V1\Admin\ImagenAdminController::class, 'subir']);
         Route::apiResource('trofeos', \App\Http\Controllers\Api\V1\Admin\TrofeoAdminController::class)->except('show');
         Route::get('/usuarios', [\App\Http\Controllers\Api\V1\Admin\UsuarioAdminController::class, 'index']);

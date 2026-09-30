@@ -40,13 +40,40 @@ function Escudo({ url, alt }) {
   return <img src={url} alt={alt} className="w-5 h-5 object-contain shrink-0" />
 }
 
-function SelectorPartido({ partidos, jornada, onJugar, onCancelar, jugando }) {
-  const [idPartido, setIdPartido] = useState('')
-  const partidoElegido = partidos.find((p) => String(p.id) === idPartido)
+const COLOR_RAREZA_PANEL = {
+  Comun: '#C8FF4D',
+  PocoComun: '#4DA6FF',
+  Rara: '#B44DFF',
+  Legendaria: '#FFB238',
+}
+
+// Contenedor compartido de los paneles flotantes de acción (confirmar, elegir
+// partido, elegir rival) — con el color de la propia carta como acento, para que
+// se sienta parte de ella en vez de una caja gris genérica sin relación con nada.
+// peligro fuerza rojo (acciones destructivas), independientemente de la rareza.
+function PanelFlotante({ rareza, icono, titulo, peligro, children }) {
+  const color = peligro ? '#EF4444' : (COLOR_RAREZA_PANEL[rareza] ?? COLOR_RAREZA_PANEL.Comun)
 
   return (
-    <div className="bg-borde/10 border border-borde/30 rounded-lg p-3 mt-2 w-64">
-      <p className="font-body text-[10px] uppercase tracking-widest text-premio mb-2">Jornada {jornada}</p>
+    <div
+      className="bg-fondo rounded-xl border-2 p-3.5 mt-2 w-72"
+      style={{ borderColor: color, boxShadow: `0 0 16px ${color}2E` }}
+    >
+      <p className="font-body text-xs font-semibold mb-2.5 flex items-center gap-1.5" style={{ color }}>
+        <span>{icono}</span> {titulo}
+      </p>
+      {children}
+    </div>
+  )
+}
+
+function SelectorPartido({ partidos, jornada, rareza, onJugar, onCancelar, jugando }) {
+  const [idPartido, setIdPartido] = useState('')
+  const partidoElegido = partidos.find((p) => String(p.id) === idPartido)
+  const color = COLOR_RAREZA_PANEL[rareza] ?? COLOR_RAREZA_PANEL.Comun
+
+  return (
+    <PanelFlotante rareza={rareza} icono="⚽" titulo={`Elige el partido — Jornada ${jornada}`}>
       <SelectTema
         value={idPartido}
         onChange={(e) => setIdPartido(e.target.value)}
@@ -57,7 +84,10 @@ function SelectorPartido({ partidos, jornada, onJugar, onCancelar, jugando }) {
         className="w-full bg-fondo text-xs"
       />
       {partidoElegido && (
-        <div className="flex items-center justify-center gap-2 mt-2 py-2 bg-fondo rounded border border-borde/20">
+        <div
+          className="flex items-center justify-center gap-2 mt-2.5 py-2 rounded-lg border"
+          style={{ borderColor: `${color}55`, backgroundColor: `${color}0D` }}
+        >
           <Escudo url={partidoElegido.escudo_local} alt={partidoElegido.equipo_local} />
           <span className="font-body text-xs text-texto">{partidoElegido.equipo_local}</span>
           <span className="text-borde text-xs">vs</span>
@@ -65,11 +95,12 @@ function SelectorPartido({ partidos, jornada, onJugar, onCancelar, jugando }) {
           <Escudo url={partidoElegido.escudo_visitante} alt={partidoElegido.equipo_visitante} />
         </div>
       )}
-      <div className="flex gap-2 mt-2">
+      <div className="flex gap-2 mt-2.5">
         <button
           onClick={() => onJugar(idPartido)}
           disabled={!idPartido || jugando}
-          className="font-body text-xs font-semibold bg-acento text-fondo rounded px-3 py-1.5 hover:brightness-110 disabled:opacity-50 flex-1"
+          className="font-body text-xs font-semibold text-fondo rounded-full px-3.5 py-1.5 hover:brightness-110 disabled:opacity-50 flex-1 transition"
+          style={{ backgroundColor: color }}
         >
           {jugando ? 'Jugando...' : 'Confirmar'}
         </button>
@@ -77,18 +108,18 @@ function SelectorPartido({ partidos, jornada, onJugar, onCancelar, jugando }) {
           Cancelar
         </button>
       </div>
-    </div>
+    </PanelFlotante>
   )
 }
 
-function SelectorRival({ miembros, motivosBloqueo, onJugar, onCancelar, jugando }) {
+function SelectorRival({ miembros, motivosBloqueo, rareza, onJugar, onCancelar, jugando }) {
   const [idRival, setIdRival] = useState('')
   const [mensaje, setMensaje] = useState('')
   const motivo = idRival ? motivosBloqueo[idRival] : null
+  const color = COLOR_RAREZA_PANEL[rareza] ?? COLOR_RAREZA_PANEL.Comun
 
   return (
-    <div className="bg-borde/10 border border-borde/30 rounded-lg p-3 mt-2 w-64">
-      <p className="font-body text-[10px] uppercase tracking-widest text-premio mb-2">Elige a quién se la juegas</p>
+    <PanelFlotante rareza={rareza} icono="⚔️" titulo="Elige a quién se la juegas">
       <SelectTema
         value={idRival}
         onChange={(e) => setIdRival(e.target.value)}
@@ -110,13 +141,14 @@ function SelectorRival({ miembros, motivosBloqueo, onJugar, onCancelar, jugando 
         placeholder="Mensaje de burla (opcional)"
         maxLength={200}
         rows={2}
-        className="w-full font-body text-xs bg-fondo text-texto rounded border border-borde/40 px-2 py-1.5 mt-2"
+        className="w-full font-body text-xs bg-fondo text-texto rounded border border-borde/40 px-2 py-1.5 mt-2.5"
       />
-      <div className="flex gap-2 mt-2">
+      <div className="flex gap-2 mt-2.5">
         <button
           onClick={() => onJugar(idRival, mensaje)}
           disabled={!idRival || !!motivo || jugando}
-          className="font-body text-xs font-semibold bg-acento text-fondo rounded px-3 py-1.5 hover:brightness-110 disabled:opacity-50 flex-1"
+          className="font-body text-xs font-semibold text-fondo rounded-full px-3.5 py-1.5 hover:brightness-110 disabled:opacity-50 flex-1 transition"
+          style={{ backgroundColor: color }}
         >
           {jugando ? 'Jugando...' : 'Confirmar'}
         </button>
@@ -124,20 +156,23 @@ function SelectorRival({ miembros, motivosBloqueo, onJugar, onCancelar, jugando 
           Cancelar
         </button>
       </div>
-    </div>
+    </PanelFlotante>
   )
 }
 
 // Confirmación en línea para las acciones de un solo toque que no se pueden deshacer
-function ConfirmacionInline({ texto, textoBoton, onConfirmar, onCancelar, cargando, peligro }) {
+function ConfirmacionInline({ texto, textoBoton, icono = '❓', titulo = 'Confirmar', rareza, onConfirmar, onCancelar, cargando, peligro }) {
+  const color = peligro ? '#EF4444' : (COLOR_RAREZA_PANEL[rareza] ?? COLOR_RAREZA_PANEL.Comun)
+
   return (
-    <div className="bg-borde/10 border border-borde/30 rounded-lg p-3 mt-2 w-64">
-      <p className="font-body text-xs text-texto mb-2 leading-snug">{texto}</p>
+    <PanelFlotante rareza={rareza} icono={icono} titulo={titulo} peligro={peligro}>
+      <p className="font-body text-xs text-texto mb-3 leading-snug">{texto}</p>
       <div className="flex gap-2">
         <button
           onClick={onConfirmar}
           disabled={cargando}
-          className={`font-body text-xs font-semibold rounded px-3 py-1.5 hover:brightness-110 disabled:opacity-50 flex-1 ${peligro ? 'bg-red-500 text-white' : 'bg-acento text-fondo'}`}
+          className={`font-body text-xs font-semibold rounded-full px-3.5 py-1.5 hover:brightness-110 disabled:opacity-50 flex-1 transition ${peligro ? 'text-white' : 'text-fondo'}`}
+          style={{ backgroundColor: color }}
         >
           {cargando ? '...' : textoBoton}
         </button>
@@ -145,7 +180,7 @@ function ConfirmacionInline({ texto, textoBoton, onConfirmar, onCancelar, cargan
           Cancelar
         </button>
       </div>
-    </div>
+    </PanelFlotante>
   )
 }
 
@@ -372,6 +407,7 @@ function MisCartasPage() {
   // Un solo panel abierto a la vez en toda la página: { tipo, idCarta }
   const [panel, setPanel] = useState(null)
   const [cartaAbriendose, setCartaAbriendose] = useState(null)
+  const [codigoTexto, setCodigoTexto] = useState('')
   const [guiaAbierta, setGuiaAbierta] = useState(() => {
     try {
       return !localStorage.getItem(CLAVE_GUIA_VISTA)
@@ -465,6 +501,16 @@ function MisCartasPage() {
     onError: (err) => toast.error(err.response?.data?.message ?? 'No se pudo abrir la carta.'),
   })
 
+  const canjearCodigo = useMutation({
+    mutationFn: (codigo) => client.post('/api/v1/codigos/canjear', { codigo }),
+    onSuccess: (respuesta) => {
+      setCartaAbriendose(respuesta.data.data)
+      setCodigoTexto('')
+      queryClient.invalidateQueries({ queryKey: ['mis-cartas'] })
+    },
+    onError: (err) => toast.error(err.response?.data?.message ?? 'No se pudo canjear ese código.'),
+  })
+
   function cerrarApertura() {
     setCartaAbriendose(null)
     queryClient.invalidateQueries({ queryKey: ['mis-cartas'] })
@@ -525,10 +571,32 @@ function MisCartasPage() {
           }
         />
 
-        <div className="border-t border-borde/20 px-4 py-2">
+        <div className="border-t border-borde/20 px-4 py-2 flex items-center justify-between flex-wrap gap-2">
           <button onClick={() => setGuiaAbierta(!guiaAbierta)} className="font-body text-xs text-acento hover:underline">
             {guiaAbierta ? '▲ Ocultar cómo funciona' : '❓ Cómo funciona'}
           </button>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              if (codigoTexto.trim()) canjearCodigo.mutate(codigoTexto.trim())
+            }}
+            className="flex items-center gap-1.5"
+          >
+            <input
+              value={codigoTexto}
+              onChange={(e) => setCodigoTexto(e.target.value)}
+              placeholder="¿Tienes un código?"
+              maxLength={100}
+              className="font-body text-xs bg-borde/10 text-texto rounded-full border border-borde/30 px-3 py-1 w-36 focus:outline-none focus:border-acento placeholder:text-borde/60"
+            />
+            <button
+              type="submit"
+              disabled={!codigoTexto.trim() || canjearCodigo.isPending}
+              className="font-body text-xs text-acento hover:underline disabled:opacity-40 disabled:no-underline"
+            >
+              {canjearCodigo.isPending ? '...' : 'Canjear'}
+            </button>
+          </form>
         </div>
 
         {guiaAbierta && <GuiaCartas tope={data.tope_mano_cartas} />}
@@ -652,6 +720,7 @@ function MisCartasPage() {
                           <SelectorPartido
                             partidos={partidosDisponibles}
                             jornada={jornadaJugable.jornada}
+                            rareza={carta.tipo_carta.rareza}
                             onJugar={(idPartido) => jugar.mutate({ idCarta: carta.id, idPartido })}
                             onCancelar={cerrar}
                             jugando={jugar.isPending}
@@ -661,6 +730,7 @@ function MisCartasPage() {
                           <SelectorRival
                             miembros={miembros.filter((m) => m.id !== usuario?.id)}
                             motivosBloqueo={rivalesBloqueados?.motivos ?? {}}
+                            rareza={carta.tipo_carta.rareza}
                             onJugar={(idRival, mensaje) => jugarFalta.mutate({ idCarta: carta.id, idUsuarioObjetivo: idRival, mensaje })}
                             onCancelar={cerrar}
                             jugando={jugarFalta.isPending}
@@ -668,6 +738,9 @@ function MisCartasPage() {
                         )}
                         {panelAbierto('confirmar-jugar', carta.id) && (
                           <ConfirmacionInline
+                            icono="▶️"
+                            titulo="Jugar esta carta"
+                            rareza={carta.tipo_carta.rareza}
                             texto={`¿Jugar esta carta ahora? Se aplicará a la jornada ${jornadaJugable?.jornada} y no se puede deshacer.`}
                             textoBoton="Sí, jugar"
                             onConfirmar={() => jugar.mutate({ idCarta: carta.id, idPartido: null })}
@@ -677,6 +750,9 @@ function MisCartasPage() {
                         )}
                         {panelAbierto('confirmar-escudo', carta.id) && (
                           <ConfirmacionInline
+                            icono="🛡️"
+                            titulo="Activar Escudo"
+                            rareza={carta.tipo_carta.rareza}
                             texto={`¿Activar el Escudo? Te protegerá de la primera Falta que te lleguen en la jornada ${(jornadaJugable?.jornada ?? 0) + 1}. No se puede deshacer.`}
                             textoBoton="Sí, activar"
                             onConfirmar={() => jugarFalta.mutate({ idCarta: carta.id, idUsuarioObjetivo: null, mensaje: null })}
@@ -686,6 +762,8 @@ function MisCartasPage() {
                         )}
                         {panelAbierto('confirmar-descartar', carta.id) && (
                           <ConfirmacionInline
+                            icono="🗑️"
+                            titulo="Descartar carta"
                             texto="¿Descartar esta carta? Se pierde y no se puede recuperar."
                             textoBoton="Sí, descartar"
                             peligro

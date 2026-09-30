@@ -117,6 +117,95 @@ function EnfrentamientosDirectos({ enfrentamientos }) {
   )
 }
 
+function FilaJugadorAlineado({ jugador }) {
+  return (
+    <div className="flex items-center gap-2.5 py-1.5">
+      <span className="font-marcador text-xs text-borde w-6 shrink-0 text-right">{jugador.dorsal ?? '–'}</span>
+      <FotoJugador url={jugador.foto_url} nombre={jugador.nombre} />
+      <p className="font-body text-sm text-texto truncate">{jugador.nombre}</p>
+    </div>
+  )
+}
+
+function ColumnaAlineacion({ equipo }) {
+  if (!equipo) {
+    return <p className="font-body text-xs text-borde px-4">Sin datos.</p>
+  }
+
+  return (
+    <div className="px-4">
+      <p className="font-body text-[10px] uppercase tracking-widest text-borde mb-2">Titulares</p>
+      {equipo.titulares.map((j, i) => <FilaJugadorAlineado key={`t-${i}`} jugador={j} />)}
+      {equipo.suplentes.length > 0 && (
+        <>
+          <p className="font-body text-[10px] uppercase tracking-widest text-borde mt-3 mb-2">Suplentes</p>
+          {equipo.suplentes.map((j, i) => <FilaJugadorAlineado key={`s-${i}`} jugador={j} />)}
+        </>
+      )}
+    </div>
+  )
+}
+
+function Alineaciones({ alineaciones }) {
+  if (!alineaciones || (!alineaciones.local && !alineaciones.visitante)) return null
+
+  return (
+    <div className="bg-fondo border border-borde/30 rounded-lg overflow-hidden mb-4">
+      <div className="px-4 py-3 bg-borde/10 flex items-center justify-between">
+        <p className="font-body text-xs uppercase tracking-widest text-borde">Alineaciones</p>
+        <div className="flex gap-4">
+          {alineaciones.local?.formacion && <span className="font-body text-[11px] text-borde">{alineaciones.local.formacion}</span>}
+          {alineaciones.visitante?.formacion && <span className="font-body text-[11px] text-borde">{alineaciones.visitante.formacion}</span>}
+        </div>
+      </div>
+      <div className="grid grid-cols-2 divide-x divide-borde/10 py-4">
+        <ColumnaAlineacion equipo={alineaciones.local} />
+        <ColumnaAlineacion equipo={alineaciones.visitante} />
+      </div>
+    </div>
+  )
+}
+
+function FilaComparativa({ label, valorLocal, valorVisitante, esPorcentaje = false }) {
+  if (valorLocal == null && valorVisitante == null) return null
+
+  const total = (valorLocal ?? 0) + (valorVisitante ?? 0)
+  const porcentajeLocal = total > 0 ? Math.round(((valorLocal ?? 0) / total) * 100) : 50
+
+  return (
+    <div className="py-2">
+      <div className="flex items-center justify-between mb-1">
+        <span className="font-marcador text-sm font-bold text-texto w-10">{valorLocal ?? '–'}{esPorcentaje ? '%' : ''}</span>
+        <span className="font-body text-[10px] uppercase tracking-widest text-borde">{label}</span>
+        <span className="font-marcador text-sm font-bold text-texto w-10 text-right">{valorVisitante ?? '–'}{esPorcentaje ? '%' : ''}</span>
+      </div>
+      <div className="flex h-1.5 rounded-full overflow-hidden bg-borde/10">
+        <div className="bg-acento" style={{ width: `${porcentajeLocal}%` }} />
+        <div className="bg-borde/40" style={{ width: `${100 - porcentajeLocal}%` }} />
+      </div>
+    </div>
+  )
+}
+
+function EstadisticasPartido({ estadisticas }) {
+  if (!estadisticas || (!estadisticas.local && !estadisticas.visitante)) return null
+
+  const local = estadisticas.local
+  const visitante = estadisticas.visitante
+
+  return (
+    <div className="bg-fondo border border-borde/30 rounded-lg overflow-hidden mb-4 p-4">
+      <p className="font-body text-xs uppercase tracking-widest text-borde mb-3 text-center">Estadísticas del partido</p>
+      <FilaComparativa label="Posesión" valorLocal={local?.posesion} valorVisitante={visitante?.posesion} esPorcentaje />
+      <FilaComparativa label="Remates" valorLocal={local?.remates} valorVisitante={visitante?.remates} />
+      <FilaComparativa label="Córners" valorLocal={local?.corners} valorVisitante={visitante?.corners} />
+      <FilaComparativa label="Faltas" valorLocal={local?.faltas} valorVisitante={visitante?.faltas} />
+      <FilaComparativa label="T. amarillas" valorLocal={local?.tarjetas_amarillas} valorVisitante={visitante?.tarjetas_amarillas} />
+      <FilaComparativa label="T. rojas" valorLocal={local?.tarjetas_rojas} valorVisitante={visitante?.tarjetas_rojas} />
+    </div>
+  )
+}
+
 function minutoEstimado(horarioEstimado, minutoOficial) {
   if (minutoOficial) return `${minutoOficial}'`
   if (!horarioEstimado) return null
@@ -218,6 +307,10 @@ function MatchDetailPage() {
           Actualizado hace {minutosDesdeActualizacion} min
         </p>
       )}
+
+      <EstadisticasPartido estadisticas={data.estadisticas_partido} />
+
+      <Alineaciones alineaciones={data.alineaciones} />
 
       <div className="bg-fondo border border-borde/30 rounded-lg overflow-hidden mb-4">
         <div className="px-4 py-3 bg-borde/10">

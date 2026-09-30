@@ -1,10 +1,19 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import client from '../api/client'
 import { useAuth } from '../context/AuthContext'
+import { useToast } from '../context/ToastContext'
 import UserMenu from './UserMenu'
 import CampanaNotificaciones from './CampanaNotificaciones'
+import AperturaCarta from './AperturaCarta'
+
+// El código de este easter egg (creado una vez en el admin/tinker con este mismo
+// texto) — al escribirlo en cualquier pantalla, sin foco en ningún campo de texto,
+// se canjea solo. No es un secreto "de verdad" (vive en el JS compilado, cualquiera
+// que abra las herramientas de desarrollador podría encontrarlo), pero no aparece
+// en el HTML de ninguna página, así que "ver código fuente" no lo revela.
+const PALABRA_SECRETA_EASTER_EGG = 'assemble'
 
 const ENLACES = [
   { to: '/dashboard', match: '/dashboard', label: 'Inicio' },
@@ -21,24 +30,31 @@ const LALIGA = [
   { to: '/estadisticas-liga', label: 'Estadísticas de la liga', sublabel: 'Curiosidades de la temporada' },
 ]
 
+const CARTAS_MENU = [
+  { to: '/mis-cartas', label: 'Mis Cartas', sublabel: 'Tu mano, Amenazas e Historial' },
+  { to: '/catalogo-cartas', label: 'Catálogo', sublabel: 'Todas las cartas del juego' },
+  { to: '/estadisticas-cartas', label: 'Estadísticas', sublabel: 'Curiosidades de esta liga' },
+]
+
 const QUINIELAS = [
   { to: '/quinielas/completa', label: 'Completa', sublabel: 'Toda la temporada' },
   { to: '/quinielas/primera_mitad', label: 'Primera mitad', sublabel: 'Jornadas 1-18' },
   { to: '/quinielas/segunda_mitad', label: 'Segunda mitad', sublabel: 'Jornada 19 al final' },
 ]
 
-function MenuDesplegable({ etiqueta, opciones, activo }) {
+function MenuDesplegable({ etiqueta, opciones, activo, badge }) {
   const [abierto, setAbierto] = useState(false)
 
   return (
     <div className="relative">
       <button
         onClick={() => setAbierto(!abierto)}
-        className={`font-body text-sm px-3 py-2 rounded transition whitespace-nowrap flex items-center gap-1 ${
+        className={`relative font-body text-sm px-3 py-2 rounded transition whitespace-nowrap flex items-center gap-1 ${
           activo ? 'bg-acento text-fondo font-semibold' : 'text-texto hover:bg-borde/10'
         }`}
       >
         {etiqueta} <span className="text-xs">▾</span>
+        {badge}
       </button>
 
       {abierto && (
@@ -104,6 +120,7 @@ function NavBar() {
 
   const enLaLiga = ['/clasificacion-liga', '/calendario', '/estadios'].some((p) => location.pathname.startsWith(p))
   const enQuiniela = location.pathname.startsWith('/quinielas')
+  const enCartas = ['/mis-cartas', '/catalogo-cartas', '/estadisticas-cartas'].some((p) => location.pathname.startsWith(p))
   const tieneCartas = usuario?.liga_activa?.tipo === 'ConExtras'
 
   // Misma clave que usa Mis Cartas: si esa pantalla ya está cargada, React Query
@@ -126,8 +143,49 @@ function NavBar() {
 
   const pendientes = pronosticosPendientes?.pendientes ?? 0
 
+  // --- Easter egg escondido: escribir "assemble" en cualquier pantalla ---
+  const toast = useToast()
+  const [cartaEasterEgg, setCartaEasterEgg] = useState(null)
+
+  const canjearEasterEgg = useMutation({
+    mutationFn: () => client.post('/api/v1/codigos/canjear', { codigo: PALABRA_SECRETA_EASTER_EGG }),
+    onSuccess: (respuesta) => setCartaEasterEgg(respuesta.data.data),
+    onError: (err) => {
+      // Solo avisamos si de verdad hay algo que decir (ya canjeado, etc.) — si el
+      // admin nunca llegó a crear este código, fallar en silencio es mejor que
+      // confundir a quien lo encontró con un error que no entiende.
+      if (err.response?.status !== 404) {
+        toast.error(err.response?.data?.message ?? 'Algo salió mal con eso que has escrito...')
+      }
+    },
+  })
+
+  useEffect(() => {
+    if (!tieneCartas) return
+
+    let buffer = ''
+
+    function alTeclear(evento) {
+      const enCampoDeTexto = ['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)
+      if (enCampoDeTexto || evento.key.length !== 1 || canjearEasterEgg.isPending) return
+
+      buffer = (buffer + evento.key).toLowerCase().slice(-PALABRA_SECRETA_EASTER_EGG.length)
+
+      if (buffer === PALABRA_SECRETA_EASTER_EGG) {
+        buffer = ''
+        canjearEasterEgg.mutate()
+      }
+    }
+
+    window.addEventListener('keydown', alTeclear)
+    return () => window.removeEventListener('keydown', alTeclear)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tieneCartas])
+
   return (
-    <header className="bg-fondo border-b border-borde/30 sticky top-0 z-30">
+    <>
+      {cartaEasterEgg && <AperturaCarta cartaGanada={cartaEasterEgg} onCerrar={() => setCartaEasterEgg(null)} />}
+      <header className="bg-fondo border-b border-borde/30 sticky top-0 z-30">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-2 shrink-0">
@@ -148,15 +206,12 @@ function NavBar() {
               </Link>
             ))}
             {tieneCartas && (
-              <Link to="/mis-cartas" className={`relative ${claseEnlace('/mis-cartas')}`}>
-                🃏 Cartas
-                <BadgeCartas sinAbrir={sinAbrir} hayAmenaza={hayAmenaza} />
-              </Link>
-            )}
-            {tieneCartas && (
-              <Link to="/catalogo-cartas" className={claseEnlace('/catalogo-cartas')}>
-                📖 Catálogo
-              </Link>
+              <MenuDesplegable
+                etiqueta="🃏 Cartas"
+                opciones={CARTAS_MENU}
+                activo={enCartas}
+                badge={<BadgeCartas sinAbrir={sinAbrir} hayAmenaza={hayAmenaza} />}
+              />
             )}
             <MenuDesplegable etiqueta="LaLiga" opciones={LALIGA} activo={enLaLiga} />
             <MenuDesplegable etiqueta="Quinielas" opciones={QUINIELAS} activo={enQuiniela} />
@@ -187,10 +242,20 @@ function NavBar() {
               </Link>
             ))}
             {tieneCartas && (
-              <Link to="/mis-cartas" onClick={() => setMenuAbierto(false)} className={`relative ${claseEnlace('/mis-cartas')}`}>
-                🃏 Cartas
-                <BadgeCartas sinAbrir={sinAbrir} hayAmenaza={hayAmenaza} />
-              </Link>
+              <>
+                <p className="font-body text-[10px] uppercase tracking-widest text-borde px-3 pt-3 pb-1">Cartas</p>
+                {CARTAS_MENU.map((op) => (
+                  <Link
+                    key={op.to}
+                    to={op.to}
+                    onClick={() => setMenuAbierto(false)}
+                    className={`relative ${claseEnlace(op.to)}`}
+                  >
+                    {op.label}
+                    {op.to === '/mis-cartas' && <BadgeCartas sinAbrir={sinAbrir} hayAmenaza={hayAmenaza} />}
+                  </Link>
+                ))}
+              </>
             )}
             <p className="font-body text-[10px] uppercase tracking-widest text-borde px-3 pt-3 pb-1">LaLiga</p>
             {LALIGA.map((op) => (
@@ -215,6 +280,7 @@ function NavBar() {
         )}
       </div>
     </header>
+    </>
   )
 }
 

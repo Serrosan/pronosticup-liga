@@ -43,6 +43,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/estadios', [\App\Http\Controllers\Api\V1\EstadioController::class, 'index']);
     Route::get('/calendario', [\App\Http\Controllers\Api\V1\CalendarioController::class, 'mes']);
     Route::get('/jornadas/{jornada}/goleadores', [\App\Http\Controllers\Api\V1\GoleadoresController::class, 'show']);
+    Route::get('/jornadas/{jornada}/goleadores-bloqueados', [\App\Http\Controllers\Api\V1\GoleadoresController::class, 'bloqueados']);
     Route::post('/jornadas/{jornada}/goleadores', [\App\Http\Controllers\Api\V1\GoleadoresController::class, 'store']);
     Route::get('/equipos/{equipo}/partidos', [\App\Http\Controllers\Api\V1\EquipoPartidosController::class, 'index']);
     Route::post('/cuenta/desactivar', [\App\Http\Controllers\Api\V1\CuentaController::class, 'desactivar']);
@@ -86,6 +87,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/liga-activa/miembros', [\App\Http\Controllers\Api\V1\LigaPersonalizacionController::class, 'miembros']);
 
     Route::middleware('admin')->prefix('admin')->group(function () {
+    Route::get('/avisos-scraper', [\App\Http\Controllers\Api\V1\Admin\AvisosScraperAdminController::class, 'index']);
         Route::get('/equipos/{equipo}', [\App\Http\Controllers\Api\V1\Admin\EquipoAdminController::class, 'show']);
         Route::apiResource('equipos', \App\Http\Controllers\Api\V1\Admin\EquipoAdminController::class)->except('show');
         Route::get('/jugadores/{jugador}', [\App\Http\Controllers\Api\V1\Admin\JugadorAdminController::class, 'show']);

@@ -167,6 +167,7 @@ class PartidoController extends Controller
             'nombre' => $a->jugador->nombre_camiseta ?: trim("{$a->jugador->nombre} {$a->jugador->apellidos}"),
             'foto_url' => $a->jugador->foto_url,
             'dorsal' => $a->dorsal,
+            'posicion_formacion' => $a->posicion_formacion,
         ];
 
         $formatearEquipo = function ($idEquipo) use ($alineaciones, $formatearJugador) {

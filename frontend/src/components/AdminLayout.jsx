@@ -43,6 +43,12 @@ const GRUPOS = [
       { to: '/admin/canjes-codigo', label: 'Canjes realizados' },
     ],
   },
+  {
+    titulo: 'Scraper',
+    items: [
+      { to: '/admin/avisos-scraper', label: 'Avisos del scraper' },
+    ],
+  },
 ]
 
 function AdminLayout({ children }) {

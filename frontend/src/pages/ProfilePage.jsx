@@ -3,11 +3,13 @@ import { useQuery, useMutation } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import client from '../api/client'
 import { useAuth } from '../context/AuthContext'
+import { useToast } from '../context/ToastContext'
 import TicketHeader from '../components/TicketHeader'
 
 function ProfilePage() {
   const { usuario, refrescar, logout, actualizarUsuario } = useAuth()
   const navigate = useNavigate()
+  const toast = useToast()
   const [nombre, setNombre] = useState(usuario?.nombre ?? '')
   const [passwordActual, setPasswordActual] = useState('')
   const [passwordNueva, setPasswordNueva] = useState('')
@@ -29,16 +31,19 @@ function ProfilePage() {
       return client.post('/api/v1/profile/avatar', formData)
     },
     onSuccess: () => refrescar(),
+    onError: (err) => toast.error(err.response?.data?.message ?? 'No se pudo subir la foto de perfil.'),
   })
 
   const guardarNombre = useMutation({
     mutationFn: () => client.patch('/api/v1/profile', { nombre_visible: nombre }),
     onSuccess: () => refrescar(),
+    onError: (err) => toast.error(err.response?.data?.message ?? 'No se pudo actualizar el nombre.'),
   })
 
   const guardarPreferenciasEmail = useMutation({
     mutationFn: (datos) => client.patch('/api/v1/profile/preferencias-email', datos),
     onSuccess: (respuesta) => actualizarUsuario(respuesta.data.data),
+    onError: (err) => toast.error(err.response?.data?.message ?? 'No se pudieron guardar las preferencias de email.'),
   })
 
   const cambiarPassword = useMutation({

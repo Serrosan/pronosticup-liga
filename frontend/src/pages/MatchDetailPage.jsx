@@ -2,6 +2,7 @@ import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import client from '../api/client'
 import { useToast } from '../context/ToastContext'
+import CampoAlineacion, { puedeDibujarCampo } from '../components/CampoAlineacion'
 
 function Escudo({ url, alt }) {
   return (
@@ -127,15 +128,28 @@ function FilaJugadorAlineado({ jugador }) {
   )
 }
 
-function ColumnaAlineacion({ equipo }) {
+function ColumnaAlineacion({ equipo, formacion }) {
   if (!equipo) {
     return <p className="font-body text-xs text-borde px-4">Sin datos.</p>
   }
 
+  // Si el partido se importó antes de guardar posicion_formacion (o algún
+  // jugador se quedó sin emparejar), no hay datos suficientes para el campito
+  // — se cae a la lista de texto de siempre, nunca una colocación inventada.
+  const hayDatosParaElCampo = puedeDibujarCampo(formacion, equipo.titulares)
+
   return (
     <div className="px-4">
-      <p className="font-body text-[10px] uppercase tracking-widest text-borde mb-2">Titulares</p>
-      {equipo.titulares.map((j, i) => <FilaJugadorAlineado key={`t-${i}`} jugador={j} />)}
+      {hayDatosParaElCampo ? (
+        <div className="mb-3">
+          <CampoAlineacion formacion={formacion} titulares={equipo.titulares} />
+        </div>
+      ) : (
+        <>
+          <p className="font-body text-[10px] uppercase tracking-widest text-borde mb-2">Titulares</p>
+          {equipo.titulares.map((j, i) => <FilaJugadorAlineado key={`t-${i}`} jugador={j} />)}
+        </>
+      )}
       {equipo.suplentes.length > 0 && (
         <>
           <p className="font-body text-[10px] uppercase tracking-widest text-borde mt-3 mb-2">Suplentes</p>
@@ -159,8 +173,8 @@ function Alineaciones({ alineaciones }) {
         </div>
       </div>
       <div className="grid grid-cols-2 divide-x divide-borde/10 py-4">
-        <ColumnaAlineacion equipo={alineaciones.local} />
-        <ColumnaAlineacion equipo={alineaciones.visitante} />
+        <ColumnaAlineacion equipo={alineaciones.local} formacion={alineaciones.local?.formacion} />
+        <ColumnaAlineacion equipo={alineaciones.visitante} formacion={alineaciones.visitante?.formacion} />
       </div>
     </div>
   )

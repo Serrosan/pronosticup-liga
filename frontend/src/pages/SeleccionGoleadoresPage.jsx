@@ -71,6 +71,13 @@ function SeleccionGoleadoresPage() {
     },
   })
 
+  // Motivos de bloqueo (repetido de la jornada anterior, Falta activa...) —
+  // para avisar mientras buscas, no solo al fallar el guardado.
+  const { data: motivosBloqueo } = useQuery({
+    queryKey: ['goleadores-bloqueados', jornada],
+    queryFn: async () => (await client.get(`/api/v1/jornadas/${jornada}/goleadores-bloqueados`)).data.data,
+  })
+
   useEffect(() => {
     if (actual) setSeleccionados(actual)
   }, [actual])
@@ -86,6 +93,7 @@ function SeleccionGoleadoresPage() {
   function agregar(jugador) {
     if (seleccionados.length >= MAXIMO_GOLEADORES) return
     if (seleccionados.some((j) => j.id === jugador.id)) return
+    if (motivosBloqueo?.[jugador.id]) return // bloqueado — no se añade, el botón ya lo muestra deshabilitado
     setSeleccionados((prev) => [...prev, jugador])
     setBusqueda('')
   }
@@ -148,7 +156,10 @@ function SeleccionGoleadoresPage() {
                 {seleccionados.map((j) => (
                   <div key={j.id} className="flex items-center gap-3 bg-borde/5 rounded-lg p-2">
                     <FotoJugador url={j.foto_url} nombre={j.nombre} />
-                    <p className="font-body text-sm text-texto flex-1 truncate">{j.nombre}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-body text-sm text-texto truncate">{j.nombre}</p>
+                      {j.equipo && <p className="font-body text-[11px] text-borde truncate">{j.equipo}</p>}
+                    </div>
                     {!jornadaBloqueada && (
                       <button onClick={() => quitar(j.id)} className="font-body text-xs text-red-500 hover:underline shrink-0">
                         Quitar
@@ -181,19 +192,29 @@ function SeleccionGoleadoresPage() {
               <div className="relative">
                 {resultadosBusqueda.length > 0 && (
                   <div className="bg-fondo border border-borde/30 rounded-lg shadow-lg max-h-64 overflow-y-auto">
-                    {resultadosBusqueda.map((j) => (
-                      <button
-                        key={j.id}
-                        onClick={() => agregar(j)}
-                        className="w-full flex items-center gap-3 px-3 py-2 hover:bg-borde/10 text-left"
-                      >
-                        <FotoJugador url={j.foto_url} nombre={j.nombre} />
-                        <div className="min-w-0">
-                          <p className="font-body text-sm text-texto truncate">{j.nombre}</p>
-                          <p className="font-body text-[11px] text-borde truncate">{j.equipo}</p>
-                        </div>
-                      </button>
-                    ))}
+                    {resultadosBusqueda.map((j) => {
+                      const motivo = motivosBloqueo?.[j.id]
+                      return (
+                        <button
+                          key={j.id}
+                          onClick={() => agregar(j)}
+                          disabled={!!motivo}
+                          className={`w-full flex items-center gap-3 px-3 py-2 text-left ${
+                            motivo ? 'opacity-50 cursor-not-allowed' : 'hover:bg-borde/10'
+                          }`}
+                        >
+                          <FotoJugador url={j.foto_url} nombre={j.nombre} />
+                          <div className="min-w-0">
+                            <p className="font-body text-sm text-texto truncate">{j.nombre}</p>
+                            {motivo ? (
+                              <p className="font-body text-[11px] text-red-500 truncate">⚠️ {motivo}</p>
+                            ) : (
+                              <p className="font-body text-[11px] text-borde truncate">{j.equipo}</p>
+                            )}
+                          </div>
+                        </button>
+                      )
+                    })}
                   </div>
                 )}
               </div>

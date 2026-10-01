@@ -105,6 +105,10 @@ class ImportadorPartidoDetalle
                             'id_equipo' => $equipo->id,
                             'dorsal' => $entrada['shirt_number'] ?? null,
                             'titular' => $titular,
+                            // El "position" 1-23 que manda LaLiga — base para poder
+                            // dibujar al jugador en su línea correcta (defensa/centro/
+                            // ataque) en el campito de la ficha de partido.
+                            'posicion_formacion' => $entrada['position'] ?? null,
                             'formacion' => $formacion,
                         ]
                     );

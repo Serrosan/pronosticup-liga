@@ -9,7 +9,7 @@ class AlineacionJugador extends Model
 {
     protected $table = 'alineaciones_jugador';
 
-    protected $fillable = ['id_partido', 'id_equipo', 'id_jugador', 'dorsal', 'titular', 'formacion'];
+    protected $fillable = ['id_partido', 'id_equipo', 'id_jugador', 'dorsal', 'titular', 'posicion_formacion', 'formacion'];
 
     protected $casts = ['titular' => 'boolean'];
 

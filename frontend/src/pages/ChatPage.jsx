@@ -252,6 +252,24 @@ function MensajePendiente({ texto, segundosRestantes, onDeshacer }) {
   )
 }
 
+// Formatos de audio probados en orden de preferencia — el primero que el propio
+// navegador diga que soporta de verdad. Chrome/Firefox/Android aceptan webm,
+// pero Safari (iOS y iPadOS) NUNCA soporta webm — solo mp4/aac. Forzar un tipo
+// fijo sin comprobar es justo lo que rompía la grabación en iPhone/iPad.
+const TIPOS_AUDIO_PREFERIDOS = ['audio/webm', 'audio/mp4', 'audio/ogg']
+
+function detectarTipoAudioSoportado() {
+  if (typeof MediaRecorder === 'undefined' || typeof MediaRecorder.isTypeSupported !== 'function') return null
+  return TIPOS_AUDIO_PREFERIDOS.find((tipo) => MediaRecorder.isTypeSupported(tipo)) ?? null
+}
+
+function extensionParaTipo(tipo) {
+  if (!tipo) return 'webm'
+  if (tipo.includes('mp4')) return 'm4a'
+  if (tipo.includes('ogg')) return 'ogg'
+  return 'webm'
+}
+
 function useGrabadorAudio(onGrabado) {
   const [grabando, setGrabando] = useState(false)
   const mediaRecorderRef = useRef(null)
@@ -260,14 +278,25 @@ function useGrabadorAudio(onGrabado) {
   async function empezar() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const recorder = new MediaRecorder(stream)
+      const tipoSoportado = detectarTipoAudioSoportado()
+
+      // Si no detectamos ninguno de nuestra lista, dejamos que el navegador
+      // elija su propio formato por defecto en vez de forzar uno que pueda
+      // no soportar — por eso el constructor solo recibe mimeType si lo tenemos.
+      const recorder = tipoSoportado
+        ? new MediaRecorder(stream, { mimeType: tipoSoportado })
+        : new MediaRecorder(stream)
+
       chunksRef.current = []
 
       recorder.ondataavailable = (e) => chunksRef.current.push(e.data)
       recorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
+        // recorder.mimeType es la fuente de verdad real de lo que grabó el
+        // navegador — más fiable que nuestra propia detección previa.
+        const tipoReal = recorder.mimeType || tipoSoportado || 'audio/webm'
+        const blob = new Blob(chunksRef.current, { type: tipoReal })
         stream.getTracks().forEach((t) => t.stop())
-        onGrabado(blob)
+        onGrabado(blob, extensionParaTipo(tipoReal))
       }
 
       recorder.start()
@@ -328,18 +357,21 @@ function BarraRespondiendo({ mensaje, onCancelar }) {
   )
 }
 
-function MensajeFijado({ mensaje }) {
+function MensajeFijado({ mensaje, onClick }) {
   if (!mensaje) return null
   const textoPreview = mensaje.tipo === 'texto' ? mensaje.texto : mensaje.tipo === 'imagen' ? '📷 Imagen' : '🎤 Nota de voz'
 
   return (
-    <div className="bg-premio/10 border-x border-borde/30 px-4 py-2.5 flex items-center gap-2">
+    <button
+      onClick={onClick}
+      className="w-full bg-premio/10 border-x border-borde/30 px-4 py-2.5 flex items-center gap-2 hover:bg-premio/15 transition text-left"
+    >
       <span className="text-premio shrink-0">📌</span>
       <div className="min-w-0 flex-1">
         <p className="font-body text-xs font-semibold text-premio">{mensaje.usuario.nombre}</p>
         <p className="font-body text-xs text-texto truncate">{textoPreview}</p>
       </div>
-    </div>
+    </button>
   )
 }
 
@@ -451,9 +483,9 @@ function ChatPage() {
   })
 
   const enviarAudio = useMutation({
-    mutationFn: async (blob) => {
+    mutationFn: async ({ blob, extension }) => {
       const formData = new FormData()
-      formData.append('audio', blob, 'nota-de-voz.webm')
+      formData.append('audio', blob, `nota-de-voz.${extension}`)
       const subida = await client.post('/api/v1/chat/subir-audio', formData)
       return client.post('/api/v1/chat', { tipo: 'audio', adjunto_url: subida.data.url })
     },
@@ -468,9 +500,9 @@ function ChatPage() {
     onError: () => toast.error('No se pudo fijar el mensaje.'),
   })
 
-  const { grabando, empezar, parar } = useGrabadorAudio((blob) => {
+  const { grabando, empezar, parar } = useGrabadorAudio((blob, extension) => {
     setSubiendo(true)
-    enviarAudio.mutate(blob)
+    enviarAudio.mutate({ blob, extension })
   })
 
   useEffect(() => {
@@ -662,7 +694,10 @@ function ChatPage() {
         />
       </div>
 
-      <MensajeFijado mensaje={data?.mensajeFijado} />
+      <MensajeFijado
+        mensaje={data?.mensajeFijado}
+        onClick={() => data?.mensajeFijado && irAMensajeCitado(data.mensajeFijado.id)}
+      />
 
       {busquedaAbierta && (
         <BarraBusqueda

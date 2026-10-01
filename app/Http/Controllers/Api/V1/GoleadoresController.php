@@ -33,6 +33,41 @@ class GoleadoresController extends Controller
         return response()->json(['data' => $seleccion]);
     }
 
+    /**
+     * Mismas 2 reglas que ya validaba store() (no repetir de la jornada
+     * anterior, Falta clamorosa activa) — expuestas ANTES de guardar, para que
+     * el frontend pueda avisar mientras buscas en vez de solo al fallar el guardado.
+     */
+    public function bloqueados(Request $request, int $jornada)
+    {
+        $liga = $request->user()->ligaActiva;
+
+        if (! $liga) {
+            return response()->json(['message' => 'No tienes ninguna liga activa.'], 409);
+        }
+
+        $motivos = [];
+
+        $jugadoresAnteriores = GoleadorJornada::where('id_usuario', $request->user()->id)
+            ->where('id_liga', $liga->id)
+            ->where('jornada', $jornada - 1)
+            ->pluck('id_jugador');
+
+        foreach ($jugadoresAnteriores as $id) {
+            $motivos[$id] = 'Lo elegiste la jornada anterior';
+        }
+
+        $motorFaltas = app(MotorFaltas::class);
+
+        if ($motorFaltas->tieneFalloClamorosoActivo($liga->id, $request->user()->id, $jornada)) {
+            foreach ($motorFaltas->topGoleadoresRealesIds(3) as $id) {
+                $motivos[$id] = 'Falta activa: no puedes elegir a los máximos goleadores reales de LaLiga';
+            }
+        }
+
+        return response()->json(['data' => $motivos]);
+    }
+
     public function store(Request $request, int $jornada)
     {
         $liga = $request->user()->ligaActiva;

@@ -4,11 +4,8 @@ import client from '../api/client'
 import EstadoVacio from '../components/EstadoVacio'
 import SkeletonLista from '../components/SkeletonLista'
 import TicketHeader from '../components/TicketHeader'
-
-function Escudo({ url, alt }) {
-  if (!url) return <span className="w-5 h-5 rounded-full bg-borde/15 flex items-center justify-center text-xs shrink-0">⚽</span>
-  return <img src={url} alt={alt} className="w-5 h-5 object-contain shrink-0" />
-}
+import FilaPronostico, { LeyendaAciertos, ResumenJornada } from '../components/FilaPronostico'
+import { TIPOS, fondoSuave, estaResuelto, tipoDePronostico } from '../utils/tiposAcierto'
 
 function FotoJugador({ url, nombre }) {
   if (url) return <img src={url} alt={nombre} className="w-8 h-8 rounded-full object-cover shrink-0" />
@@ -24,107 +21,6 @@ function AvatarPequeno({ url, nombre }) {
   return (
     <span className="w-6 h-6 rounded-full bg-acento/15 flex items-center justify-center text-[10px] font-semibold shrink-0 text-acento">
       {nombre?.[0]?.toUpperCase()}
-    </span>
-  )
-}
-
-// Cada tipo de resultado lleva color + icono + palabra. El color nunca es la
-// única pista: el icono y la palabra dicen lo mismo por sí solos.
-const TIPOS = {
-  exacto: { color: '#22C55E', icono: '★', texto: 'Exacto', leyenda: 'Resultado exacto' },
-  diferencia: { color: '#F59E0B', icono: '≈', texto: 'Diferencia', leyenda: 'Diferencia (o empate cercano)' },
-  signo: { color: 'var(--color-acento)', icono: '✓', texto: 'Signo', leyenda: 'Solo el signo' },
-  fallo: { color: '#EF4444', icono: '✕', texto: 'Fallo', leyenda: 'Fallo' },
-  pendiente: { color: 'var(--color-borde)', icono: '○', texto: 'Pendiente', leyenda: 'Pendiente' },
-}
-
-const TIPOS_RESUELTOS = ['exacto', 'diferencia', 'signo', 'fallo']
-
-// Fondo suave del mismo color. color-mix funciona también cuando el color es
-// una variable CSS (pegarle "1F" detrás a un var(...) no era un color válido).
-function fondoSuave(color) {
-  return `color-mix(in srgb, ${color} 14%, transparent)`
-}
-
-function estaResuelto(golesCasa, golesFuera, estadoPartido) {
-  return estadoPartido === 'Jugado' && golesCasa !== null && golesFuera !== null
-}
-
-function calcularResultado1x2(golesLocal, golesVisitante) {
-  if (golesLocal > golesVisitante) return 'Local'
-  if (golesLocal < golesVisitante) return 'Visitante'
-  return 'Empate'
-}
-
-function tipoDePronostico(prediccionTexto, golesCasa, golesFuera) {
-  const [golesLocalPred, golesVisitantePred] = prediccionTexto.split('-').map(Number)
-
-  if (golesLocalPred === golesCasa && golesVisitantePred === golesFuera) {
-    return 'exacto'
-  }
-
-  const resultadoReal = calcularResultado1x2(golesCasa, golesFuera)
-  const resultadoPredicho = calcularResultado1x2(golesLocalPred, golesVisitantePred)
-
-  if (resultadoPredicho !== resultadoReal) {
-    return 'fallo'
-  }
-
-  if (resultadoReal === 'Empate') {
-    const margen = Math.abs(golesLocalPred - golesCasa)
-    return margen === 1 ? 'diferencia' : 'signo'
-  }
-
-  const diferenciaReal = golesCasa - golesFuera
-  const diferenciaPredicha = golesLocalPred - golesVisitantePred
-  return diferenciaReal === diferenciaPredicha ? 'diferencia' : 'signo'
-}
-
-function tipoDePartido(partido) {
-  if (!partido.mi_pronostico) return 'pendiente'
-  if (!estaResuelto(partido.goles_casa, partido.goles_fuera, partido.estado_partido)) return 'pendiente'
-  return tipoDePronostico(partido.mi_pronostico, partido.goles_casa, partido.goles_fuera)
-}
-
-function LeyendaColores() {
-  return (
-    <div className="flex flex-wrap gap-x-4 gap-y-1.5 px-1 mb-4">
-      {Object.entries(TIPOS).map(([clave, tipo]) => (
-        <div key={clave} className="flex items-center gap-1.5">
-          <span className="font-body text-xs font-bold leading-none w-3 text-center" style={{ color: tipo.color }}>
-            {tipo.icono}
-          </span>
-          <span className="font-body text-[10px] text-borde">{tipo.leyenda}</span>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-// Cómo fue la jornada de un vistazo, sin abrirla: cuántos de cada tipo.
-function ResumenJornada({ partidos }) {
-  const cuenta = {}
-  partidos.forEach((partido) => {
-    const tipo = tipoDePartido(partido)
-    if (tipo !== 'pendiente') cuenta[tipo] = (cuenta[tipo] ?? 0) + 1
-  })
-
-  const visibles = TIPOS_RESUELTOS.filter((tipo) => cuenta[tipo] > 0)
-  if (visibles.length === 0) return null
-
-  return (
-    <span className="flex items-center gap-2.5">
-      {visibles.map((tipo) => (
-        <span
-          key={tipo}
-          title={`${cuenta[tipo]} × ${TIPOS[tipo].leyenda}`}
-          className="font-marcador text-[11px] font-bold tabular-nums flex items-center gap-0.5"
-          style={{ color: TIPOS[tipo].color }}
-        >
-          <span className="font-body">{TIPOS[tipo].icono}</span>
-          {cuenta[tipo]}
-        </span>
-      ))}
     </span>
   )
 }
@@ -172,94 +68,20 @@ function OtrosPronosticos({ jornada, idPartido, golesCasa, golesFuera, estadoPar
   )
 }
 
-// Un solo eje por fila: el marcador real en el centro exacto de la tarjeta y
-// tu pronóstico justo debajo, cifra bajo cifra. A su izquierda la etiqueta, a
-// su derecha qué tipo de acierto fue. Los puntos, al borde derecho.
-// Si la jornada está cerrada, toda la fila se pulsa para ver al grupo.
+// La fila en sí es FilaPronostico (compartida con el detalle de puntos de un
+// usuario). Aquí solo se le añade lo propio de esta pantalla: si la jornada
+// está cerrada, se pulsa para ver qué pronosticó el resto del grupo.
 function FilaPartido({ partido, jornada, jornadaBloqueada }) {
   const [mostrarOtros, setMostrarOtros] = useState(false)
 
-  const resuelto = estaResuelto(partido.goles_casa, partido.goles_fuera, partido.estado_partido)
-  const tipo = TIPOS[tipoDePartido(partido)]
-  const puntosCalculados = partido.puntos !== null && partido.puntos !== undefined
-
-  const Cabecera = jornadaBloqueada ? 'button' : 'div'
-  const propsCabecera = jornadaBloqueada
-    ? {
-        type: 'button',
-        onClick: () => setMostrarOtros(!mostrarOtros),
-        'aria-expanded': mostrarOtros,
-        title: mostrarOtros ? 'Ocultar pronósticos del grupo' : 'Ver pronósticos del grupo',
-      }
-    : {}
-
   return (
-    <div className={`border-b border-borde/10 last:border-0 odd:bg-borde/5 px-2 sm:px-4 py-3 ${jornadaBloqueada ? 'hover:bg-borde/10 transition' : ''}`}>
-      <Cabecera
-        {...propsCabecera}
-        className="w-full grid grid-cols-[1.75rem_1fr_1.75rem] sm:grid-cols-[3.5rem_1fr_3.5rem] items-center gap-x-1.5 text-left"
-      >
-        <span className="flex items-center justify-start">
-          {jornadaBloqueada && (
-            <span className={`text-borde text-base leading-none transition-transform ${mostrarOtros ? 'rotate-90' : ''}`}>›</span>
-          )}
-        </span>
-
-        <span className="grid grid-cols-[1fr_auto_1fr] items-center gap-x-2 gap-y-1 min-w-0">
-          <span className="flex items-center gap-1.5 justify-end min-w-0">
-            <span className="font-body text-[13px] sm:text-sm text-texto truncate">{partido.equipo_local}</span>
-            <Escudo url={partido.escudo_local} alt={partido.equipo_local} />
-          </span>
-          <span className={`font-marcador text-lg font-bold tabular-nums text-center leading-none ${resuelto ? 'text-texto' : 'text-borde'}`}>
-            {resuelto ? `${partido.goles_casa}-${partido.goles_fuera}` : 'vs'}
-          </span>
-          <span className="flex items-center gap-1.5 min-w-0">
-            <Escudo url={partido.escudo_visitante} alt={partido.equipo_visitante} />
-            <span className="font-body text-[13px] sm:text-sm text-texto truncate">{partido.equipo_visitante}</span>
-          </span>
-
-          <span className="font-body text-[10px] text-borde text-right truncate">tu pronóstico</span>
-          <span
-            className="font-marcador text-xs font-bold tabular-nums text-center leading-none"
-            style={{ color: resuelto ? tipo.color : 'var(--color-texto)' }}
-          >
-            {partido.mi_pronostico ?? '—'}
-          </span>
-          <span className="font-body text-[10px] font-semibold truncate" style={{ color: tipo.color }}>
-            {tipo.icono} {tipo.texto}
-          </span>
-        </span>
-
-        <span className="text-right font-marcador text-sm font-bold tabular-nums whitespace-nowrap">
-          {resuelto && puntosCalculados && (
-            <span style={{ color: partido.puntos > 0 ? tipo.color : 'var(--color-borde)' }}>
-              {partido.puntos > 0 ? `+${partido.puntos}` : '0'}
-              <span className="hidden sm:inline font-body text-[10px] font-normal">pt</span>
-            </span>
-          )}
-          {resuelto && !puntosCalculados && (
-            <span className="text-borde" title="Puntos sin cerrar todavía">—</span>
-          )}
-        </span>
-      </Cabecera>
-
-      {partido.cartas?.length > 0 && (
-        <div className="mt-2.5 flex flex-wrap justify-center gap-1.5">
-          {partido.cartas.map((c, i) => (
-            <span
-              key={i}
-              className={`font-body text-[11px] rounded-full px-2 py-0.5 border ${c.cumplida ? 'border-premio/40 text-premio bg-premio/10' : 'border-borde/25 text-borde'}`}
-            >
-              🃏 {c.nombre} {c.cumplida ? (c.puntos > 0 ? `+${c.puntos}` : 'activada') : '· sin efecto'}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {partido.nota_carta && (
-        <p className="mt-1.5 text-center font-body text-[11px] text-premio">{partido.nota_carta}</p>
-      )}
-
+    <FilaPronostico
+      partido={partido}
+      etiqueta="tu pronóstico"
+      onPulsar={jornadaBloqueada ? () => setMostrarOtros(!mostrarOtros) : undefined}
+      abierto={mostrarOtros}
+      tituloPulsar={mostrarOtros ? 'Ocultar pronósticos del grupo' : 'Ver pronósticos del grupo'}
+    >
       {mostrarOtros && (
         <OtrosPronosticos
           jornada={jornada}
@@ -269,7 +91,7 @@ function FilaPartido({ partido, jornada, jornadaBloqueada }) {
           estadoPartido={partido.estado_partido}
         />
       )}
-    </div>
+    </FilaPronostico>
   )
 }
 
@@ -425,7 +247,7 @@ function MyPredictionsPage() {
         </div>
       </div>
 
-      {jornadas.length > 0 && <LeyendaColores />}
+      {jornadas.length > 0 && <LeyendaAciertos />}
 
       {jornadas.length === 0 ? (
         <div className="bg-fondo border border-borde/30 rounded-lg overflow-hidden">

@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import client from '../api/client'
 import MatchCard from '../components/MatchCard'
+import SelectorJornada from '../components/SelectorJornada'
 import useTitulo from '../hooks/useTitulo'
 import SkeletonJornada from '../components/SkeletonJornada'
 import MomentoDecisivo from '../components/MomentoDecisivo'
@@ -11,6 +12,7 @@ import { useToast } from '../context/ToastContext'
 import { formatearActualizacion } from '../utils/tiempo'
 
 const TOTAL_JORNADAS = 38
+const JORNADAS = Array.from({ length: TOTAL_JORNADAS }, (_, i) => i + 1)
 const DIAS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
 function agruparPorDia(partidos) {
@@ -180,24 +182,8 @@ function MatchdayPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-4">
-      <div className="flex items-center justify-center gap-4 mb-1">
-        <button
-          onClick={() => ir(numeroJornada - 1)}
-          disabled={numeroJornada <= 1}
-          className="font-body text-texto disabled:opacity-30 disabled:cursor-not-allowed hover:text-acento text-xl px-2"
-          aria-label="Jornada anterior"
-        >
-          ←
-        </button>
-        <h2 className="font-display text-xl text-texto whitespace-nowrap">Jornada {numeroJornada}</h2>
-        <button
-          onClick={() => ir(numeroJornada + 1)}
-          disabled={numeroJornada >= TOTAL_JORNADAS}
-          className="font-body text-texto disabled:opacity-30 disabled:cursor-not-allowed hover:text-acento text-xl px-2"
-          aria-label="Jornada siguiente"
-        >
-          →
-        </button>
+      <div className="flex justify-center mb-1">
+        <SelectorJornada jornadas={JORNADAS} valor={numeroJornada} onCambiar={ir} grande />
       </div>
       <EstadoGoleadores jornada={numeroJornada} />
       <CopiarDeOtraLiga jornada={numeroJornada} jornadaBloqueada={data?.jornadaBloqueada} />

@@ -16,6 +16,11 @@ use Illuminate\Http\Request;
 
 class MisCartasController extends Controller
 {
+    // Al menos de momento: tope de cuántas Jugadas se pueden jugar para una
+    // misma jornada — mismo espíritu que el límite de 1 Falta/jornada, pero
+    // con un número distinto porque son mecánicas distintas.
+    private const LIMITE_JUGADAS_POR_JORNADA = 2;
+
     public function __construct(
         private MotorEfectosCartas $motor,
         private MotorFaltas $motorFaltas,
@@ -348,6 +353,10 @@ class MisCartasController extends Controller
                 return $error;
             }
 
+            if ($error = $this->comprobarLimiteJugadas($liga, $request->user()->id, $proximaJornada)) {
+                return $error;
+            }
+
             if ($this->motorFaltas->estaBloqueadaPorSinComodines($liga->id, $request->user()->id, $proximaJornada, $cartaUsuario->tipoCarta->codigo_efecto)) {
                 return response()->json(['message' => 'Tienes una Falta "Sin Comodines" activa esta jornada — no puedes jugar Amuleto ni Pleno Garantizado.'], 422);
             }
@@ -377,6 +386,10 @@ class MisCartasController extends Controller
         }
 
         if ($error = $this->comprobarExpulsion($liga, $request->user(), $partido->jornada, 'Jugadas')) {
+            return $error;
+        }
+
+        if ($error = $this->comprobarLimiteJugadas($liga, $request->user()->id, $partido->jornada)) {
             return $error;
         }
 
@@ -560,6 +573,30 @@ class MisCartasController extends Controller
     {
         if ($this->motorFaltas->estaExpulsadoDe($liga->id, $usuario->id, $jornada, $categoria)) {
             return response()->json(['message' => "Tienes una Expulsión activa esta jornada — no puedes jugar cartas de tipo {$categoria}."], 422);
+        }
+
+        return null;
+    }
+
+    /**
+     * Tope de cuántas Jugadas se pueden jugar para una misma jornada_efecto —
+     * mismo espíritu que el límite de 1 Falta/jornada de jugarFalta(), aquí con
+     * LIMITE_JUGADAS_POR_JORNADA. Compartido por las 2 ramas de jugar() (con y
+     * sin partido elegido), para que ninguna de las 2 se lo salte por error.
+     */
+    private function comprobarLimiteJugadas(Liga $liga, int $idUsuario, int $jornadaEfecto): ?JsonResponse
+    {
+        $yaJugadas = CartaUsuario::where('id_liga', $liga->id)
+            ->where('id_usuario', $idUsuario)
+            ->where('estado', 'jugada')
+            ->where('jornada_efecto', $jornadaEfecto)
+            ->whereHas('tipoCarta.categoria', fn ($q) => $q->where('nombre', 'Jugadas'))
+            ->count();
+
+        if ($yaJugadas >= self::LIMITE_JUGADAS_POR_JORNADA) {
+            return response()->json([
+                'message' => 'Ya has jugado '.self::LIMITE_JUGADAS_POR_JORNADA.' cartas de Jugadas para esta jornada — es el máximo permitido (al menos de momento).',
+            ], 422);
         }
 
         return null;

@@ -57,6 +57,10 @@ function BotonAccion({ icono, onClick, titulo, color = 'text-borde hover:text-te
   )
 }
 
+function pareceUrlDeImagen(valor) {
+  return typeof valor === 'string' && /^https?:\/\/\S+\.(png|jpe?g|webp|gif|svg)(\?\S*)?$/i.test(valor)
+}
+
 function ValorColumna({ valor }) {
   if (typeof valor === 'boolean') {
     return valor ? (
@@ -65,6 +69,19 @@ function ValorColumna({ valor }) {
       <span className="text-borde">✗</span>
     )
   }
+
+  if (pareceUrlDeImagen(valor)) {
+    return <img src={valor} alt="" className="w-8 h-8 object-contain rounded" />
+  }
+
+  if (typeof valor === 'string' && valor.length > 40) {
+    return (
+      <span className="block max-w-xs truncate" title={valor}>
+        {valor}
+      </span>
+    )
+  }
+
   return valor ?? '—'
 }
 
@@ -363,12 +380,12 @@ function AdminResourceTable({ resource, title, columns, fields, irADetalleTrasCr
       <p className="font-body text-xs text-borde mb-2">{itemsFiltrados.length} de {items.length}</p>
 
       <div className="bg-fondo border border-borde/30 rounded-lg overflow-x-auto">
-        <table className="w-full text-left">
-          <thead>
-            <tr className="border-b border-borde/30">
+        <table className="w-full text-left border-collapse">
+          <thead className="sticky top-0 z-10">
+            <tr className="border-b border-borde/30 bg-fondo">
               <th
                 onClick={() => cambiarOrden('id')}
-                className="font-body text-xs text-borde uppercase px-4 py-2 w-16 cursor-pointer select-none hover:text-texto whitespace-nowrap"
+                className="font-body text-xs text-borde uppercase px-4 py-2 w-16 cursor-pointer select-none hover:text-texto whitespace-nowrap border-r border-borde/10"
               >
                 ID {orden.campo === 'id' && (orden.direccion === 'asc' ? '↑' : '↓')}
               </th>
@@ -376,23 +393,30 @@ function AdminResourceTable({ resource, title, columns, fields, irADetalleTrasCr
                 <th
                   key={col.key}
                   onClick={() => cambiarOrden(col.key)}
-                  className="font-body text-xs text-borde uppercase px-4 py-2 cursor-pointer select-none hover:text-texto whitespace-nowrap"
+                  className="font-body text-xs text-borde uppercase px-4 py-2 cursor-pointer select-none hover:text-texto whitespace-nowrap border-r border-borde/10"
                 >
                   {col.label} {orden.campo === col.key && (orden.direccion === 'asc' ? '↑' : '↓')}
                 </th>
               ))}
-              <th className="px-4 py-2 w-32" />
+              <th className="font-body text-xs text-borde uppercase px-4 py-2 w-32 whitespace-nowrap">Acciones</th>
             </tr>
           </thead>
           <tbody>
             {itemsPagina.map((item) => (
-              <tr key={item.id} className="border-b border-borde/10 last:border-0 odd:bg-borde/5">
-                <td className="font-marcador text-xs text-borde px-4 py-2">{item.id}</td>
-                {columns.map((col) => (
-                  <td key={col.key} className="font-body text-sm text-texto px-4 py-2">
-                    <ValorColumna valor={item[col.key]} />
-                  </td>
-                ))}
+              <tr key={item.id} className="border-b border-borde/10 last:border-0 odd:bg-borde/5 hover:bg-acento/5">
+                <td className="font-marcador text-xs text-borde px-4 py-2 border-r border-borde/10">{item.id}</td>
+                {columns.map((col) => {
+                  const valor = item[col.key]
+                  const esNumero = typeof valor === 'number'
+                  return (
+                    <td
+                      key={col.key}
+                      className={`font-body text-sm text-texto px-4 py-2 border-r border-borde/10 ${esNumero ? 'text-right tabular-nums' : ''}`}
+                    >
+                      <ValorColumna valor={valor} />
+                    </td>
+                  )
+                })}
                 <td className="px-2 py-2">
                   <div className="flex items-center justify-end gap-0.5">
                     <BotonAccion icono={<IconoCopiar />} onClick={() => copiarFila(item)} titulo="Copiar fila" />

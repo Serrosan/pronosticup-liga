@@ -1,20 +1,32 @@
+cd ~/proyectos/pronosticup-liga && git checkout feature/cartas && cat > scripts/sincronizar_jornada.sh << 'FIN_SCRIPT'
 #!/bin/bash
 # Flujo semanal completo, de un tirón: descarga la jornada de LaLiga.com,
 # la traduce, te enseña un resumen para revisar, y solo importa si confirmas.
 #
-# Uso:
-#   ./sincronizar_jornada.sh          # la jornada que muestre /resultados por defecto
-#   ./sincronizar_jornada.sh 7        # una jornada concreta
+# Uso (siempre desde la RAÍZ del proyecto):
+#   scripts/sincronizar_jornada.sh          # la jornada que muestre /resultados por defecto
+#   scripts/sincronizar_jornada.sh 7        # una jornada concreta
+#
+# Funciona igual en local (con Sail) y dentro del contenedor de producción
+# (sin Sail: ahí usa "php artisan" directamente).
 #
 # Pensado para ejecutarse 1 sola vez por semana, a mano, justo cuando ya haces
 # el cierre de la jornada — nunca en automático, nunca por cron.
 
 set -e
 
-if [ ! -f "./vendor/bin/sail" ]; then
+if [ ! -f "./artisan" ]; then
   echo "⚠️  Este script se ejecuta desde la RAÍZ del proyecto, no desde scripts/."
   echo "    Prueba: scripts/sincronizar_jornada.sh $1"
   exit 1
+fi
+
+# En local (fuera de Docker, con Sail instalado) se pasa por Sail. Dentro de
+# cualquier contenedor —el de producción no tiene Sail— se llama a PHP directo.
+if [ -f "./vendor/bin/sail" ] && [ ! -f "/.dockerenv" ]; then
+  ARTISAN="./vendor/bin/sail artisan"
+else
+  ARTISAN="php artisan"
 fi
 
 JORNADA="$1"
@@ -75,7 +87,7 @@ echo "════════════════════════�
 echo " 2/3 — Traduciendo y comprobando"
 echo "════════════════════════════════════════════════════"
 
-./vendor/bin/sail artisan liga:preparar-jornada
+$ARTISAN liga:preparar-jornada
 
 echo
 echo "⚠️  Revisa la lista de arriba: cada partido debería tener entre 10 y 40"
@@ -94,8 +106,10 @@ echo "════════════════════════�
 echo " 3/3 — Importando"
 echo "════════════════════════════════════════════════════"
 
-./vendor/bin/sail artisan liga:importar-partido-detalle "$JSON_SALIDA"
+$ARTISAN liga:importar-partido-detalle "$JSON_SALIDA"
 
 echo
 echo "Hecho. Cualquier ⚠️ de arriba son huecos de datos (jugadores sin dar de"
 echo "alta, o fechas de plantilla_temporada mal puestas) — revisar a mano, sin prisa."
+FIN_SCRIPT
+chmod +x scripts/sincronizar_jornada.sh; git branch --show-current; md5sum scripts/sincronizar_jornada.sh; grep -c "ARTISAN" scripts/sincronizar_jornada.sh

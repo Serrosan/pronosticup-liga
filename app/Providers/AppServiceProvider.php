@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\Arbitro;
+use App\Models\CartaUsuario;
 use App\Models\Entrenador;
 use App\Models\Equipo;
 use App\Models\Estadio;
@@ -38,5 +39,6 @@ class AppServiceProvider extends ServiceProvider
         Trofeo::observe(RegistroActividadObserver::class);
         Entrenador::observe(RegistroActividadObserver::class);
         Liga::observe(RegistroActividadObserver::class);
+        CartaUsuario::observe(RegistroActividadObserver::class);
     }
 }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\CalendarioPartido;
+use App\Models\CartaUsuario;
 use App\Models\CierreJornada;
 use App\Models\ConfiguracionPuntos;
 use App\Models\EventoPartido;
@@ -12,12 +13,43 @@ use App\Models\GoleadorJornada;
 use App\Models\Novedad;
 use App\Models\Pronostico;
 use App\Models\User;
+use App\Notifications\CartasResueltas;
 use App\Notifications\JornadaCerradaConPuntos;
+use App\Services\MotorEfectosCartas;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Services\MotorFaltas;
 
 class JornadaController extends Controller
 {
+    /**
+     * La jornada "actual" a efectos de navegación general de la app — la del
+     * próximo partido programado, o la última jugada si no queda ninguno.
+     * Fusionado aquí desde JornadaActualController (era single-action, sin
+     * justificación propia para vivir fuera de JornadaController).
+     */
+    public function actual(Request $request)
+    {
+        $liga = $request->user()->ligaActiva;
+
+        if (! $liga) {
+            return response()->json(['message' => 'No tienes ninguna liga activa.'], 409);
+        }
+
+        $proximoPartido = CalendarioPartido::where('id_temporada', $liga->id_temporada)
+            ->where('estado', 'Programado')
+            ->orderBy('horario_estimado')
+            ->first();
+
+        if ($proximoPartido) {
+            return response()->json(['data' => ['jornada' => $proximoPartido->jornada]]);
+        }
+
+        $ultimaJornada = CalendarioPartido::where('id_temporada', $liga->id_temporada)->max('jornada') ?? 1;
+
+        return response()->json(['data' => ['jornada' => $ultimaJornada]]);
+    }
+
     public function cerrar(Request $request, int $jornada)
     {
         $liga = $request->user()->ligaActiva;
@@ -65,6 +97,7 @@ class JornadaController extends Controller
 
         $this->notificarCierre($liga, $jornada, $puntosPorUsuario);
         $this->generarResumenJornada($liga, $jornada, $puntosPorUsuario);
+        $this->notificarCartasResueltas($liga, $jornada);
 
         $totalEventos = EventoPuntos::where('id_liga', $liga->id)->where('jornada', $jornada)->count();
 
@@ -145,10 +178,7 @@ class JornadaController extends Controller
             ->where('jornada', $jornada)
             ->pluck('id');
 
-        $creados = DB::transaction(function () use ($liga, $jornada, $idsPartidos, $config) {
-            CierreJornada::where('id_liga', $liga->id)->where('jornada', $jornada)
-                ->update(['goleadores_calculados_en' => now()]);
-
+        [$creados, $cartasResueltas] = DB::transaction(function () use ($liga, $jornada, $idsPartidos, $config) {
             EventoPuntos::where('id_liga', $liga->id)
                 ->where('jornada', $jornada)
                 ->where('tipo_evento', 'GolesGoleadorElegido')
@@ -184,17 +214,23 @@ class JornadaController extends Controller
                 }
             }
 
-            return $creados;
+            // Cartas que dependen de eventos del partido (tarjetas/goles), no del
+            // resultado final — se resuelven aquí, nunca al cerrar la jornada.
+            $motor = app(MotorEfectosCartas::class);
+            $cartasResueltas = $motor->resolverEfectosDeEventos($liga->id, $jornada, $idsPartidos);
+
+            return [$creados, $cartasResueltas];
         });
 
         return response()->json([
-            'message' => "Recalculado. {$creados} usuario(s) recibieron puntos de goleadores con los eventos disponibles ahora mismo.",
+            'message' => "Recalculado. {$creados} usuario(s) recibieron puntos de goleadores, y {$cartasResueltas} carta(s) de evento se resolvieron con los eventos disponibles ahora mismo.",
         ]);
     }
 
     private function calcularPuntosPronosticos($liga, int $jornada, $partidos, ConfiguracionPuntos $config, int $totalPartidos): array
     {
         $idsPartidos = $partidos->pluck('id');
+        $motor = app(MotorEfectosCartas::class);
 
         $pronosticos = Pronostico::where('id_liga', $liga->id)
             ->whereIn('id_partido', $idsPartidos)
@@ -202,6 +238,7 @@ class JornadaController extends Controller
 
         $puntosPorUsuario = [];
         $aciertosSignoPorUsuario = [];
+        $partidosFallidosPorUsuario = [];
 
         foreach ($pronosticos as $pronostico) {
             $partido = $partidos->firstWhere('id', $pronostico->id_partido);
@@ -235,6 +272,9 @@ class JornadaController extends Controller
                 $puntos = 0;
             }
 
+            $ajuste = $motor->ajustarPuntosPartido($liga->id, $pronostico->id_usuario, $partido->id, $puntos, $tipo, $pronostico->resultado_1x2, $config);
+            $puntos = $ajuste['puntos'];
+
             EventoPuntos::create([
                 'id_usuario' => $pronostico->id_usuario,
                 'id_liga' => $liga->id,
@@ -242,17 +282,27 @@ class JornadaController extends Controller
                 'jornada' => $jornada,
                 'tipo_evento' => $tipo,
                 'puntos' => $puntos,
+                'nota_carta' => $ajuste['nota'],
             ]);
 
             $puntosPorUsuario[$pronostico->id_usuario] = ($puntosPorUsuario[$pronostico->id_usuario] ?? 0) + $puntos;
 
             if ($aciertaSigno) {
                 $aciertosSignoPorUsuario[$pronostico->id_usuario] = ($aciertosSignoPorUsuario[$pronostico->id_usuario] ?? 0) + 1;
+            } else {
+                $partidosFallidosPorUsuario[$pronostico->id_usuario][] = $partido->id;
             }
         }
 
-        foreach ($aciertosSignoPorUsuario as $idUsuario => $aciertos) {
-            $bonus = $this->calcularBonusPleno($aciertos, $totalPartidos, $config);
+        // El bonus de pleno se calcula usuario a usuario, dejando que el motor ajuste
+        // cuántos aciertos "cuentan" de verdad (por si algún Amuleto protege un fallo).
+        foreach ($pronosticos->pluck('id_usuario')->unique() as $idUsuario) {
+            $aciertosReales = $aciertosSignoPorUsuario[$idUsuario] ?? 0;
+            $partidosFallidos = collect($partidosFallidosPorUsuario[$idUsuario] ?? []);
+
+            $aciertosEfectivos = $motor->ajustarAciertosParaBonus($liga->id, $idUsuario, $jornada, $aciertosReales, $partidosFallidos);
+
+            $bonus = $this->calcularBonusPleno($aciertosEfectivos, $totalPartidos, $config);
 
             if ($bonus > 0) {
                 EventoPuntos::create([
@@ -268,6 +318,27 @@ class JornadaController extends Controller
             }
         }
 
+        // Cartas de Forma 3 (bono sobre varios partidos, sin elegir ninguno de
+        // antemano) — se resuelven aquí, ya con todos los eventos de la jornada
+        // creados, para poder contar cuántos exactos/aciertos tuvo cada usuario.
+        $puntosBonosMultiPartido = $motor->resolverBonosMultiPartido($liga->id, $jornada);
+
+        foreach ($puntosBonosMultiPartido as $idUsuario => $puntosExtra) {
+            $puntosPorUsuario[$idUsuario] = ($puntosPorUsuario[$idUsuario] ?? 0) + $puntosExtra;
+        }
+
+        // Forma 6 (2 partidos elegidos de antemano) — mismo momento, registro
+        // vacío hasta que exista una carta real de esta forma.
+        $puntosDoblePartido = $motor->resolverBonoDoblePartidoElegido($liga->id, $jornada);
+
+        foreach ($puntosDoblePartido as $idUsuario => $puntosExtra) {
+            $puntosPorUsuario[$idUsuario] = ($puntosPorUsuario[$idUsuario] ?? 0) + $puntosExtra;
+        }
+
+        // Barrido final: lo que ningún efecto tocó deja de estar "esperando".
+        $motor->cerrarCartasPendientes($liga->id, $jornada);
+        app(MotorFaltas::class)->resolverFaltasDeLaJornada($liga->id, $jornada);
+
         return [$puntosPorUsuario, $pronosticos->count()];
     }
 
@@ -279,7 +350,7 @@ class JornadaController extends Controller
 
         $porcentaje = ($aciertos / $totalPartidos) * 100;
 
-        if ($aciertos === $totalPartidos) {
+        if ($aciertos >= $totalPartidos) {
             return $config->bonus_pleno_10;
         }
         if ($porcentaje >= 90) {
@@ -320,17 +391,39 @@ class JornadaController extends Controller
     }
 
     /**
-     * Genera una "Novedad" automática con un resumen breve de la jornada recién cerrada:
-     * quién lideró esa jornada concreta, y quién subió más puestos en la clasificación
-     * general respecto a antes de esta jornada. Se muestra en el TickerNovedades del Dashboard.
+     * Avisa a cada jugador de qué ha pasado con sus cartas de esta jornada. Solo entran las
+     * que ya están resueltas (las de eventos de partido se resuelven después, al cargar los
+     * eventos). Se llama únicamente al cerrar, nunca al recalcular, para no avisar dos veces,
+     * y un fallo al avisar nunca debe estropear un cierre que ya está hecho.
      */
+    private function notificarCartasResueltas($liga, int $jornada): void
+    {
+        $cartasPorUsuario = CartaUsuario::where('id_liga', $liga->id)
+            ->where('jornada_efecto', $jornada)
+            ->whereIn('estado', ['resuelta_cumplida', 'resuelta_no_cumplida'])
+            ->get()
+            ->groupBy('id_usuario');
+
+        foreach ($cartasPorUsuario as $idUsuario => $cartas) {
+            try {
+                User::find($idUsuario)?->notify(new CartasResueltas(
+                    jornada: $jornada,
+                    total: $cartas->count(),
+                    cumplidas: $cartas->where('estado', 'resuelta_cumplida')->count(),
+                    puntos: (int) $cartas->sum('puntos_generados'),
+                ));
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+    }
+
     private function generarResumenJornada($liga, int $jornada, array $puntosPorUsuario): void
     {
         if (empty($puntosPorUsuario)) {
             return;
         }
 
-        // --- Líder de esta jornada concreta (no el total acumulado) ---
         $idLider = array_search(max($puntosPorUsuario), $puntosPorUsuario);
         $puntosLider = $puntosPorUsuario[$idLider];
         $lider = User::find($idLider);
@@ -342,7 +435,6 @@ class JornadaController extends Controller
         $nombreLider = $lider->nombre_visible ?? $lider->name;
         $partes = ["{$nombreLider} lideró con {$puntosLider}pt"];
 
-        // --- Mayor subida de puestos en la clasificación general ---
         $posicionesAntes = EventoPuntos::where('id_liga', $liga->id)
             ->where('jornada', '<', $jornada)
             ->selectRaw('id_usuario, SUM(puntos) as total')
@@ -370,7 +462,7 @@ class JornadaController extends Controller
             $posAntes = $posicionesAntes->get($idUsuario);
 
             if (is_null($posAntes)) {
-                continue; // no tenía posición previa (recién importado/registrado), no cuenta
+                continue;
             }
 
             $subida = $posAntes - $posDespues;

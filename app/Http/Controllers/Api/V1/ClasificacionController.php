@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\CalendarioPartido;
+use App\Models\CartaUsuario;
 use App\Models\CierreJornada;
 use App\Models\ConfiguracionPuntos;
 use App\Models\EventoPartido;
@@ -15,6 +16,9 @@ use Illuminate\Http\Request;
 
 class ClasificacionController extends Controller
 {
+    /** Tipos de evento que representan el RESULTADO de un pronóstico (los de cartas son aparte). */
+    private const TIPOS_RESULTADO = ['AciertoExacto', 'AciertoDiferencia', 'Acierto1x2', 'Fallo'];
+
     public function index(Request $request)
     {
         $liga = $request->user()->ligaActiva;
@@ -37,6 +41,17 @@ class ClasificacionController extends Controller
 
         $porUsuario = $eventosParaFilas->groupBy('id_usuario');
 
+        // Puntos que vienen de cartas (cualquier forma), para el mismo rango de jornadas que
+        // el resto de la tabla — usando puntos_generados de la propia carta, la fuente que el
+        // motor ya calcula con exactitud, así no hay que reconstruir nada.
+        $cartasQuery = CartaUsuario::where('id_liga', $liga->id)->where('estado', 'resuelta_cumplida');
+        if ($jornadaSeleccionada) {
+            $cartasQuery->where('jornada_efecto', $jornadaSeleccionada);
+        }
+        $puntosCartasPorUsuario = $cartasQuery->selectRaw('id_usuario, SUM(puntos_generados) as total')
+            ->groupBy('id_usuario')
+            ->pluck('total', 'id_usuario');
+
         $jornadaParaComparar = $jornadaSeleccionada ?? CierreJornada::where('id_liga', $liga->id)->where('cerrada', true)->max('jornada');
 
         $posicionesAnteriores = [];
@@ -51,10 +66,12 @@ class ClasificacionController extends Controller
                 ->toArray();
         }
 
-        $filas = $porUsuario->map(function ($grupo, $idUsuario) {
+        $filas = $porUsuario->map(function ($grupo, $idUsuario) use ($puntosCartasPorUsuario) {
             $usuario = User::find($idUsuario);
 
-            $eventosConPartido = $grupo->filter(fn ($e) => $e->id_partido && $e->partido)
+            // Solo cuentan para la racha los eventos de RESULTADO: una carta de evento
+            // (p. ej. Amigo del Árbitro) también lleva id_partido y no es un acierto.
+            $eventosConPartido = $grupo->filter(fn ($e) => $e->id_partido && $e->partido && in_array($e->tipo_evento, self::TIPOS_RESULTADO, true))
                 ->sortByDesc(fn ($e) => $e->partido->horario_estimado);
 
             $racha = 0;
@@ -75,6 +92,8 @@ class ClasificacionController extends Controller
                 'avatar_url' => $usuario->avatar_url ? url($usuario->avatar_url) : null,
                 'puntos_totales' => (int) $grupo->sum('puntos'),
                 'puntos_goleadores' => (int) $grupo->where('tipo_evento', 'GolesGoleadorElegido')->sum('puntos'),
+                // Del total de arriba, cuánto vino de cartas — informativo, ya incluido en el total.
+                'puntos_cartas' => (int) ($puntosCartasPorUsuario[$idUsuario] ?? 0),
                 'aciertos' => $aciertos,
                 'fallos' => $fallos,
                 'exactos' => $grupo->where('tipo_evento', 'AciertoExacto')->count(),
@@ -151,11 +170,21 @@ class ClasificacionController extends Controller
 
         $idsPartidos = $pronosticos->pluck('id_partido');
 
-        $eventos = EventoPuntos::where('id_liga', $liga->id)
+        // Un partido puede tener VARIOS eventos (el del resultado y, si hay carta, el de la
+        // carta). Antes se indexaban por partido y el último pisaba al anterior.
+        $eventosPorPartido = EventoPuntos::where('id_liga', $liga->id)
             ->where('id_usuario', $usuario->id)
             ->whereIn('id_partido', $idsPartidos)
             ->get()
-            ->keyBy('id_partido');
+            ->groupBy('id_partido');
+
+        $cartasPorPartido = CartaUsuario::where('id_liga', $liga->id)
+            ->where('id_usuario', $usuario->id)
+            ->whereIn('id_partido', $idsPartidos)
+            ->whereIn('estado', ['resuelta_cumplida', 'resuelta_no_cumplida'])
+            ->with('tipoCarta')
+            ->get()
+            ->groupBy('id_partido');
 
         $bonusPlenoPorJornada = EventoPuntos::where('id_liga', $liga->id)
             ->where('id_usuario', $usuario->id)
@@ -164,8 +193,35 @@ class ClasificacionController extends Controller
             ->groupBy('jornada')
             ->map(fn ($grupo) => (int) $grupo->sum('puntos'));
 
-        $filasPorPartido = $pronosticos->map(function ($p) use ($eventos, $esUnoMismo) {
-            $evento = $eventos->get($p->id_partido);
+        // Bonus de cartas que son de la jornada entera, no de un partido (Crack, Doble Filo...)
+        $bonusCartasPorJornada = EventoPuntos::where('id_liga', $liga->id)
+            ->where('id_usuario', $usuario->id)
+            ->whereIn('tipo_evento', ['CartaBonoJornada', 'CartaDoblePartido'])
+            ->get()
+            ->groupBy('jornada')
+            ->map(fn ($grupo) => (int) $grupo->sum('puntos'));
+
+        // En qué jornadas un Amuleto ayudó de verdad — para poder explicar el bonus de pleno
+        $jornadasConAmuletoActivo = CartaUsuario::where('id_liga', $liga->id)
+            ->where('id_usuario', $usuario->id)
+            ->where('estado', 'resuelta_cumplida')
+            ->whereHas('tipoCarta', fn ($q) => $q->whereIn('codigo_efecto', ['JUG-PCOM-AMULETO', 'JUG-RAR-AMULETO', 'JUG-LEG-AMULETO']))
+            ->pluck('jornada_efecto')
+            ->flip();
+
+        // Puntos de cartas ligadas a un partido concreto — ya vienen sumados DENTRO de
+        // 'puntos' de cada partido, así que para el desglose se restan de "pronósticos"
+        // en vez de sumarse aparte (evita duplicar la cifra en la pantalla).
+        $puntosCartasPorPartidoTotal = (int) CartaUsuario::where('id_liga', $liga->id)
+            ->where('id_usuario', $usuario->id)
+            ->where('estado', 'resuelta_cumplida')
+            ->whereNotNull('id_partido')
+            ->sum('puntos_generados');
+
+        $filasPorPartido = $pronosticos->map(function ($p) use ($eventosPorPartido, $cartasPorPartido, $esUnoMismo) {
+            $eventos = $eventosPorPartido->get($p->id_partido, collect());
+            $base = $eventos->first(fn ($e) => in_array($e->tipo_evento, self::TIPOS_RESULTADO, true));
+            $puntosCartaEvento = (int) $eventos->where('tipo_evento', 'CartaEventoPartido')->sum('puntos');
 
             $jornadaBloqueada = CalendarioPartido::jornadaBloqueada($p->partido->id_temporada, $p->partido->jornada);
             $puedeVerse = $esUnoMismo || $jornadaBloqueada;
@@ -184,14 +240,24 @@ class ClasificacionController extends Controller
                 'mi_pronostico' => $puedeVerse ? "{$p->goles_local_predicho}-{$p->goles_visitante_predicho}" : null,
                 'oculto' => ! $puedeVerse,
                 'resultado_1x2' => $p->resultado_1x2,
-                'puntos' => $evento?->puntos,
-                'tipo_evento' => $evento?->tipo_evento,
+                // Puntos del partido = resultado (ya con las cartas de ajuste) + carta de evento
+                'puntos' => $base ? (int) $base->puntos + $puntosCartaEvento : null,
+                'tipo_evento' => $base?->tipo_evento,
+                'nota_carta' => $puedeVerse ? $base?->nota_carta : null,
+                // Qué cartas se jugaron sobre este partido: solo se enseñan si el pronóstico es visible
+                'cartas' => $puedeVerse
+                    ? $cartasPorPartido->get($p->id_partido, collect())->map(fn ($c) => [
+                        'nombre' => $c->tipoCarta->nombre,
+                        'puntos' => (int) $c->puntos_generados,
+                        'cumplida' => $c->estado === 'resuelta_cumplida',
+                    ])->values()
+                    : [],
             ];
         });
 
         $numerosJornada = $filasPorPartido->pluck('jornada')->unique()->sortDesc()->values();
 
-        $jornadas = $numerosJornada->map(function ($jornada) use ($liga, $usuario, $filasPorPartido, $bonusPlenoPorJornada, $config, $esUnoMismo, $goleadoresCalculadosPorJornada) {
+        $jornadas = $numerosJornada->map(function ($jornada) use ($liga, $usuario, $filasPorPartido, $bonusPlenoPorJornada, $bonusCartasPorJornada, $jornadasConAmuletoActivo, $config, $esUnoMismo, $goleadoresCalculadosPorJornada) {
             $partidosDeEstaJornada = $filasPorPartido->where('jornada', $jornada)->values();
 
             $bloqueada = CalendarioPartido::jornadaBloqueada($liga->id_temporada, $jornada);
@@ -232,22 +298,27 @@ class ClasificacionController extends Controller
 
             $puntosPartidos = (int) $partidosDeEstaJornada->sum('puntos');
             $puntosBonus = $bonusPlenoPorJornada->get($jornada, 0);
+            $puntosBonusCartas = $bonusCartasPorJornada->get($jornada, 0);
             $puntosGoleadores = (int) $goleadores->pluck('puntos')->filter(fn ($p) => ! is_null($p))->sum();
 
             return [
                 'jornada' => $jornada,
                 'bloqueada' => $bloqueada,
                 'goleadores_calculados' => $goleadoresCalculadosOficial,
-                'puntos_totales_jornada' => $puntosPartidos + $puntosBonus + $puntosGoleadores,
+                'puntos_totales_jornada' => $puntosPartidos + $puntosBonus + $puntosBonusCartas + $puntosGoleadores,
                 'bonus_pleno' => $puntosBonus,
+                'bonus_pleno_con_amuleto' => $puntosBonus > 0 && $jornadasConAmuletoActivo->has($jornada),
+                'bonus_cartas' => $puntosBonusCartas,
                 'partidos' => $partidosDeEstaJornada,
                 'goleadores' => $goleadores,
             ];
         });
 
-        $puntosPronosticos = (int) $filasPorPartido->sum('puntos');
+        $puntosPronosticosBase = (int) $filasPorPartido->sum('puntos');
         $puntosBonusTotal = (int) $bonusPlenoPorJornada->sum();
+        $puntosBonusCartasTotal = (int) $bonusCartasPorJornada->sum();
         $puntosGoleadoresTotal = (int) $jornadas->sum(fn ($j) => collect($j['goleadores'])->pluck('puntos')->filter(fn ($p) => ! is_null($p))->sum());
+        $puntosCartasTotal = $puntosCartasPorPartidoTotal + $puntosBonusCartasTotal;
 
         return response()->json([
             'data' => [
@@ -258,13 +329,16 @@ class ClasificacionController extends Controller
                 ],
                 'stats' => [
                     'total' => $filasPorPartido->count(),
-                    'puntos_totales' => $puntosPronosticos + $puntosBonusTotal + $puntosGoleadoresTotal,
+                    'puntos_totales' => $puntosPronosticosBase + $puntosBonusTotal + $puntosBonusCartasTotal + $puntosGoleadoresTotal,
                     'aciertos' => $filasPorPartido->whereIn('tipo_evento', ['AciertoExacto', 'AciertoDiferencia', 'Acierto1x2'])->count(),
                     'exactos' => $filasPorPartido->where('tipo_evento', 'AciertoExacto')->count(),
                 ],
+                // "pronósticos" resta lo que ya aportaron las cartas, para que la suma de las
+                // 4 líneas del desglose coincida EXACTAMENTE con puntos_totales, sin duplicar nada.
                 'desglose' => [
-                    'pronosticos' => $puntosPronosticos,
+                    'pronosticos' => $puntosPronosticosBase - $puntosCartasPorPartidoTotal,
                     'bonus_pleno' => $puntosBonusTotal,
+                    'cartas' => $puntosCartasTotal,
                     'goleadores' => $puntosGoleadoresTotal,
                 ],
                 'jornadas' => $jornadas,

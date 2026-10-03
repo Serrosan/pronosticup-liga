@@ -2,6 +2,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import client from '../api/client'
+import { TIPOS, tipoDeMarcador } from '../utils/tiposAcierto'
 
 const MAX_GOLES = 15
 
@@ -15,41 +16,6 @@ const BADGE_ESTADO = {
   'En juego': 'bg-red-400/15 text-red-400 animate-pulse',
   Aplazado: 'bg-red-400/15 text-red-400',
   Programado: 'bg-premio/15 text-premio',
-}
-
-const COLOR_TIPO = {
-  AciertoExacto: '#22C55E',
-  AciertoDiferencia: '#F59E0B',
-  Acierto1x2: 'var(--color-acento)',
-  Fallo: '#EF4444',
-}
-
-function calcularResultado1x2(golesLocal, golesVisitante) {
-  if (golesLocal > golesVisitante) return 'Local'
-  if (golesLocal < golesVisitante) return 'Visitante'
-  return 'Empate'
-}
-
-function colorDePronostico(golesLocalPred, golesVisitantePred, golesCasa, golesFuera) {
-  if (golesLocalPred === golesCasa && golesVisitantePred === golesFuera) {
-    return COLOR_TIPO.AciertoExacto
-  }
-
-  const resultadoReal = calcularResultado1x2(golesCasa, golesFuera)
-  const resultadoPredicho = calcularResultado1x2(golesLocalPred, golesVisitantePred)
-
-  if (resultadoPredicho !== resultadoReal) {
-    return COLOR_TIPO.Fallo
-  }
-
-  if (resultadoReal === 'Empate') {
-    const margen = Math.abs(golesLocalPred - golesCasa)
-    return margen === 1 ? COLOR_TIPO.AciertoDiferencia : COLOR_TIPO.Acierto1x2
-  }
-
-  const diferenciaReal = golesCasa - golesFuera
-  const diferenciaPredicha = golesLocalPred - golesVisitantePred
-  return diferenciaReal === diferenciaPredicha ? COLOR_TIPO.AciertoDiferencia : COLOR_TIPO.Acierto1x2
 }
 
 function minutoEstimado(horarioEstimado, minutoOficial) {
@@ -146,13 +112,14 @@ function MatchCard({ partido, jornadaBloqueada = false }) {
   const minutoMostrado = partido.estado === 'En juego' ? minutoEstimado(partido.horario_estimado, partido.minuto_partido) : null
 
   const partidoResuelto = partido.estado === 'Jugado' && partido.goles_casa !== null && partido.goles_fuera !== null
-  const colorPronostico = (partidoResuelto && partido.mi_pronostico)
-    ? colorDePronostico(
+  // Color + icono + palabra del tipo de acierto (misma fuente que Mis Pronósticos).
+  const tipoPronostico = (partidoResuelto && partido.mi_pronostico)
+    ? TIPOS[tipoDeMarcador(
         partido.mi_pronostico.goles_local_predicho,
         partido.mi_pronostico.goles_visitante_predicho,
         partido.goles_casa,
         partido.goles_fuera
-      )
+      )]
     : null
 
   return (
@@ -183,9 +150,12 @@ function MatchCard({ partido, jornadaBloqueada = false }) {
       {partido.estado === 'Jugado' && partido.mi_pronostico && (
         <p
           className="text-center font-body text-sm mt-1"
-          style={{ color: colorPronostico ?? 'var(--color-borde)' }}
+          style={{ color: tipoPronostico?.color ?? 'var(--color-borde)' }}
         >
           Tu pronóstico: {partido.mi_pronostico.goles_local_predicho}-{partido.mi_pronostico.goles_visitante_predicho}
+          {tipoPronostico && (
+            <span className="font-semibold"> · {tipoPronostico.icono} {tipoPronostico.texto}</span>
+          )}
         </p>
       )}
 

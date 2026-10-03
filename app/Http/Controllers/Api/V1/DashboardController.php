@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\CalendarioPartido;
+use App\Models\CartaUsuario;
 use App\Models\EventoPuntos;
 use App\Models\Novedad;
 use App\Models\Pronostico;
@@ -121,6 +122,7 @@ class DashboardController extends Controller
         $misEventos = EventoPuntos::where('id_liga', $liga->id)
             ->where('id_usuario', $userId)
             ->whereIn('id_partido', $idsUltimos)
+            ->whereIn('tipo_evento', ['AciertoExacto', 'AciertoDiferencia', 'Acierto1x2', 'Fallo'])
             ->get()
             ->keyBy('id_partido');
 
@@ -164,6 +166,21 @@ class DashboardController extends Controller
                     ->get(['titulo', 'emoji', 'created_at']),
 
                 'avisos' => $avisos,
+
+                // Solo se calcula en ligas con Cartas — pensado como aviso rápido en el
+                // Dashboard, sin tener que entrar a Mis Cartas para enterarte.
+                'cartas' => $liga->tipo === 'ConExtras' ? [
+                    'sin_abrir' => CartaUsuario::where('id_liga', $liga->id)
+                        ->where('id_usuario', $userId)
+                        ->where('estado', 'en_mano')
+                        ->whereNull('revelada_en')
+                        ->count(),
+                    'amenazas' => CartaUsuario::where('id_liga', $liga->id)
+                        ->where('id_usuario_objetivo', $userId)
+                        ->where('id_usuario', '!=', $userId)
+                        ->where('estado', 'jugada')
+                        ->count(),
+                ] : null,
 
                 'proxima_jornada' => [
                     'numero' => $proximaJornadaNumero,

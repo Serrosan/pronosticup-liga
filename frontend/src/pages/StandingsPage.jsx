@@ -8,6 +8,7 @@ import TicketHeader from '../components/TicketHeader'
 import EstadoVacio from '../components/EstadoVacio'
 import SkeletonLista from '../components/SkeletonLista'
 import CompartirClasificacion from '../components/CompartirClasificacion'
+import SelectorJornada from '../components/SelectorJornada'
 import useTitulo from '../hooks/useTitulo'
 
 const MEDALLAS = ['🥇', '🥈', '🥉']
@@ -19,6 +20,7 @@ const LEYENDA = [
   { icono: '%', color: '#0ea5e9', texto: 'Porcentaje de acierto (aciertos / resueltos)' },
   { icono: '🔥', color: '#F59E0B', texto: 'Racha de aciertos seguidos (solo si llevas 2 o más)' },
   { icono: '🥅', color: '#a855f7', texto: 'Puntos ganados por tus goleadores elegidos' },
+  { icono: '🃏', color: '#10b981', texto: 'Puntos ganados gracias a tus Cartas' },
 ]
 
 function Avatar({ url, nombre }) {
@@ -89,7 +91,9 @@ function Leyenda() {
   )
 }
 
-function SelectorJornada({ jornadaSeleccionada, onCambiar }) {
+// "Total" + selector rápido. Antes era una pastilla por jornada cerrada, que a
+// partir de unas 20 jornadas ocupaba media pantalla.
+function FiltroJornada({ jornadaSeleccionada, onCambiar }) {
   const { data: jornadas } = useQuery({
     queryKey: ['jornadas-cerradas'],
     queryFn: async () => (await client.get('/api/v1/jornadas-cerradas')).data.data,
@@ -98,7 +102,7 @@ function SelectorJornada({ jornadaSeleccionada, onCambiar }) {
   if (!jornadas || jornadas.length === 0) return null
 
   return (
-    <div className="flex gap-2 flex-wrap mb-4">
+    <div className="flex items-center gap-2 flex-wrap mb-4">
       <button
         onClick={() => onCambiar(null)}
         className={`font-body text-sm px-3 py-1.5 rounded-full transition ${
@@ -107,17 +111,12 @@ function SelectorJornada({ jornadaSeleccionada, onCambiar }) {
       >
         Total
       </button>
-      {jornadas.map((j) => (
-        <button
-          key={j}
-          onClick={() => onCambiar(j)}
-          className={`font-body text-sm px-3 py-1.5 rounded-full transition ${
-            jornadaSeleccionada === j ? 'bg-acento text-fondo font-semibold' : 'text-texto border border-borde/40 hover:bg-borde/10'
-          }`}
-        >
-          J{j}
-        </button>
-      ))}
+      <SelectorJornada
+        jornadas={jornadas}
+        valor={jornadaSeleccionada}
+        onCambiar={onCambiar}
+        textoVacio="Ver una jornada"
+      />
     </div>
   )
 }
@@ -269,6 +268,9 @@ function FilaClasificacion({ fila, index, usuario, puntosLider }) {
           {fila.puntos_goleadores > 0 && (
             <Chip color="#a855f7" titulo="Puntos de goleadores">🥅 {fila.puntos_goleadores}</Chip>
           )}
+          {fila.puntos_cartas > 0 && (
+            <Chip color="#10b981" titulo="Puntos ganados gracias a tus Cartas">🃏 {fila.puntos_cartas}</Chip>
+          )}
         </div>
       </div>
     </Link>
@@ -314,7 +316,7 @@ function StandingsPage() {
         />
       )}
 
-      <SelectorJornada jornadaSeleccionada={jornadaSeleccionada} onCambiar={setJornadaSeleccionada} />
+      <FiltroJornada jornadaSeleccionada={jornadaSeleccionada} onCambiar={setJornadaSeleccionada} />
 
       {jornadaSeleccionada !== null && (
         <div className="mb-4 bg-premio/10 border border-premio/30 rounded-lg px-4 py-2.5 text-center">

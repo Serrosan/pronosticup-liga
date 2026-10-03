@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\AlineacionJugador;
 use App\Models\CalendarioPartido;
 use App\Models\Equipo;
 use App\Models\Estadio;
+use App\Models\EstadisticaPartido;
 use App\Models\Jugador;
 use Illuminate\Http\Request;
 
@@ -31,10 +33,39 @@ class EquipoPartidosController extends Controller
 
         $capacidadMaxima = Estadio::max('capacidad');
 
-        $plantilla = Jugador::whereHas('plantillasTemporada', fn ($q) => $q->where('id_equipo', $equipo->id)->whereNull('fecha_salida'))
+        $idsPartidosDeLaTemporada = $partidos->pluck('id');
+
+        // --- Formación más usada y estadísticas medias, con los partidos que ya
+        // trajo el scraper de LaLiga.com — null si todavía no hay ninguno, para
+        // que el frontend oculte la tarjeta en vez de enseñar un "0" engañoso.
+        $formacionMasUsada = AlineacionJugador::where('id_equipo', $equipo->id)
+            ->whereIn('id_partido', $idsPartidosDeLaTemporada)
+            ->whereNotNull('formacion')
+            ->selectRaw('formacion, COUNT(DISTINCT id_partido) as veces')
+            ->groupBy('formacion')
+            ->orderByDesc('veces')
+            ->first();
+
+        $estadisticasMedias = EstadisticaPartido::where('id_equipo', $equipo->id)
+            ->whereIn('id_partido', $idsPartidosDeLaTemporada)
+            ->selectRaw('AVG(posesion) as posesion, AVG(remates) as remates, AVG(efectividad) as efectividad, COUNT(*) as partidos')
+            ->first();
+
+        $jugadoresPlantilla = Jugador::whereHas('plantillasTemporada', fn ($q) => $q->where('id_equipo', $equipo->id)->whereNull('fecha_salida'))
             ->whereNull('dado_de_baja_en')
             ->with(['plantillasTemporada' => fn ($q) => $q->where('id_equipo', $equipo->id)->whereNull('fecha_salida')])
-            ->get()
+            ->get();
+
+        // Titularidades de toda la plantilla en 1 sola consulta, en vez de 1 por
+        // jugador — mismo dato que ya se ve en la ficha individual de cada uno,
+        // aquí agregado para verlo de un vistazo en la plantilla completa.
+        $titularidadesPorJugador = AlineacionJugador::whereIn('id_jugador', $jugadoresPlantilla->pluck('id'))
+            ->where('titular', true)
+            ->selectRaw('id_jugador, COUNT(*) as total')
+            ->groupBy('id_jugador')
+            ->pluck('total', 'id_jugador');
+
+        $plantilla = $jugadoresPlantilla
             ->map(fn ($j) => [
                 'id' => $j->id,
                 'nombre' => $j->nombre,
@@ -46,6 +77,7 @@ class EquipoPartidosController extends Controller
                 'fecha_nacimiento' => $j->fecha_nacimiento?->format('Y-m-d'),
                 'pie' => $j->pie,
                 'dorsal' => $j->plantillasTemporada->first()?->dorsal,
+                'titularidades' => $titularidadesPorJugador->get($j->id, 0),
             ])
             ->sortBy(fn ($j) => $j['dorsal'] ?? 99)
             ->values();
@@ -88,6 +120,14 @@ class EquipoPartidosController extends Controller
                         'foto_url' => $equipo->entrenadorActual->foto_url,
                     ] : null,
                 ],
+                'rendimiento_reciente' => $estadisticasMedias && $estadisticasMedias->partidos > 0 ? [
+                    'partidos_con_datos' => (int) $estadisticasMedias->partidos,
+                    'formacion_mas_usada' => $formacionMasUsada?->formacion,
+                    'veces_formacion' => $formacionMasUsada ? (int) $formacionMasUsada->veces : null,
+                    'posesion_media' => round($estadisticasMedias->posesion, 1),
+                    'remates_medios' => round($estadisticasMedias->remates, 1),
+                    'efectividad_media' => round($estadisticasMedias->efectividad, 1),
+                ] : null,
                 'plantilla' => $plantilla,
                 'plantilla_stats' => [
                     'total' => $plantilla->count(),

@@ -51,7 +51,7 @@ class GoleadoresTest extends TestCase
         $this->assertDatabaseCount('goleadores_jornada', 5);
     }
 
-    public function test_no_se_puede_guardar_con_menos_de_5_jugadores(): void
+    public function test_se_puede_guardar_una_seleccion_incompleta_y_avisa(): void
     {
         [$usuario, $liga, $temporada] = $this->usuarioConLiga();
         $this->partidoProgramado($temporada->id, 1);
@@ -61,7 +61,7 @@ class GoleadoresTest extends TestCase
             'jugadores' => $jugadores->pluck('id')->all(),
         ]);
 
-        $respuesta->assertStatus(422);
+        $respuesta->assertOk()->assertJsonPath("completo", false);
     }
 
     public function test_no_se_pueden_repetir_jugadores_en_la_misma_seleccion(): void

@@ -86,4 +86,18 @@ class CalendarioPartido extends Model
 
         return $partidosPrincipales->contains(fn ($p) => $p->estado !== 'Programado');
     }
+
+    /**
+     * La jornada "actual" para efectos de reparto de Cartas — la más baja que
+     * aún tenga algún partido pendiente de jugarse. Si toda la temporada ya
+     * se jugó, cae en la jornada 1 por seguridad (nunca debería pasar en la
+     * práctica, pero evita un valor null propagándose a otro sitio).
+     */
+    public static function jornadaActualParaTemporada(int $idTemporada): int
+    {
+        return self::where('id_temporada', $idTemporada)
+            ->whereIn('estado', ['Programado', 'Aplazado', 'En juego'])
+            ->orderBy('jornada')
+            ->value('jornada') ?? 1;
+    }
 }

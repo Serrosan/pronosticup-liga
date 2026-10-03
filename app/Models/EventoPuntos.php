@@ -8,7 +8,7 @@ class EventoPuntos extends Model
 {
     protected $table = 'eventos_puntos';
 
-    protected $fillable = ['id_usuario', 'id_liga', 'id_partido', 'jornada', 'tipo_evento', 'puntos'];
+protected $fillable = ['id_usuario', 'id_liga', 'id_partido', 'jornada', 'tipo_evento', 'puntos', 'nota_carta'];
 
     public function partido()
     {

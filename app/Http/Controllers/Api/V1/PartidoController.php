@@ -3,13 +3,18 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\AlineacionJugador;
 use App\Models\CalendarioPartido;
+use App\Models\EstadisticaPartido;
 use App\Models\EventoPartido;
 use App\Models\Pronostico;
+use App\Services\MotorFaltas;
 use Illuminate\Http\Request;
 
 class PartidoController extends Controller
 {
+    public function __construct(private MotorFaltas $motorFaltas) {}
+
     public function porJornada(Request $request, int $jornada)
     {
         $liga = $request->user()->ligaActiva;
@@ -54,11 +59,20 @@ class PartidoController extends Controller
             ];
         });
 
+        // Si hay una Falta de tipo "requisito" activa contra el usuario esta jornada
+        // (Todo Queda en Casa / Visita Obligada / Resultado Gafas), avisamos con el
+        // progreso real mientras va pronosticando — no solo al guardar el partido que
+        // ya lo rompería. Solo tiene sentido mirarlo en ligas con el modo Cartas.
+        $faltaActiva = $liga->tipo === 'ConExtras'
+            ? $this->motorFaltas->estadoRequisitoPronostico($liga->id, $request->user()->id, $jornada, $partidos->pluck('id'))
+            : null;
+
         return response()->json([
             'data' => $datos,
             'meta' => [
                 'ultima_actualizacion' => $partidos->max('sincronizado_en')?->toIso8601String(),
                 'jornada_bloqueada' => $jornadaBloqueada,
+                'falta_activa' => $faltaActiva,
             ],
         ]);
     }
@@ -127,7 +141,82 @@ class PartidoController extends Controller
                 'video_resumen_url' => $partido->video_resumen_url,
                 'actualizado_en' => $partido->sincronizado_en?->toIso8601String() ?? $partido->updated_at->toIso8601String(),
                 'enfrentamientos_directos' => $enfrentamientosDirectos,
+                'alineaciones' => $this->formatearAlineaciones($partido),
+                'estadisticas_partido' => $this->formatearEstadisticas($partido),
             ],
         ]);
+    }
+
+    /**
+     * null si todavía no hay alineaciones guardadas para este partido (lo
+     * normal para cualquier jornada anterior a la puesta en marcha del
+     * scraper) — el frontend simplemente no muestra la sección en ese caso.
+     */
+    private function formatearAlineaciones(CalendarioPartido $partido): ?array
+    {
+        $alineaciones = AlineacionJugador::where('id_partido', $partido->id)
+            ->with('jugador:id,nombre,apellidos,nombre_camiseta,foto_url')
+            ->get()
+            ->groupBy('id_equipo');
+
+        if ($alineaciones->isEmpty()) {
+            return null;
+        }
+
+        $formatearJugador = fn ($a) => [
+            'nombre' => $a->jugador->nombre_camiseta ?: trim("{$a->jugador->nombre} {$a->jugador->apellidos}"),
+            'foto_url' => $a->jugador->foto_url,
+            'dorsal' => $a->dorsal,
+            'posicion_formacion' => $a->posicion_formacion,
+        ];
+
+        $formatearEquipo = function ($idEquipo) use ($alineaciones, $formatearJugador) {
+            $delEquipo = $alineaciones->get($idEquipo, collect());
+            if ($delEquipo->isEmpty()) {
+                return null;
+            }
+
+            return [
+                'formacion' => $delEquipo->first()->formacion,
+                'titulares' => $delEquipo->where('titular', true)->map($formatearJugador)->values(),
+                'suplentes' => $delEquipo->where('titular', false)->map($formatearJugador)->values(),
+            ];
+        };
+
+        return [
+            'local' => $formatearEquipo($partido->id_equipo_local),
+            'visitante' => $formatearEquipo($partido->id_equipo_visitante),
+        ];
+    }
+
+    private function formatearEstadisticas(CalendarioPartido $partido): ?array
+    {
+        $stats = EstadisticaPartido::where('id_partido', $partido->id)->get()->keyBy('id_equipo');
+
+        if ($stats->isEmpty()) {
+            return null;
+        }
+
+        $formatearEquipo = function ($idEquipo) use ($stats) {
+            $s = $stats->get($idEquipo);
+            if (! $s) {
+                return null;
+            }
+
+            return [
+                'posesion' => $s->posesion,
+                'remates' => $s->remates,
+                'efectividad' => $s->efectividad,
+                'faltas' => $s->faltas,
+                'tarjetas_amarillas' => $s->tarjetas_amarillas,
+                'tarjetas_rojas' => $s->tarjetas_rojas,
+                'corners' => $s->corners,
+            ];
+        };
+
+        return [
+            'local' => $formatearEquipo($partido->id_equipo_local),
+            'visitante' => $formatearEquipo($partido->id_equipo_visitante),
+        ];
     }
 }

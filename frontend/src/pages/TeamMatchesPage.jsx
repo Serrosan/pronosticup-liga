@@ -45,6 +45,43 @@ function BarraCapacidad({ capacidad, maxima }) {
   )
 }
 
+function RendimientoReciente({ rendimiento }) {
+  if (!rendimiento) return null
+
+  return (
+    <div className="bg-fondo border border-borde/30 rounded-lg p-5">
+      <p className="font-body text-xs uppercase tracking-widest text-borde mb-3">📊 Rendimiento reciente</p>
+      <p className="font-body text-[10px] text-borde/70 mb-3">
+        De los {rendimiento.partidos_con_datos} partido{rendimiento.partidos_con_datos > 1 ? 's' : ''} con datos detallados disponibles.
+      </p>
+
+      {rendimiento.formacion_mas_usada && (
+        <div className="flex items-center justify-between mb-3 pb-3 border-b border-borde/10">
+          <p className="font-body text-sm text-texto">Formación más usada</p>
+          <p className="font-marcador text-sm font-bold text-acento">
+            {rendimiento.formacion_mas_usada} <span className="font-body text-[10px] text-borde font-normal">({rendimiento.veces_formacion}x)</span>
+          </p>
+        </div>
+      )}
+
+      <div className="flex justify-around text-center">
+        <div>
+          <p className="font-marcador text-lg text-acento">{rendimiento.posesion_media}%</p>
+          <p className="font-body text-[10px] text-borde mt-0.5">Posesión media</p>
+        </div>
+        <div>
+          <p className="font-marcador text-lg text-acento">{rendimiento.remates_medios}</p>
+          <p className="font-body text-[10px] text-borde mt-0.5">Remates medios</p>
+        </div>
+        <div>
+          <p className="font-marcador text-lg text-acento">{rendimiento.efectividad_media}%</p>
+          <p className="font-body text-[10px] text-borde mt-0.5">Efectividad</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function TarjetaJugador({ jugador }) {
   const nombreMostrado = jugador.nombre_camiseta || `${jugador.nombre} ${jugador.apellidos ?? ''}`.trim()
   const edad = calcularEdad(jugador.fecha_nacimiento)
@@ -72,6 +109,9 @@ function TarjetaJugador({ jugador }) {
           <p className="font-body text-[11px] text-borde truncate">{jugador.nacionalidad ?? jugador.posicion}</p>
           {edad !== null && <span className="font-body text-[11px] text-borde/70">· {edad} años</span>}
         </div>
+        {jugador.titularidades > 0 && (
+          <p className="font-body text-[10px] text-acento font-semibold mt-0.5">Titular {jugador.titularidades}x</p>
+        )}
       </div>
     </Link>
   )
@@ -224,6 +264,8 @@ function TeamMatchesPage() {
               )}
             </div>
           </div>
+
+          <RendimientoReciente rendimiento={data.rendimiento_reciente} />
 
           {(equipo.camiseta_1 || equipo.camiseta_2 || equipo.camiseta_3) && (
             <div className="bg-fondo border border-borde/30 rounded-lg p-5">

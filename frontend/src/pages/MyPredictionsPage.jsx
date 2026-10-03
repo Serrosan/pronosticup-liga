@@ -3,11 +3,9 @@ import { useQuery } from '@tanstack/react-query'
 import client from '../api/client'
 import EstadoVacio from '../components/EstadoVacio'
 import SkeletonLista from '../components/SkeletonLista'
-
-function Escudo({ url, alt }) {
-  if (!url) return <span className="w-5 h-5 rounded-full bg-borde/15 flex items-center justify-center text-xs shrink-0">⚽</span>
-  return <img src={url} alt={alt} className="w-5 h-5 object-contain shrink-0" />
-}
+import TicketHeader from '../components/TicketHeader'
+import FilaPronostico, { LeyendaAciertos, ResumenJornada } from '../components/FilaPronostico'
+import { TIPOS, fondoSuave, estaResuelto, tipoDePronostico } from '../utils/tiposAcierto'
 
 function FotoJugador({ url, nombre }) {
   if (url) return <img src={url} alt={nombre} className="w-8 h-8 rounded-full object-cover shrink-0" />
@@ -27,113 +25,6 @@ function AvatarPequeno({ url, nombre }) {
   )
 }
 
-const COLORES = {
-  exacto: '#22C55E',
-  diferencia: '#F59E0B',
-  signo: 'var(--color-acento)',
-  fallo: '#EF4444',
-  pendiente: 'var(--color-borde)',
-}
-
-function calcularResultado1x2(golesLocal, golesVisitante) {
-  if (golesLocal > golesVisitante) return 'Local'
-  if (golesLocal < golesVisitante) return 'Visitante'
-  return 'Empate'
-}
-
-function colorDePronostico(prediccionTexto, golesCasa, golesFuera) {
-  const [golesLocalPred, golesVisitantePred] = prediccionTexto.split('-').map(Number)
-
-  if (golesLocalPred === golesCasa && golesVisitantePred === golesFuera) {
-    return COLORES.exacto
-  }
-
-  const resultadoReal = calcularResultado1x2(golesCasa, golesFuera)
-  const resultadoPredicho = calcularResultado1x2(golesLocalPred, golesVisitantePred)
-
-  if (resultadoPredicho !== resultadoReal) {
-    return COLORES.fallo
-  }
-
-  if (resultadoReal === 'Empate') {
-    const margen = Math.abs(golesLocalPred - golesCasa)
-    return margen === 1 ? COLORES.diferencia : COLORES.signo
-  }
-
-  const diferenciaReal = golesCasa - golesFuera
-  const diferenciaPredicha = golesLocalPred - golesVisitantePred
-  return diferenciaReal === diferenciaPredicha ? COLORES.diferencia : COLORES.signo
-}
-
-function LeyendaColores() {
-  const items = [
-    { color: COLORES.exacto, texto: 'Resultado exacto' },
-    { color: COLORES.diferencia, texto: 'Diferencia (o empate cercano)' },
-    { color: COLORES.signo, texto: 'Solo el signo' },
-    { color: COLORES.fallo, texto: 'Fallo' },
-    { color: COLORES.pendiente, texto: 'Pendiente' },
-  ]
-
-  return (
-    <div className="flex flex-wrap gap-x-4 gap-y-1.5 px-1 mb-4">
-      {items.map((item) => (
-        <div key={item.texto} className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
-          <span className="font-body text-[10px] text-borde">{item.texto}</span>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-function ResultadoComparado({ prediccion, golesCasa, golesFuera, puntos, estadoPartido }) {
-  const resuelto = estadoPartido === 'Jugado' && golesCasa !== null && golesFuera !== null
-
-  if (!resuelto) {
-    return (
-      <div className="flex flex-col items-center shrink-0">
-        <p className="font-body text-[8px] uppercase tracking-widest text-borde">Tú</p>
-        <p className="font-marcador text-lg text-texto">{prediccion}</p>
-        <span className="font-body text-[9px] text-borde">pendiente</span>
-      </div>
-    )
-  }
-
-  const color = colorDePronostico(prediccion, golesCasa, golesFuera)
-  const puntosCalculados = puntos !== null && puntos !== undefined
-
-  return (
-    <div className="flex items-stretch gap-2.5 shrink-0">
-      <div className="flex flex-col items-center justify-center">
-        <p className="font-body text-[8px] uppercase tracking-widest text-borde">Tú</p>
-        <p className="font-marcador text-lg font-bold" style={{ color }}>{prediccion}</p>
-      </div>
-
-      <div className="w-px bg-borde/20" />
-
-      <div className="flex flex-col items-center justify-center">
-        <p className="font-body text-[8px] uppercase tracking-widest text-borde">Real</p>
-        <p className="font-marcador text-lg text-texto">{golesCasa}-{golesFuera}</p>
-      </div>
-
-      <div className="flex items-center">
-        {puntosCalculados ? (
-          <span
-            className="font-marcador text-xs font-bold rounded-full px-2 py-1"
-            style={{ backgroundColor: `${color}1F`, color }}
-          >
-            +{puntos}
-          </span>
-        ) : (
-          <span className="font-body text-[9px] text-borde px-2 py-1 border border-borde/25 rounded-full">
-            sin cerrar
-          </span>
-        )}
-      </div>
-    </div>
-  )
-}
-
 function OtrosPronosticos({ jornada, idPartido, golesCasa, golesFuera, estadoPartido }) {
   const { data, isLoading } = useQuery({
     queryKey: ['otros-pronosticos', jornada],
@@ -141,10 +32,10 @@ function OtrosPronosticos({ jornada, idPartido, golesCasa, golesFuera, estadoPar
   })
 
   const otros = data?.[idPartido] ?? []
-  const resuelto = estadoPartido === 'Jugado' && golesCasa !== null && golesFuera !== null
+  const resuelto = estaResuelto(golesCasa, golesFuera, estadoPartido)
 
   return (
-    <div className="mx-4 mb-3 bg-borde/5 border border-borde/10 rounded-lg overflow-hidden">
+    <div className="mt-3 bg-borde/5 border border-borde/10 rounded-lg overflow-hidden">
       <p className="font-body text-[10px] uppercase tracking-widest text-borde px-3 pt-2.5 pb-1.5">
         Pronósticos del grupo
       </p>
@@ -155,15 +46,17 @@ function OtrosPronosticos({ jornada, idPartido, golesCasa, golesFuera, estadoPar
       ) : (
         <div className="flex flex-col divide-y divide-borde/10">
           {otros.map((o, i) => {
-            const color = resuelto ? colorDePronostico(o.pronostico, golesCasa, golesFuera) : 'var(--color-texto)'
+            const tipo = resuelto ? TIPOS[tipoDePronostico(o.pronostico, golesCasa, golesFuera)] : null
             return (
               <div key={i} className="flex items-center gap-2.5 px-3 py-2">
                 <AvatarPequeno url={o.avatar_url} nombre={o.usuario} />
                 <p className="font-body text-xs text-texto flex-1 truncate">{o.usuario}</p>
                 <span
-                  className="font-marcador text-xs font-bold rounded px-2 py-0.5"
-                  style={{ backgroundColor: `${color}1F`, color }}
+                  title={tipo?.leyenda}
+                  className="font-marcador text-xs font-bold rounded px-2 py-0.5 tabular-nums flex items-center gap-1.5"
+                  style={tipo ? { backgroundColor: fondoSuave(tipo.color), color: tipo.color } : { color: 'var(--color-texto)' }}
                 >
+                  {tipo && <span className="font-body">{tipo.icono}</span>}
                   {o.pronostico}
                 </span>
               </div>
@@ -175,41 +68,20 @@ function OtrosPronosticos({ jornada, idPartido, golesCasa, golesFuera, estadoPar
   )
 }
 
+// La fila en sí es FilaPronostico (compartida con el detalle de puntos de un
+// usuario). Aquí solo se le añade lo propio de esta pantalla: si la jornada
+// está cerrada, se pulsa para ver qué pronosticó el resto del grupo.
 function FilaPartido({ partido, jornada, jornadaBloqueada }) {
   const [mostrarOtros, setMostrarOtros] = useState(false)
 
   return (
-    <div className="border-b border-borde/10 last:border-0 odd:bg-borde/5">
-      <div className="flex items-center gap-3 px-4 py-3">
-        <div className="flex items-center gap-1.5 min-w-0 flex-1">
-          <Escudo url={partido.escudo_local} alt={partido.equipo_local} />
-          <p className="font-body text-sm text-texto truncate">{partido.equipo_local}</p>
-          <span className="text-borde text-xs shrink-0">–</span>
-          <p className="font-body text-sm text-texto truncate">{partido.equipo_visitante}</p>
-          <Escudo url={partido.escudo_visitante} alt={partido.equipo_visitante} />
-        </div>
-
-        <ResultadoComparado
-          prediccion={partido.mi_pronostico}
-          golesCasa={partido.goles_casa}
-          golesFuera={partido.goles_fuera}
-          puntos={partido.puntos}
-          estadoPartido={partido.estado_partido}
-        />
-      </div>
-
-      {jornadaBloqueada && (
-        <div className="px-4 pb-2.5 -mt-1">
-          <button
-            onClick={() => setMostrarOtros(!mostrarOtros)}
-            className="font-body text-[11px] text-borde border border-borde/25 rounded-full px-2.5 py-1 hover:bg-borde/10 hover:text-texto transition inline-flex items-center gap-1"
-          >
-            <span className="text-[9px]">{mostrarOtros ? '▲' : '▼'}</span>
-            {mostrarOtros ? 'Ocultar' : 'Ver'} pronósticos del grupo
-          </button>
-        </div>
-      )}
-
+    <FilaPronostico
+      partido={partido}
+      etiqueta="tu pronóstico"
+      onPulsar={jornadaBloqueada ? () => setMostrarOtros(!mostrarOtros) : undefined}
+      abierto={mostrarOtros}
+      tituloPulsar={mostrarOtros ? 'Ocultar pronósticos del grupo' : 'Ver pronósticos del grupo'}
+    >
       {mostrarOtros && (
         <OtrosPronosticos
           jornada={jornada}
@@ -219,7 +91,7 @@ function FilaPartido({ partido, jornada, jornadaBloqueada }) {
           estadoPartido={partido.estado_partido}
         />
       )}
-    </div>
+    </FilaPronostico>
   )
 }
 
@@ -227,7 +99,7 @@ function SeccionGoleadores({ goleadores }) {
   if (!goleadores || goleadores.length === 0) return null
 
   return (
-    <div className="px-4 py-3 bg-premio/5 border-t border-borde/10">
+    <div className="px-4 py-3 bg-premio/5">
       <p className="font-body text-[10px] uppercase tracking-widest text-premio mb-2">⚽ Tus goleadores elegidos</p>
       <div className="flex flex-wrap gap-2">
         {goleadores.map((g) => (
@@ -246,44 +118,91 @@ function SeccionGoleadores({ goleadores }) {
   )
 }
 
+// Misma tarjeta por jornada que ya usa UserPointsDetailPage — consistente con
+// el resto de la app, en vez de un patrón propio de esta pantalla.
 function BloqueJornada({ bloque }) {
   const [abierto, setAbierto] = useState(bloque.bloqueada === false || bloque.partidos.some((p) => p.estado_partido !== 'Jugado'))
+
+  // "Sin cerrar" se dice UNA vez aquí arriba, no en cada partido.
+  const sinCerrar = bloque.partidos.some(
+    (p) => estaResuelto(p.goles_casa, p.goles_fuera, p.estado_partido) && (p.puntos === null || p.puntos === undefined)
+  )
 
   return (
     <div className="bg-fondo border border-borde/30 rounded-lg overflow-hidden mb-4">
       <button
         onClick={() => setAbierto(!abierto)}
-        className="w-full flex items-center justify-between px-4 py-3 bg-borde/10 hover:bg-borde/15 transition"
+        aria-expanded={abierto}
+        className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-borde/10 hover:bg-borde/15 transition"
       >
-        <div className="flex items-center gap-2">
+        <span className="flex items-center flex-wrap gap-x-3 gap-y-1 min-w-0">
           <span className="font-display text-base text-texto">Jornada {bloque.jornada}</span>
           {!bloque.bloqueada && (
             <span className="font-body text-[10px] font-semibold text-premio bg-premio/10 rounded-full px-2 py-0.5">Abierta</span>
           )}
-        </div>
-        <div className="flex items-center gap-3">
+          {sinCerrar && (
+            <span
+              title="Hay partidos jugados cuyos puntos aún no se han calculado"
+              className="font-body text-[10px] font-semibold text-borde border border-borde/30 rounded-full px-2 py-0.5"
+            >
+              ⏳ Puntos sin cerrar
+            </span>
+          )}
+          <ResumenJornada partidos={bloque.partidos} />
+        </span>
+        <span className="flex items-center gap-3 shrink-0">
           <span className="font-marcador text-sm font-bold text-acento">{bloque.puntos_totales_jornada}pt</span>
           <span className="text-borde text-xs">{abierto ? '▲' : '▼'}</span>
-        </div>
+        </span>
       </button>
 
       {abierto && (
         <div>
-          {bloque.partidos.map((partido) => (
-            <FilaPartido
-              key={partido.id_partido}
-              partido={partido}
-              jornada={bloque.jornada}
-              jornadaBloqueada={bloque.bloqueada}
-            />
-          ))}
-          {bloque.bonus_pleno > 0 && (
-            <div className="px-4 py-2 bg-acento/5 border-t border-borde/10 flex items-center justify-between">
-              <p className="font-body text-xs text-acento font-semibold">🎯 Bonus por buena jornada</p>
-              <span className="font-marcador text-xs font-bold text-acento">+{bloque.bonus_pleno}pt</span>
+          <div className="flex items-baseline justify-between gap-3 px-4 pt-3 pb-1">
+            <p className="font-body text-[10px] uppercase tracking-widest text-borde">Partidos</p>
+            {bloque.bloqueada && (
+              <p className="font-body text-[10px] text-borde text-right">Pulsa un partido para ver los pronósticos del grupo</p>
+            )}
+          </div>
+          <div>
+            {bloque.partidos.map((partido) => (
+              <FilaPartido
+                key={partido.id_partido}
+                partido={partido}
+                jornada={bloque.jornada}
+                jornadaBloqueada={bloque.bloqueada}
+              />
+            ))}
+          </div>
+
+          {(bloque.bonus_pleno > 0 || bloque.bonus_cartas > 0) && (
+            <div className="border-t border-borde/10">
+              <p className="font-body text-[10px] uppercase tracking-widest text-borde px-4 pt-3 pb-1">Bonus</p>
+              {bloque.bonus_pleno > 0 && (
+                <div className="px-4 py-2 flex items-center justify-between">
+                  <div>
+                    <p className="font-body text-xs text-acento font-semibold">🎯 Bonus por buena jornada</p>
+                    {bloque.bonus_pleno_con_amuleto && (
+                      <p className="font-body text-[11px] text-borde mt-0.5">🍀 En parte, gracias a tu Amuleto</p>
+                    )}
+                  </div>
+                  <span className="font-marcador text-xs font-bold text-acento">+{bloque.bonus_pleno}pt</span>
+                </div>
+              )}
+              {bloque.bonus_cartas > 0 && (
+                <div className="px-4 py-2 flex items-center justify-between">
+                  <p className="font-body text-xs text-premio font-semibold">🃏 Bonus de cartas</p>
+                  <span className="font-marcador text-xs font-bold text-premio">+{bloque.bonus_cartas}pt</span>
+                </div>
+              )}
             </div>
           )}
-          <SeccionGoleadores goleadores={bloque.goleadores} />
+
+          {bloque.goleadores?.length > 0 && (
+            <div className="border-t border-borde/10">
+              <SeccionGoleadores goleadores={bloque.goleadores} />
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -302,45 +221,40 @@ function MyPredictionsPage() {
   if (isLoading) return <div className="max-w-2xl mx-auto px-4 py-8"><SkeletonLista /></div>
   if (error) return <p className="font-body text-red-500 p-4">{error.response?.data?.message ?? 'Error al cargar.'}</p>
 
+  const jornadas = [...data.jornadas].reverse()
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
-      <div className="bg-borde/10 border border-borde/30 rounded-t-2xl px-6 py-4 text-center">
-        <p className="font-body text-[10px] uppercase tracking-[0.2em] text-borde">Boletín de pronósticos</p>
-        <h1 className="font-display text-xl text-texto mt-1">Mis Pronósticos</h1>
+      <div className="bg-fondo border border-borde/30 rounded-lg overflow-hidden mb-6">
+        <TicketHeader titulo="Mis Pronósticos" />
+        <div className="px-6 py-6 flex items-center justify-between">
+          {[
+            { label: 'TOTAL', valor: data.stats.total, color: 'var(--color-texto)' },
+            { label: 'PUNTOS', valor: data.stats.puntos_totales, color: 'var(--color-acento)' },
+            { label: 'ACIERTOS', valor: data.stats.aciertos, color: 'var(--color-texto)' },
+            { label: 'EXACTOS', valor: data.stats.exactos, color: 'var(--color-premio)' },
+          ].map((item, i) => (
+            <div key={item.label} className={`text-center flex-1 ${i > 0 ? 'border-l border-dotted border-borde/30' : ''}`}>
+              <p
+                className="font-marcador text-2xl tabular-nums"
+                style={{ color: item.color, textShadow: `0 0 14px ${item.color}70` }}
+              >
+                {item.valor}
+              </p>
+              <p className="font-body text-[9px] tracking-widest text-borde mt-1">{item.label}</p>
+            </div>
+          ))}
+        </div>
       </div>
 
-      <div className="relative border-t-2 border-dashed border-borde/30">
-        <div className="absolute -left-3 -top-3 w-6 h-6 rounded-full bg-fondo border border-borde/30" />
-        <div className="absolute -right-3 -top-3 w-6 h-6 rounded-full bg-fondo border border-borde/30" />
-      </div>
+      {jornadas.length > 0 && <LeyendaAciertos />}
 
-      <div className="bg-fondo border-x border-b border-borde/30 rounded-b-2xl px-6 py-4 flex items-center justify-between mb-6">
-        {[
-          { label: 'TOTAL', valor: data.stats.total, color: 'var(--color-texto)' },
-          { label: 'PUNTOS', valor: data.stats.puntos_totales, color: 'var(--color-acento)' },
-          { label: 'ACIERTOS', valor: data.stats.aciertos, color: 'var(--color-texto)' },
-          { label: 'EXACTOS', valor: data.stats.exactos, color: 'var(--color-premio)' },
-        ].map((item, i) => (
-          <div key={item.label} className={`text-center flex-1 ${i > 0 ? 'border-l border-dotted border-borde/30' : ''}`}>
-            <p
-              className="font-marcador text-xl tabular-nums"
-              style={{ color: item.color, textShadow: `0 0 10px ${item.color}55` }}
-            >
-              {item.valor}
-            </p>
-            <p className="font-body text-[9px] tracking-widest text-borde mt-0.5">{item.label}</p>
-          </div>
-        ))}
-      </div>
-
-      {data.jornadas.length > 0 && <LeyendaColores />}
-
-      {data.jornadas.length === 0 ? (
+      {jornadas.length === 0 ? (
         <div className="bg-fondo border border-borde/30 rounded-lg overflow-hidden">
           <EstadoVacio icono="⚽" titulo="Nada por aquí" texto="Aún no has hecho ningún pronóstico." />
         </div>
       ) : (
-        data.jornadas.map((bloque) => <BloqueJornada key={bloque.jornada} bloque={bloque} />)
+        jornadas.map((bloque) => <BloqueJornada key={bloque.jornada} bloque={bloque} />)
       )}
     </div>
   )

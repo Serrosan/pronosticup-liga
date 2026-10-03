@@ -28,7 +28,7 @@ class AuthTest extends TestCase
 
         $respuesta->assertStatus(201);
         $this->assertDatabaseHas('users', ['email' => 'sergio@ejemplo.com']);
-        Notification::assertSentTo(User::first(), VerifyEmail::class);
+        Notification::assertSentTo(User::first(), \App\Notifications\VerificarEmailPersonalizado::class);
     }
 
     public function test_registrarse_con_un_codigo_de_liga_valido_te_une_automaticamente(): void

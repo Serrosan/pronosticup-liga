@@ -26,6 +26,9 @@ import AdminEquiposPage from './pages/AdminEquiposPage'
 import AdminJugadoresPage from './pages/AdminJugadoresPage'
 import AdminEstadiosPage from './pages/AdminEstadiosPage'
 import AdminArbitrosPage from './pages/AdminArbitrosPage'
+import AdminCodigosCanjePage from './pages/AdminCodigosCanjePage'
+import AdminAvisosScraperPage from './pages/AdminAvisosScraperPage'
+import AdminCanjesCodigoPage from './pages/AdminCanjesCodigoPage'
 import AdminTrofeosPage from './pages/AdminTrofeosPage'
 import AdminEventosCalendarioPage from './pages/AdminEventosCalendarioPage'
 import AdminNovedadesPage from './pages/AdminNovedadesPage'
@@ -54,7 +57,14 @@ import PuntuacionesPage from './pages/PuntuacionesPage'
 import RedirectJornadaActual from './pages/RedirectJornadaActual'
 import GuiaPage from './pages/GuiaPage'
 import EstadisticasLigaPage from './pages/EstadisticasLigaPage'
+import EstadisticasCartasPage from './pages/EstadisticasCartasPage'
 import LogrosPage from './pages/LogrosPage'
+import AdminCategoriasCartaPage from './pages/AdminCategoriasCartaPage'
+import AdminTiposCartaPage from './pages/AdminTiposCartaPage'
+import AdminConfiguracionCartasPage from './pages/AdminConfiguracionCartasPage'
+import AdminGestionCartasUsuariosPage from './pages/AdminGestionCartasUsuariosPage'
+import MisCartasPage from './pages/MisCartasPage'
+import CatalogoCartasPage from './pages/CatalogoCartasPage'
 
 function RutaProtegida() {
   const { usuario, cargando } = useAuth()
@@ -112,12 +122,15 @@ function App() {
                 <Route path="/pronosticos" element={<MyPredictionsPage />} />
                 <Route path="/calendario" element={<CalendarPage />} />
                 <Route path="/puntuaciones" element={<PuntuacionesPage />} />
+                <Route path="/mis-cartas" element={<MisCartasPage />} />
                 <Route path="/estadisticas-liga" element={<EstadisticasLigaPage />} />
+                <Route path="/estadisticas-cartas" element={<EstadisticasCartasPage />} />
                 <Route path="/verificar-email/:id/:hash" element={<VerifyEmailPage />} />
                 <Route path="/jugadores/:idJugador" element={<PlayerDetailPage />} />
                 <Route path="/jornadas/:jornada/goleadores" element={<SeleccionGoleadoresPage />} />
                 <Route path="/chat" element={<ChatPage />} />
                 <Route path="/logros" element={<LogrosPage />} />
+                <Route path="/catalogo-cartas" element={<CatalogoCartasPage />} />
                 <Route path="/quinielas/:tipo" element={<QuinielaPage />} />
                 <Route path="/estadios" element={<StadiumsPage />} />
                 <Route path="/perfil" element={<ProfilePage />} />
@@ -143,8 +156,15 @@ function App() {
                 <Route path="trofeos" element={<AdminTrofeosPage />} />
                 <Route path="eventos-calendario" element={<AdminEventosCalendarioPage />} />
                 <Route path="importar-historico" element={<AdminImportarHistoricoPage />} />
+                <Route path="/admin/configuracion-cartas" element={<AdminConfiguracionCartasPage />} />
+                <Route path="/admin/gestion-cartas-usuarios" element={<AdminGestionCartasUsuariosPage />} />
                 <Route path="novedades" element={<AdminNovedadesPage />} />
                 <Route path=":resource/detalle/:id" element={<AdminResourceDetailPage />} />
+                <Route path="/admin/categorias-carta" element={<AdminCategoriasCartaPage />} />
+                <Route path="/admin/tipos-carta" element={<AdminTiposCartaPage />} />
+                <Route path="/admin/codigos-canje" element={<AdminCodigosCanjePage />} />
+                <Route path="/admin/canjes-codigo" element={<AdminCanjesCodigoPage />} />
+                <Route path="/admin/avisos-scraper" element={<AdminAvisosScraperPage />} />
               </Route>
             <Route path="*" element={<NotFoundPage />} />
             </Routes>

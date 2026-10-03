@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Http\Controllers\Api\V1\Admin\Concerns\CrudAdminBasico;
 use App\Http\Controllers\Controller;
 use App\Models\Liga;
 use App\Models\Temporada;
@@ -11,6 +12,8 @@ use Illuminate\Validation\Rule;
 
 class LigaAdminController extends Controller
 {
+    use CrudAdminBasico;
+
     public function index()
     {
         $ligas = Liga::withCount('usuarios')->with('usuarioCreador')->orderBy('nombre')->get();
@@ -27,6 +30,9 @@ class LigaAdminController extends Controller
         ]);
     }
 
+    // store() se queda fuera del trait a propósito: necesita generar el
+    // código de acceso único y asignar el rol Admin al creador, no es un
+    // simple Modelo::create().
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -56,7 +62,7 @@ class LigaAdminController extends Controller
 
     public function show(Liga $liga)
     {
-        return response()->json(['data' => $liga]);
+        return $this->mostrarRecurso($liga);
     }
 
     public function update(Request $request, Liga $liga)
@@ -74,9 +80,7 @@ class LigaAdminController extends Controller
 
     public function destroy(Liga $liga)
     {
-        $liga->delete();
-
-        return response()->json(['message' => 'Liga eliminada.']);
+        return $this->eliminarRecurso($liga, 'Liga');
     }
 
     private function generarCodigoUnico(): string

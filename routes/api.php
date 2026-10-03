@@ -22,6 +22,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/jornadas/{jornada}/partidos', [PartidoController::class, 'porJornada']);
     Route::post('/pronosticos', [PronosticoController::class, 'store']);
     Route::get('/pronosticos', [PronosticoController::class, 'todos']);
+    Route::get('/pronosticos/pendientes-cuenta', [\App\Http\Controllers\Api\V1\PronosticoController::class, 'pendientesCuenta']);
     Route::get('/jornadas/{jornada}/pronosticos', [PronosticoController::class, 'misPronosticos']);
     Route::get('/clasificacion', [\App\Http\Controllers\Api\V1\ClasificacionController::class, 'index']);
     Route::get('/dashboard', [\App\Http\Controllers\Api\V1\DashboardController::class, 'index']);
@@ -42,6 +43,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/estadios', [\App\Http\Controllers\Api\V1\EstadioController::class, 'index']);
     Route::get('/calendario', [\App\Http\Controllers\Api\V1\CalendarioController::class, 'mes']);
     Route::get('/jornadas/{jornada}/goleadores', [\App\Http\Controllers\Api\V1\GoleadoresController::class, 'show']);
+    Route::get('/jornadas/{jornada}/goleadores-bloqueados', [\App\Http\Controllers\Api\V1\GoleadoresController::class, 'bloqueados']);
     Route::post('/jornadas/{jornada}/goleadores', [\App\Http\Controllers\Api\V1\GoleadoresController::class, 'store']);
     Route::get('/equipos/{equipo}/partidos', [\App\Http\Controllers\Api\V1\EquipoPartidosController::class, 'index']);
     Route::post('/cuenta/desactivar', [\App\Http\Controllers\Api\V1\CuentaController::class, 'desactivar']);
@@ -54,26 +56,38 @@ Route::prefix('v1')->group(function () {
     Route::delete('/notificaciones/leidas', [\App\Http\Controllers\Api\V1\NotificacionController::class, 'borrarLeidas']);
     Route::delete('/notificaciones/{id}', [\App\Http\Controllers\Api\V1\NotificacionController::class, 'destroy']);
     Route::get('/clasificacion/usuarios/{usuario}/detalle', [\App\Http\Controllers\Api\V1\ClasificacionController::class, 'detalle']);
-    Route::get('/jornadas/{jornada}/otros-pronosticos', [\App\Http\Controllers\Api\V1\OtrosPronosticosController::class, 'show']);
+    Route::get('/jornadas/{jornada}/otros-pronosticos', [\App\Http\Controllers\Api\V1\PronosticoController::class, 'deOtros']);
     Route::get('/estadisticas-jugadores/goleadores', [\App\Http\Controllers\Api\V1\EstadisticasJugadoresController::class, 'goleadores']);
     Route::get('/estadisticas-jugadores/asistencias', [\App\Http\Controllers\Api\V1\EstadisticasJugadoresController::class, 'asistencias']);
     Route::get('/estadisticas-jugadores/tarjetas', [\App\Http\Controllers\Api\V1\EstadisticasJugadoresController::class, 'tarjetas']);
     Route::get('/jornadas/{jornada}/momento-decisivo', [\App\Http\Controllers\Api\V1\MomentoDecisivoController::class, 'show']);
     Route::get('/configuracion-puntos', [\App\Http\Controllers\Api\V1\ConfiguracionPuntosPublicaController::class, 'show']);
     Route::get('/equipos-lista', [\App\Http\Controllers\Api\V1\EquipoListaController::class, 'index']);
-    Route::get('/jornada-actual', [\App\Http\Controllers\Api\V1\JornadaActualController::class, 'show']);
+    Route::get('/jornada-actual', [\App\Http\Controllers\Api\V1\JornadaController::class, 'actual']);
     Route::post('/jornadas/{jornada}/copiar-pronosticos', [\App\Http\Controllers\Api\V1\CopiarPronosticosController::class, 'copiar']);
     Route::get('/jornadas/{jornada}/progreso-liga', [\App\Http\Controllers\Api\V1\PronosticoController::class, 'progresoLiga']);
     Route::get('/jornadas-cerradas', [\App\Http\Controllers\Api\V1\ClasificacionController::class, 'jornadasCerradas']);
     Route::patch('/profile/preferencias-email', [\App\Http\Controllers\Api\V1\ProfileController::class, 'updatePreferenciasEmail']);
     Route::get('/resumen-rendimiento', [\App\Http\Controllers\Api\V1\PronosticoController::class, 'resumenRendimiento']);
     Route::get('/estadisticas-liga', [\App\Http\Controllers\Api\V1\EstadisticasLigaController::class, 'index']);
+    Route::get('/estadisticas-cartas', [\App\Http\Controllers\Api\V1\EstadisticasCartasController::class, 'index']);
     Route::post('/chat/{mensajeChat}/fijar', [\App\Http\Controllers\Api\V1\ChatController::class, 'fijar']);
     Route::get('/logros', [\App\Http\Controllers\Api\V1\LogrosController::class, 'index']);
     Route::post('/liga-activa/personalizar', [\App\Http\Controllers\Api\V1\LigaPersonalizacionController::class, 'actualizar']);
+    Route::post('/jornadas/{jornada}/repartir-cartas', [\App\Http\Controllers\Api\V1\CartaRepartoController::class, 'repartirJornada']);
+    Route::get('/mis-cartas', [\App\Http\Controllers\Api\V1\MisCartasController::class, 'index']);
+    Route::post('/codigos/canjear', [\App\Http\Controllers\Api\V1\CanjeCodigoController::class, 'canjear']);
+    Route::get('/mis-cartas/proxima-jornada-jugable', [\App\Http\Controllers\Api\V1\MisCartasController::class, 'proximaJornadaJugable']);
+    Route::get('/mis-cartas/rivales-bloqueados', [\App\Http\Controllers\Api\V1\MisCartasController::class, 'rivalesBloqueados']);
+    Route::post('/mis-cartas/abrir-siguiente', [\App\Http\Controllers\Api\V1\MisCartasController::class, 'abrirSiguiente']);
+    Route::get('/catalogo-cartas', [\App\Http\Controllers\Api\V1\CatalogoCartasController::class, 'index']);
+    Route::post('/mis-cartas/{cartaUsuario}/descartar', [\App\Http\Controllers\Api\V1\MisCartasController::class, 'descartar']);
+    Route::post('/mis-cartas/{cartaUsuario}/jugar', [\App\Http\Controllers\Api\V1\MisCartasController::class, 'jugar']);
+    Route::post('/mis-cartas/{cartaUsuario}/jugar-falta', [\App\Http\Controllers\Api\V1\MisCartasController::class, 'jugarFalta']);
     Route::get('/liga-activa/miembros', [\App\Http\Controllers\Api\V1\LigaPersonalizacionController::class, 'miembros']);
 
     Route::middleware('admin')->prefix('admin')->group(function () {
+    Route::get('/avisos-scraper', [\App\Http\Controllers\Api\V1\Admin\AvisosScraperAdminController::class, 'index']);
         Route::get('/equipos/{equipo}', [\App\Http\Controllers\Api\V1\Admin\EquipoAdminController::class, 'show']);
         Route::apiResource('equipos', \App\Http\Controllers\Api\V1\Admin\EquipoAdminController::class)->except('show');
         Route::get('/jugadores/{jugador}', [\App\Http\Controllers\Api\V1\Admin\JugadorAdminController::class, 'show']);
@@ -100,6 +114,8 @@ Route::prefix('v1')->group(function () {
         Route::post('/jugadores/{jugador}/cambiar-dorsal', [\App\Http\Controllers\Api\V1\Admin\FichajeAdminController::class, 'cambiarDorsal']);
         Route::apiResource('estadios', \App\Http\Controllers\Api\V1\Admin\EstadioAdminController::class)->except('show');
         Route::apiResource('arbitros', \App\Http\Controllers\Api\V1\Admin\ArbitroAdminController::class)->except('show');
+    Route::apiResource('codigos-canje', \App\Http\Controllers\Api\V1\Admin\CodigoCanjeAdminController::class);
+    Route::get('/canjes-codigo', [\App\Http\Controllers\Api\V1\Admin\CanjeCodigoAdminController::class, 'index']);
         Route::post('/subir-imagen', [\App\Http\Controllers\Api\V1\Admin\ImagenAdminController::class, 'subir']);
         Route::apiResource('trofeos', \App\Http\Controllers\Api\V1\Admin\TrofeoAdminController::class)->except('show');
         Route::get('/usuarios', [\App\Http\Controllers\Api\V1\Admin\UsuarioAdminController::class, 'index']);
@@ -135,6 +151,17 @@ Route::prefix('v1')->group(function () {
         Route::post('/importar-historico/interpretar', [\App\Http\Controllers\Api\V1\Admin\HistoricoImportController::class, 'interpretar']);
         Route::post('/importar-historico/guardar', [\App\Http\Controllers\Api\V1\Admin\HistoricoImportController::class, 'guardar']);
         Route::post('/importar-historico', [\App\Http\Controllers\Api\V1\Admin\HistoricoImportController::class, 'importar']);
+        Route::get('/ligas/{liga}/configuracion-cartas', [\App\Http\Controllers\Api\V1\Admin\ConfiguracionCartasLigaAdminController::class, 'mostrar']);
+        Route::put('/ligas/{liga}/configuracion-cartas', [\App\Http\Controllers\Api\V1\Admin\ConfiguracionCartasLigaAdminController::class, 'actualizar']);
+        Route::get('/cartas-usuario', [\App\Http\Controllers\Api\V1\Admin\CartaUsuarioAdminController::class, 'index']);
+        Route::post('/cartas-usuario', [\App\Http\Controllers\Api\V1\Admin\CartaUsuarioAdminController::class, 'store']);
+        Route::post('/ligas/{liga}/repartir-inicial', [\App\Http\Controllers\Api\V1\Admin\CartaRepartoInicialAdminController::class, 'repartir']);
+        Route::delete('/cartas-usuario/{cartaUsuario}', [\App\Http\Controllers\Api\V1\Admin\CartaUsuarioAdminController::class, 'destroy']);
+        Route::apiResource('categorias-carta', \App\Http\Controllers\Api\V1\Admin\CategoriaCartaAdminController::class)
+        ->parameters(['categorias-carta' => 'categoriaCarta']);
+
+        Route::apiResource('tipos-carta', \App\Http\Controllers\Api\V1\Admin\TipoCartaAdminController::class)
+        ->parameters(['tipos-carta' => 'tipoCartum']);
     });
     });
 

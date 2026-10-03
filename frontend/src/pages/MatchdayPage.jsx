@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import client from '../api/client'
 import MatchCard from '../components/MatchCard'
+import SelectorJornada from '../components/SelectorJornada'
 import useTitulo from '../hooks/useTitulo'
 import SkeletonJornada from '../components/SkeletonJornada'
 import MomentoDecisivo from '../components/MomentoDecisivo'
@@ -11,6 +12,7 @@ import { useToast } from '../context/ToastContext'
 import { formatearActualizacion } from '../utils/tiempo'
 
 const TOTAL_JORNADAS = 38
+const JORNADAS = Array.from({ length: TOTAL_JORNADAS }, (_, i) => i + 1)
 const DIAS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
 function agruparPorDia(partidos) {
@@ -112,6 +114,40 @@ function CopiarDeOtraLiga({ jornada, jornadaBloqueada }) {
   )
 }
 
+const ETIQUETA_TIPO_FALTA = { Local: 'victoria local', Visitante: 'victoria visitante', Empate: 'empate' }
+
+// Progreso real de una Falta tipo "requisito" activa contra el usuario — para que se
+// entere mientras va pronosticando, no solo al guardar el partido que ya lo rompería.
+function AvisoFaltaActiva({ falta }) {
+  if (!falta) return null
+
+  const etiqueta = ETIQUETA_TIPO_FALTA[falta.tipo] ?? falta.tipo
+  const cumplido = falta.cumplidos >= falta.cantidad
+
+  if (cumplido) {
+    return (
+      <div className="max-w-md mx-auto mb-6 bg-acento/10 border border-acento/30 rounded-lg px-4 py-3 text-center">
+        <p className="font-body text-sm text-acento font-semibold">
+          ✓ Ya has cumplido la Falta activa contra ti — llevas {falta.cumplidos} de {falta.cantidad} pronósticos de {etiqueta}.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="max-w-md mx-auto mb-6 bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3 text-center">
+      <p className="font-body text-sm text-red-500 font-semibold">
+        ⚠️ Falta activa contra ti: necesitas al menos {falta.cantidad} pronóstico{falta.cantidad > 1 ? 's' : ''} de {etiqueta} esta jornada — llevas {falta.cumplidos}/{falta.cantidad}.
+      </p>
+      {!falta.cumplible && (
+        <p className="font-body text-xs text-red-400 mt-1">
+          Ya no te queda margen: el próximo pronóstico que no sea de {etiqueta} lo haría imposible de cumplir.
+        </p>
+      )}
+    </div>
+  )
+}
+
 function MatchdayPage() {
   const { jornada } = useParams()
   const navigate = useNavigate()
@@ -122,7 +158,12 @@ function MatchdayPage() {
     queryKey: ['partidos', jornada],
     queryFn: async () => {
       const respuesta = await client.get(`/api/v1/jornadas/${jornada}/partidos`)
-      return { partidos: respuesta.data.data, ultimaActualizacion: respuesta.data.meta?.ultima_actualizacion, jornadaBloqueada: respuesta.data.meta?.jornada_bloqueada }
+      return {
+        partidos: respuesta.data.data,
+        ultimaActualizacion: respuesta.data.meta?.ultima_actualizacion,
+        jornadaBloqueada: respuesta.data.meta?.jornada_bloqueada,
+        faltaActiva: respuesta.data.meta?.falta_activa ?? null,
+      }
     },
     placeholderData: (datosAnteriores) => datosAnteriores,
   })
@@ -141,24 +182,8 @@ function MatchdayPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-4">
-      <div className="flex items-center justify-center gap-4 mb-1">
-        <button
-          onClick={() => ir(numeroJornada - 1)}
-          disabled={numeroJornada <= 1}
-          className="font-body text-texto disabled:opacity-30 disabled:cursor-not-allowed hover:text-acento text-xl px-2"
-          aria-label="Jornada anterior"
-        >
-          ←
-        </button>
-        <h2 className="font-display text-xl text-texto whitespace-nowrap">Jornada {numeroJornada}</h2>
-        <button
-          onClick={() => ir(numeroJornada + 1)}
-          disabled={numeroJornada >= TOTAL_JORNADAS}
-          className="font-body text-texto disabled:opacity-30 disabled:cursor-not-allowed hover:text-acento text-xl px-2"
-          aria-label="Jornada siguiente"
-        >
-          →
-        </button>
+      <div className="flex justify-center mb-1">
+        <SelectorJornada jornadas={JORNADAS} valor={numeroJornada} onCambiar={ir} grande />
       </div>
       <EstadoGoleadores jornada={numeroJornada} />
       <CopiarDeOtraLiga jornada={numeroJornada} jornadaBloqueada={data?.jornadaBloqueada} />
@@ -176,6 +201,8 @@ function MatchdayPage() {
       )}
 
       <MomentoDecisivo jornada={numeroJornada} />
+
+      <AvisoFaltaActiva falta={data?.faltaActiva} />
 
       {sinPronosticar.length > 0 && (
         <div className="max-w-md mx-auto mb-6 bg-premio/10 border border-premio/30 rounded-lg px-4 py-3 text-center">

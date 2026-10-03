@@ -3,10 +3,12 @@
 namespace App\Console\Commands;
 
 use App\Models\CalendarioPartido;
+use App\Models\CartaUsuario;
 use App\Models\GoleadorJornada;
 use App\Models\Liga;
 use App\Models\Pronostico;
 use App\Models\RecordatorioEnviado;
+use App\Notifications\CartasSinJugar;
 use App\Notifications\RecordatorioPendiente;
 use Illuminate\Console\Command;
 
@@ -51,6 +53,12 @@ class AvisarPendientes extends Command
                         }
                     }
                 }
+            }
+
+            // Recordatorio de cartas sin jugar: una sola vez por jornada, en las últimas 6 horas,
+            // y solo en ligas con el modo Cartas. Va aparte de los recordatorios de arriba.
+            if ($liga->tipo === 'ConExtras' && $horasRestantes <= 6) {
+                $avisosEnviados += $this->avisarCartasSinJugar($liga, $numeroJornada);
             }
         }
 
@@ -128,5 +136,50 @@ class AvisarPendientes extends Command
             ->count();
 
         return $total < 5;
+    }
+
+    /**
+     * Avisa por la campana a quien tenga cartas de Jugadas en la mano justo antes de que
+     * empiece la jornada (después ya no se pueden jugar). No usa RecordatorioEnviado: se
+     * comprueba en las propias notificaciones si ya se avisó por esta jornada y esta liga.
+     */
+    private function avisarCartasSinJugar(Liga $liga, int $jornada): int
+    {
+        $sinJugarPorUsuario = CartaUsuario::where('id_liga', $liga->id)
+            ->where('estado', 'en_mano')
+            ->whereHas('tipoCarta.categoria', fn ($q) => $q->where('nombre', 'Jugadas'))
+            ->selectRaw('id_usuario, COUNT(*) as total')
+            ->groupBy('id_usuario')
+            ->pluck('total', 'id_usuario');
+
+        $enviados = 0;
+
+        foreach ($liga->usuarios as $usuario) {
+            $cantidad = (int) ($sinJugarPorUsuario[$usuario->id] ?? 0);
+
+            if ($cantidad === 0) {
+                continue;
+            }
+
+            try {
+                $yaAvisado = $usuario->notifications()
+                    ->where('type', CartasSinJugar::class)
+                    ->where('data->jornada', $jornada)
+                    ->where('data->id_liga', $liga->id)
+                    ->exists();
+
+                if ($yaAvisado) {
+                    continue;
+                }
+
+                $usuario->notify(new CartasSinJugar($jornada, $liga->id, $cantidad, $liga->nombre));
+                $enviados++;
+            } catch (\Throwable $e) {
+                $this->error("Fallo avisando de cartas sin jugar a {$usuario->email} (liga {$liga->id}, J{$jornada}): {$e->getMessage()}");
+                report($e);
+            }
+        }
+
+        return $enviados;
     }
 }

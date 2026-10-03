@@ -26,6 +26,7 @@ class LogrosController extends Controller
         $eventos = EventoPuntos::where('id_liga', $liga->id)
             ->where('id_usuario', $userId)
             ->whereNotNull('id_partido')
+            ->whereIn('tipo_evento', ['AciertoExacto', 'AciertoDiferencia', 'Acierto1x2', 'Fallo'])
             ->with('partido')
             ->get()
             ->sortBy(fn ($e) => $e->partido?->horario_estimado)

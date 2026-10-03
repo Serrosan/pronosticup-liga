@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\AlineacionJugador;
 use App\Models\EventoPartido;
 use App\Models\Jugador;
 use App\Models\PlantillaTemporada;
@@ -34,6 +35,10 @@ class JugadorController extends Controller
             ->where('tipo_evento', 'gol')
             ->count();
 
+        // Solo cuenta desde que existe el scraper de alineaciones — para
+        // jugadores/jornadas anteriores simplemente sale a 0, no es un error.
+        $alineaciones = AlineacionJugador::where('id_jugador', $jugador->id)->get();
+
         return response()->json([
             'data' => [
                 'id' => $jugador->id,
@@ -64,6 +69,8 @@ class JugadorController extends Controller
                     'asistencias' => $asistencias,
                     'tarjetas_amarillas' => $eventos->where('tipo_evento', 'tarjeta_amarilla')->count(),
                     'tarjetas_rojas' => $eventos->where('tipo_evento', 'tarjeta_roja')->count(),
+                    'titularidades' => $alineaciones->where('titular', true)->count(),
+                    'convocatorias' => $alineaciones->count(),
                 ],
             ],
         ]);

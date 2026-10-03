@@ -24,6 +24,17 @@ function Paso({ numero, children }) {
   )
 }
 
+function EjemploCarta({ rareza, children }) {
+  return (
+    <div className="flex items-start gap-2.5 bg-borde/5 rounded-lg px-3.5 py-2.5">
+      <span className="font-body text-[9px] uppercase tracking-widest text-borde bg-borde/10 rounded-full px-2 py-1 shrink-0 mt-0.5">
+        {rareza}
+      </span>
+      <p className="font-body text-sm text-texto">{children}</p>
+    </div>
+  )
+}
+
 function GuiaPage() {
   useTitulo('Guía rápida')
 
@@ -56,6 +67,85 @@ function GuiaPage() {
         <div className="bg-borde/5 rounded-lg px-4 py-3 mt-1">
           <p className="font-body text-xs text-borde">
             <strong>Importante:</strong> ninguno de los 5 puede repetirse en la jornada siguiente — toca variar cada semana.
+          </p>
+        </div>
+      </Seccion>
+
+      <Seccion icono="🃏" titulo="Cartas: Jugadas y Faltas">
+        <p className="font-body text-sm text-texto">
+          Si tu liga tiene las Cartas activadas, cada semana recibes cartas nuevas al azar, repartidas entre 2 tipos muy distintos:
+          <strong> Jugadas</strong> (te benefician a ti) y <strong>Faltas</strong> (afectan a un rival que elijas). Cada carta tiene una
+          rareza — Común, Poco Común, Rara o Legendaria — y cuanto más rara, más fuerte suele ser su efecto.
+        </p>
+
+        <p className="font-body text-sm text-texto mt-1">
+          Las cartas te llegan en sobres cerrados: ábrelos desde <strong>Mis Cartas</strong> para revelar qué te ha tocado.
+        </p>
+
+        <p className="font-body text-xs uppercase tracking-widest text-borde mt-2">⚡ Jugadas — ejemplos reales</p>
+        <div className="flex flex-col gap-2">
+          <EjemploCarta rareza="Común → Legendaria">
+            <strong>Chute Extra</strong>: suma puntos extra en un partido que elijas. Empieza en +1 (Común) y llega hasta +5
+            (Legendaria) — la misma idea, pero más fuerte cuanto más rara te toque.
+          </EjemploCarta>
+          <EjemploCarta rareza="Común → Legendaria">
+            <strong>Palomitas</strong>: puntos extra si tu pronóstico de signo (local/empate/visitante) coincide con el de la
+            mayoría de tu liga en ese partido. También escala de +1 a +5 según la rareza.
+          </EjemploCarta>
+          <EjemploCarta rareza="Poco Común">
+            <strong>Doblete</strong>: elige un partido de antemano — si aciertas algo en él, duplicas los puntos que ibas a sacar.
+          </EjemploCarta>
+          <EjemploCarta rareza="Rara">
+            <strong>Pleno Garantizado</strong>: un partido a tu elección cuenta como acertado con resultado exacto, pase lo que pase.
+          </EjemploCarta>
+          <EjemploCarta rareza="Legendaria">
+            <strong>Crack</strong>: +4 puntos extra si aciertas el resultado exacto de 2 partidos cualquiera de la jornada — sin
+            tener que elegirlos antes.
+          </EjemploCarta>
+          <EjemploCarta rareza="Poco Común → Legendaria">
+            <strong>Amuleto</strong>: te protege de fallar un partido. Cuanto más rara, menos tienes que hacer tú: en Poco Común
+            eliges el partido de antemano; en Rara y Legendaria te protege automáticamente, sin elegir nada (y en Legendaria,
+            hasta 2 partidos a la vez).
+          </EjemploCarta>
+        </div>
+
+        <p className="font-body text-xs uppercase tracking-widest text-borde mt-3">🎯 Faltas — ejemplos reales</p>
+        <div className="flex flex-col gap-2">
+          <EjemploCarta rareza="Común → Legendaria">
+            <strong>Todo queda en casa</strong>: obligas al rival a meter varias victorias locales entre sus pronósticos de la
+            jornada siguiente — de 2 (Común) hasta 5 (Legendaria).
+          </EjemploCarta>
+          <EjemploCarta rareza="Común → Legendaria">
+            <strong>Resultado Gafas</strong>: obligas al rival a meter 1 o varios empates entre sus pronósticos — el número sube
+            con la rareza, igual que arriba.
+          </EjemploCarta>
+          <EjemploCarta rareza="Poco Común">
+            <strong>Escudo</strong>: te proteges a ti mismo de cualquier Falta que te jueguen esta semana.
+          </EjemploCarta>
+          <EjemploCarta rareza="Poco Común">
+            <strong>Sin Comodines</strong>: el rival no podrá jugar Amuleto ni Pleno Garantizado la jornada siguiente.
+          </EjemploCarta>
+          <EjemploCarta rareza="Rara → Legendaria">
+            <strong>Expulsión</strong>: el rival no puede jugar cartas la jornada siguiente — en Rara, solo Faltas; en Legendaria,
+            ninguna carta en absoluto.
+          </EjemploCarta>
+          <EjemploCarta rareza="Común">
+            <strong>Amigo Invisible</strong>: le mandas un mensaje de burla anónimo — no sabrá que fuiste tú.
+          </EjemploCarta>
+        </div>
+
+        <div className="bg-borde/5 rounded-lg px-4 py-3 mt-2 flex flex-col gap-1.5">
+          <p className="font-body text-xs text-borde">
+            <strong>Las Jugadas</strong> se juegan antes de que empiece la jornada en la que quieres que cuenten — en cuanto
+            arranca el primer partido, ya no se pueden jugar más Jugadas sobre ella.
+          </p>
+          <p className="font-body text-xs text-borde">
+            <strong>Las Faltas</strong> se juegan contra un rival de tu liga en una jornada, pero su efecto cae sobre la jornada
+            <strong> siguiente</strong> a la que estás jugando ahora.
+          </p>
+          <p className="font-body text-xs text-borde">
+            <strong>Límites:</strong> como mucho 1 Falta y 2 Jugadas por jornada, y tu mano de cartas tiene un tope — descarta
+            las que no te interesen para dejar sitio a las nuevas.
           </p>
         </div>
       </Seccion>

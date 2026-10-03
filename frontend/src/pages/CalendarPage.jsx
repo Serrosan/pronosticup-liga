@@ -48,6 +48,15 @@ function CalendarPage() {
     setDiaSeleccionado(null)
   }
 
+  // Vuelve al mes actual y deja el día de hoy seleccionado, con sus partidos abajo.
+  function irAHoy() {
+    setAnio(hoy.getFullYear())
+    setMes(hoy.getMonth() + 1)
+    setDiaSeleccionado(hoy.getDate())
+  }
+
+  const esMesActual = anio === hoy.getFullYear() && mes === hoy.getMonth() + 1
+
   function fechaDe(dia) {
     return `${anio}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`
   }
@@ -89,11 +98,22 @@ function CalendarPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
-      <div className="flex items-center justify-center gap-4 mb-4">
-        <button onClick={() => cambiarMes(-1)} className="font-body text-texto hover:text-acento text-xl px-2">←</button>
+      <div className={`flex items-center justify-center gap-4 ${esMesActual ? 'mb-4' : 'mb-2'}`}>
+        <button onClick={() => cambiarMes(-1)} aria-label="Mes anterior" className="font-body text-texto hover:text-acento text-xl px-2">←</button>
         <h1 className="font-display text-xl text-texto w-48 text-center">{MESES[mes - 1]} {anio}</h1>
-        <button onClick={() => cambiarMes(1)} className="font-body text-texto hover:text-acento text-xl px-2">→</button>
+        <button onClick={() => cambiarMes(1)} aria-label="Mes siguiente" className="font-body text-texto hover:text-acento text-xl px-2">→</button>
       </div>
+
+      {!esMesActual && (
+        <div className="flex justify-center mb-4">
+          <button
+            onClick={irAHoy}
+            className="font-body text-xs font-semibold text-acento border border-acento/40 rounded-full px-3 py-1 hover:bg-acento/10 transition"
+          >
+            ↩ Volver a hoy
+          </button>
+        </div>
+      )}
 
       <div className="mb-4 max-w-xs mx-auto">
         <input

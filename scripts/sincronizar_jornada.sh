@@ -1,4 +1,3 @@
-cd ~/proyectos/pronosticup-liga && git checkout feature/cartas && cat > scripts/sincronizar_jornada.sh << 'FIN_SCRIPT'
 #!/bin/bash
 # Flujo semanal completo, de un tirón: descarga la jornada de LaLiga.com,
 # la traduce, te enseña un resumen para revisar, y solo importa si confirmas.
@@ -111,5 +110,3 @@ $ARTISAN liga:importar-partido-detalle "$JSON_SALIDA"
 echo
 echo "Hecho. Cualquier ⚠️ de arriba son huecos de datos (jugadores sin dar de"
 echo "alta, o fechas de plantilla_temporada mal puestas) — revisar a mano, sin prisa."
-FIN_SCRIPT
-chmod +x scripts/sincronizar_jornada.sh; git branch --show-current; md5sum scripts/sincronizar_jornada.sh; grep -c "ARTISAN" scripts/sincronizar_jornada.sh

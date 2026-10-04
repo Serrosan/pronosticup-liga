@@ -40,6 +40,24 @@ class TareasAdmin
         ],
     ];
 
+    /**
+     * Herramientas que NO están en el programador: solo corren cuando alguien
+     * pulsa su botón. Las dos consultan football-data.org equipo por equipo con
+     * una pausa entre cada uno, así que tardan un par de minutos.
+     */
+    public const MANUALES = [
+        'completar-ids-api' => [
+            'comando' => 'liga:completar-ids-api',
+            'nombre' => 'Completar identificadores de jugadores',
+            'confirmar' => 'Tarda 2 o 3 minutos. Rellena el identificador de football-data de los jugadores que no lo tienen, buscando por nombre dentro de su propio equipo. ¿Lanzarla?',
+        ],
+        'comparar-plantillas' => [
+            'comando' => 'liga:comparar-plantillas',
+            'nombre' => 'Comparar plantillas con football-data',
+            'confirmar' => 'Tarda 2 o 3 minutos. No cambia nada: solo enseña los traspasos, altas y bajas que detecta. ¿Lanzarla?',
+        ],
+    ];
+
     public const REIMPORTAR_JORNADA = 'reimportar-jornada';
     public const REIMPORTAR_PARTIDO = 'reimportar-partido';
 
@@ -83,6 +101,12 @@ class TareasAdmin
         } catch (\Throwable $e) {
             // A propósito en silencio (ver comentario de arriba).
         }
+    }
+
+    /** El comando de una tarea del catálogo, programada o manual; null si la clave no existe. */
+    public static function comando(string $clave): ?string
+    {
+        return self::PROGRAMADAS[$clave]['comando'] ?? self::MANUALES[$clave]['comando'] ?? null;
     }
 
     public static function esReimportacion(string $clave): bool

@@ -68,8 +68,10 @@ class EjecutarTareaAdminJob implements ShouldQueue
     /** @return array{0: bool, 1: string} [fue bien, salida] */
     private function ejecutar(EjecucionTarea $ejecucion): array
     {
-        if (isset(TareasAdmin::PROGRAMADAS[$ejecucion->tarea])) {
-            $codigo = Artisan::call(TareasAdmin::PROGRAMADAS[$ejecucion->tarea]['comando']);
+        $comando = TareasAdmin::comando($ejecucion->tarea);
+
+        if ($comando !== null) {
+            $codigo = Artisan::call($comando);
             $salida = trim(Artisan::output());
 
             return [$codigo === 0, $salida !== '' ? $salida : ($codigo === 0 ? 'Terminó sin escribir nada.' : "Terminó con código de salida {$codigo}.")];

@@ -42,6 +42,15 @@ class TareasAdminTest extends TestCase
         $this->assertSame(0, EjecucionTarea::count());
     }
 
+    public function test_el_catalogo_resuelve_tareas_programadas_y_herramientas_y_nada_mas(): void
+    {
+        $this->assertSame('liga:sincronizar-partidos', TareasAdmin::comando('sincronizar-partidos'));
+        $this->assertSame('liga:completar-ids-api', TareasAdmin::comando('completar-ids-api'));
+        $this->assertSame('liga:comparar-plantillas', TareasAdmin::comando('comparar-plantillas'));
+        $this->assertNull(TareasAdmin::comando('migrate:fresh'));
+        $this->assertNull(TareasAdmin::comando(TareasAdmin::REIMPORTAR_JORNADA));
+    }
+
     public function test_la_salida_larga_se_recorta_quedandose_con_el_final(): void
     {
         $recortada = TareasAdmin::recortar(str_repeat('a', 9000).'FINAL');

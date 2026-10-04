@@ -52,6 +52,24 @@ class TareasAdminController extends Controller
             ];
         }
 
+        $herramientas = [];
+        foreach (TareasAdmin::MANUALES as $clave => $tarea) {
+            $ultimaManual = $manuales->firstWhere('tarea', $clave);
+
+            $herramientas[] = [
+                'clave' => $clave,
+                'nombre' => $tarea['nombre'],
+                'comando' => $tarea['comando'],
+                'descripcion' => $descripciones[$tarea['comando']] ?? null,
+                'frecuencia' => null,
+                'proxima' => null,
+                'confirmar' => $tarea['confirmar'],
+                'ultima_programada' => null,
+                'ultima_manual' => $this->fila($ultimaManual),
+                'activa' => $ultimaManual !== null && in_array($ultimaManual->estado, self::ACTIVOS, true),
+            ];
+        }
+
         $reimportacionActiva = $manuales->first(
             fn ($e) => TareasAdmin::esReimportacion($e->tarea) && in_array($e->estado, self::ACTIVOS, true)
         );
@@ -60,6 +78,7 @@ class TareasAdminController extends Controller
 
         return response()->json(['data' => [
             'tareas' => $tareas,
+            'herramientas' => $herramientas,
             'programador' => [
                 'ultima_senal' => $ultimaSenal?->toIso8601String(),
                 // La sincronización corre cada 2 minutos: 6 sin noticias es que algo va mal.
@@ -101,7 +120,7 @@ class TareasAdminController extends Controller
     {
         $parametros = null;
 
-        if (isset(TareasAdmin::PROGRAMADAS[$clave])) {
+        if (TareasAdmin::comando($clave) !== null) {
             // Sin parámetros: se lanza el comando del catálogo tal cual.
         } elseif ($clave === TareasAdmin::REIMPORTAR_JORNADA) {
             $datos = $request->validate(['jornada' => ['required', 'integer', 'min:1', 'max:'.TareasAdmin::TOTAL_JORNADAS]]);
@@ -191,6 +210,7 @@ class TareasAdminController extends Controller
     {
         return match (true) {
             isset(TareasAdmin::PROGRAMADAS[$clave]) => TareasAdmin::PROGRAMADAS[$clave]['nombre'],
+            isset(TareasAdmin::MANUALES[$clave]) => TareasAdmin::MANUALES[$clave]['nombre'],
             $clave === TareasAdmin::REIMPORTAR_JORNADA => 'Reimportar jornada de LaLiga',
             $clave === TareasAdmin::REIMPORTAR_PARTIDO => 'Reimportar partido de LaLiga',
             default => $clave,
@@ -216,7 +236,7 @@ class TareasAdminController extends Controller
         }
 
         $descripciones = [];
-        foreach (TareasAdmin::PROGRAMADAS as $tarea) {
+        foreach (array_merge(TareasAdmin::PROGRAMADAS, TareasAdmin::MANUALES) as $tarea) {
             if (isset($comandos[$tarea['comando']])) {
                 $descripciones[$tarea['comando']] = $comandos[$tarea['comando']]->getDescription();
             }

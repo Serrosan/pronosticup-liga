@@ -107,7 +107,7 @@ function TarjetaTarea({ tarea, onLanzar, lanzando }) {
         <div className="min-w-0">
           <p className="font-body text-sm font-semibold text-texto">{tarea.nombre}</p>
           <p className="font-body text-[11px] text-borde mt-0.5">
-            {tarea.frecuencia} · próxima {dentroDe(tarea.proxima) ?? '—'}
+            {tarea.frecuencia ? `${tarea.frecuencia} · próxima ${dentroDe(tarea.proxima) ?? '—'}` : 'Solo cuando la lanzas tú'}
           </p>
         </div>
         <button
@@ -122,7 +122,9 @@ function TarjetaTarea({ tarea, onLanzar, lanzando }) {
       {tarea.descripcion && <p className="font-body text-xs text-borde mt-2">{tarea.descripcion}</p>}
 
       <div className="mt-2.5 flex flex-col gap-1">
-        <UltimaVez titulo="Última automática" ejecucion={tarea.ultima_programada} vacio="aún no se ha registrado ninguna" />
+        {tarea.frecuencia && (
+          <UltimaVez titulo="Última automática" ejecucion={tarea.ultima_programada} vacio="aún no se ha registrado ninguna" />
+        )}
         <UltimaVez titulo="Último lanzamiento a mano" ejecucion={tarea.ultima_manual} vacio="nunca" />
       </div>
     </div>
@@ -317,6 +319,15 @@ function AdminTareasPage() {
           <TarjetaTarea key={tarea.clave} tarea={tarea} onLanzar={lanzarTarea} lanzando={lanzar.isPending} />
         ))}
       </div>
+
+      {data.herramientas?.length > 0 && (
+        <div className="bg-fondo border border-borde/30 rounded-lg overflow-hidden mb-6">
+          <TicketHeader titulo="Herramientas" />
+          {data.herramientas.map((tarea) => (
+            <TarjetaTarea key={tarea.clave} tarea={tarea} onLanzar={lanzarTarea} lanzando={lanzar.isPending} />
+          ))}
+        </div>
+      )}
 
       <SeccionScraper
         scraper={data.scraper}

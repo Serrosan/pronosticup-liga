@@ -122,6 +122,7 @@ function TeamMatchesPage() {
   const location = useLocation()
   const infoInicial = location.state
   const [tab, setTab] = useState(() => sessionStorage.getItem(`equipo-tab-${idEquipo}`) ?? 'info')
+  const [verCanteranos, setVerCanteranos] = useState(false)
 
   function cambiarTab(clave) {
     setTab(clave)
@@ -143,12 +144,23 @@ function TeamMatchesPage() {
 
   const equipo = data.equipo
 
+  // Dorsales del 26 en adelante = ficha de filial (norma de LaLiga). Son jugadores
+  // normales a todos los efectos; aquí solo se enseñan aparte, plegados, para que
+  // la plantilla no parezca de 40.
+  const DORSAL_CANTERANO = 26
+  const primerEquipo = data.plantilla.filter((j) => !(j.dorsal >= DORSAL_CANTERANO))
+  const canteranos = data.plantilla.filter((j) => j.dorsal >= DORSAL_CANTERANO).sort((a, b) => a.dorsal - b.dorsal)
+  const edadesPrimerEquipo = primerEquipo.map((j) => calcularEdad(j.fecha_nacimiento)).filter((edad) => edad !== null)
+  const edadMediaPrimerEquipo = edadesPrimerEquipo.length > 0
+    ? (edadesPrimerEquipo.reduce((suma, edad) => suma + edad, 0) / edadesPrimerEquipo.length).toFixed(1)
+    : null
+
   const plantillaPorPosicion = ORDEN_POSICION.map((posicion) => ({
     posicion,
-    jugadores: data.plantilla.filter((j) => j.posicion === posicion),
+    jugadores: primerEquipo.filter((j) => j.posicion === posicion),
   })).filter((grupo) => grupo.jugadores.length > 0)
 
-  const otrasPosiciones = data.plantilla.filter((j) => !ORDEN_POSICION.includes(j.posicion))
+  const otrasPosiciones = primerEquipo.filter((j) => !ORDEN_POSICION.includes(j.posicion))
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
@@ -301,13 +313,13 @@ function TeamMatchesPage() {
             <div className="flex flex-col gap-6">
               <div className="bg-fondo border border-borde/30 rounded-lg p-4 flex items-center justify-around">
                 <div className="text-center">
-                  <p className="font-marcador text-xl text-acento">{data.plantilla_stats.total}</p>
+                  <p className="font-marcador text-xl text-acento">{primerEquipo.length}</p>
                   <p className="font-body text-[10px] uppercase tracking-widest text-borde mt-0.5">Jugadores</p>
                 </div>
                 <div className="w-px h-8 bg-borde/20" />
                 <div className="text-center">
                   <p className="font-marcador text-xl text-acento">
-                    {data.plantilla_stats.edad_media ?? '—'}
+                    {edadMediaPrimerEquipo ?? '—'}
                   </p>
                   <p className="font-body text-[10px] uppercase tracking-widest text-borde mt-0.5">Edad media</p>
                 </div>
@@ -331,6 +343,26 @@ function TeamMatchesPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {otrasPosiciones.map((j) => <TarjetaJugador key={j.id} jugador={j} />)}
                   </div>
+                </div>
+              )}
+
+              {canteranos.length > 0 && (
+                <div className="border border-borde/20 rounded-lg overflow-hidden">
+                  <button
+                    onClick={() => setVerCanteranos(!verCanteranos)}
+                    className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-borde/5 hover:bg-borde/10 transition"
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className="font-display text-sm text-texto tracking-wide">Canteranos</span>
+                      <span className="font-marcador text-xs text-borde bg-borde/10 rounded-full px-2 py-0.5">{canteranos.length}</span>
+                    </span>
+                    <span className="font-body text-[11px] text-borde">{verCanteranos ? 'Ocultar ▲' : 'Fichas del filial · Ver ▼'}</span>
+                  </button>
+                  {verCanteranos && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3">
+                      {canteranos.map((j) => <TarjetaJugador key={j.id} jugador={j} />)}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

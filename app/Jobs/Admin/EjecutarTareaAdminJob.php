@@ -4,6 +4,7 @@ namespace App\Jobs\Admin;
 
 use App\Jobs\Partidos\SincronizarPartidoLaligaJob;
 use App\Models\CalendarioPartido;
+use App\Models\CambioPlantilla;
 use App\Models\EjecucionTarea;
 use App\Models\Temporada;
 use App\Services\TareasAdmin;
@@ -31,6 +32,9 @@ class EjecutarTareaAdminJob implements ShouldQueue
 
     /** Pausa entre partidos al reimportar — la misma cortesía con LaLiga.com que el script. */
     private const PAUSA_SEGUNDOS = 3;
+
+    /** Tope de partidos por tanda al aplicar cambios de plantilla, para no pasarse del tiempo límite. */
+    private const PARTIDOS_POR_TANDA = 25;
 
     public function __construct(public int $idEjecucion) {}
 
@@ -97,7 +101,57 @@ class EjecutarTareaAdminJob implements ShouldQueue
             return $this->reimportar($partidos);
         }
 
+        if ($ejecucion->tarea === TareasAdmin::REIMPORTAR_CAMBIOS) {
+            return $this->reimportarCambios();
+        }
+
         return [false, 'Tarea desconocida.'];
+    }
+
+    /**
+     * Reimporta los partidos donde aparecían los jugadores cuyo cambio de
+     * plantilla ya se ha resuelto, para que sus alineaciones y eventos queden
+     * completos. Va por tandas: lo que no quepa queda para el siguiente pulsado.
+     *
+     * @return array{0: bool, 1: string}
+     */
+    private function reimportarCambios(): array
+    {
+        $cambios = CambioPlantilla::where('estado', 'resuelto')
+            ->whereNotNull('partidos_por_reimportar')
+            ->get()
+            ->filter(fn ($cambio) => ! empty($cambio->partidos_por_reimportar));
+
+        $pendientes = $cambios->flatMap(fn ($cambio) => $cambio->partidos_por_reimportar)->map(fn ($id) => (int) $id)->unique()->sort()->values();
+
+        if ($pendientes->isEmpty()) {
+            return [true, 'No hay partidos pendientes de actualizar.'];
+        }
+
+        $deEstaTanda = $pendientes->take(self::PARTIDOS_POR_TANDA);
+
+        $partidos = CalendarioPartido::with(['equipoLocal', 'equipoVisitante'])
+            ->whereIn('id', $deEstaTanda)
+            ->orderBy('horario_estimado')
+            ->get();
+
+        [$ok, $salida] = $this->reimportar($partidos);
+
+        // Reimportar puede haber reabierto algún cambio; solo se descuentan los que siguen resueltos.
+        foreach ($cambios as $cambio) {
+            $cambio->refresh();
+            if ($cambio->estado !== 'resuelto' || empty($cambio->partidos_por_reimportar)) continue;
+
+            $restantes = array_values(array_diff(array_map('intval', $cambio->partidos_por_reimportar), $deEstaTanda->all()));
+            $cambio->update(['partidos_por_reimportar' => $restantes ?: null]);
+        }
+
+        $quedan = $pendientes->count() - $deEstaTanda->count();
+        if ($quedan > 0) {
+            $salida .= PHP_EOL."Quedan {$quedan} partido(s) por actualizar: vuelve a pulsar «Aplicar a los partidos».";
+        }
+
+        return [$ok, $salida];
     }
 
     /** @return array{0: bool, 1: string} */

@@ -91,6 +91,15 @@ Route::prefix('v1')->group(function () {
         Route::get('/tareas', [\App\Http\Controllers\Api\V1\Admin\TareasAdminController::class, 'index']);
         Route::get('/tareas/jornadas/{jornada}/partidos', [\App\Http\Controllers\Api\V1\Admin\TareasAdminController::class, 'partidos'])->whereNumber('jornada');
         Route::post('/tareas/{clave}/lanzar', [\App\Http\Controllers\Api\V1\Admin\TareasAdminController::class, 'lanzar']);
+        Route::get('/cambios-plantilla', [\App\Http\Controllers\Api\V1\Admin\CambiosPlantillaAdminController::class, 'index']);
+        Route::get('/cambios-plantilla/resumen', [\App\Http\Controllers\Api\V1\Admin\CambiosPlantillaAdminController::class, 'resumen']);
+        Route::post('/cambios-plantilla/dorsales', [\App\Http\Controllers\Api\V1\Admin\CambiosPlantillaAdminController::class, 'dorsales']);
+        Route::get('/cambios-plantilla/{cambio}/candidatos', [\App\Http\Controllers\Api\V1\Admin\CambiosPlantillaAdminController::class, 'candidatos'])->whereNumber('cambio');
+        Route::post('/cambios-plantilla/{cambio}/alta', [\App\Http\Controllers\Api\V1\Admin\CambiosPlantillaAdminController::class, 'alta'])->whereNumber('cambio');
+        Route::post('/cambios-plantilla/{cambio}/asignar', [\App\Http\Controllers\Api\V1\Admin\CambiosPlantillaAdminController::class, 'asignar'])->whereNumber('cambio');
+        Route::post('/cambios-plantilla/{cambio}/dorsal', [\App\Http\Controllers\Api\V1\Admin\CambiosPlantillaAdminController::class, 'dorsal'])->whereNumber('cambio');
+        Route::post('/cambios-plantilla/{cambio}/ignorar', [\App\Http\Controllers\Api\V1\Admin\CambiosPlantillaAdminController::class, 'ignorar'])->whereNumber('cambio');
+        Route::post('/cambios-plantilla/{cambio}/arreglado', [\App\Http\Controllers\Api\V1\Admin\CambiosPlantillaAdminController::class, 'arreglado'])->whereNumber('cambio');
         Route::get('/equipos/{equipo}', [\App\Http\Controllers\Api\V1\Admin\EquipoAdminController::class, 'show']);
         Route::apiResource('equipos', \App\Http\Controllers\Api\V1\Admin\EquipoAdminController::class)->except('show');
         Route::get('/jugadores/{jugador}', [\App\Http\Controllers\Api\V1\Admin\JugadorAdminController::class, 'show']);

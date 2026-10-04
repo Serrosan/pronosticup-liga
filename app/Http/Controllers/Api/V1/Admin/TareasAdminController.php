@@ -132,6 +132,8 @@ class TareasAdminController extends Controller
                 'id_partido' => $partido->id,
                 'etiqueta' => ($partido->equipoLocal->nombre_corto ?? '?').' - '.($partido->equipoVisitante->nombre_corto ?? '?')." (J{$partido->jornada})",
             ];
+        } elseif ($clave === TareasAdmin::REIMPORTAR_CAMBIOS) {
+            $parametros = ['etiqueta' => 'Partidos con cambios de plantilla'];
         } else {
             return response()->json(['message' => 'Esa tarea no existe.'], 404);
         }
@@ -213,6 +215,7 @@ class TareasAdminController extends Controller
             isset(TareasAdmin::MANUALES[$clave]) => TareasAdmin::MANUALES[$clave]['nombre'],
             $clave === TareasAdmin::REIMPORTAR_JORNADA => 'Reimportar jornada de LaLiga',
             $clave === TareasAdmin::REIMPORTAR_PARTIDO => 'Reimportar partido de LaLiga',
+            $clave === TareasAdmin::REIMPORTAR_CAMBIOS => 'Aplicar cambios de plantilla a los partidos',
             default => $clave,
         };
     }

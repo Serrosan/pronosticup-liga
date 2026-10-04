@@ -34,6 +34,8 @@ use Illuminate\Support\Str;
  * fecha. Toda la alineación de un equipo se resuelve junta, de la pista más
  * fuerte a la más floja, y un jugador ya asignado no puede asignarse a otro:
  *
+ *   0. alias     — ya se dijo a mano, en /admin/cambios-plantilla, que ese nombre
+ *                  de LaLiga es este jugador (o se le dio de alta desde ahí).
  *   1. completo  — el nombre de LaLiga es idéntico a "nombre apellidos".
  *   2. camiseta  — el nombre o apodo de LaLiga es idéntico al nombre de camiseta.
  *   3. dorsal    — mismo dorsal que en plantilla_temporada y, además, alguna
@@ -49,13 +51,17 @@ use Illuminate\Support\Str;
  * Los goles, tarjetas y cambios NO vuelven a adivinar: usan el jugador que ya
  * se emparejó en la alineación de ese mismo partido. Solo si el partido llega
  * sin alineación se busca por nombre, con estas mismas reglas.
+ *
+ * Lo que no se puede emparejar, y los dorsales que no coinciden con los de
+ * plantilla_temporada, quedan además apuntados en la cola de
+ * /admin/cambios-plantilla (CambiosPlantillaService) para resolverlos con clics.
  */
 class ImportadorPartidoDetalle
 {
     /** Partículas de apellido que no sirven como pista (las de 1-2 letras ya se descartan por longitud). */
     private const PALABRAS_VACIAS = ['del', 'las', 'los', 'van', 'von', 'der', 'den', 'dos', 'das'];
 
-    private const NIVELES = ['completo', 'camiseta', 'dorsal', 'palabras', 'similitud'];
+    private const NIVELES = ['alias', 'completo', 'camiseta', 'dorsal', 'palabras', 'similitud'];
 
     private const SIMILITUD_CON_DORSAL = 70.0;
     private const SIMILITUD_SIN_DORSAL = 85.0;
@@ -76,6 +82,16 @@ class ImportadorPartidoDetalle
     /** @var array<int,array>|null fichas de TODOS los jugadores — solo para afinar el texto de un aviso, se carga si hace falta */
     private ?array $todosLosJugadores = null;
 
+    /** @var array<int,array<string,int>> [id_equipo][nombre de LaLiga] => id_jugador — equivalencias fijadas a mano */
+    private array $alias = [];
+
+    /** @var array<int,array<string,string>> [id_equipo]["tipo|nombre de LaLiga"] => estado — lo que ya hay en la cola de cambios */
+    private array $enCola = [];
+
+    private ?int $idTemporada = null;
+
+    public function __construct(private CambiosPlantillaService $cambios) {}
+
     public function importar(array $partido, int $idTemporada): array
     {
         $this->avisos = [];
@@ -83,6 +99,9 @@ class ImportadorPartidoDetalle
         $this->jugadorPorPersona = [];
         $this->entrenadores = [];
         $this->todosLosJugadores = null;
+        $this->alias = [];
+        $this->enCola = [];
+        $this->idTemporada = $idTemporada;
 
         $equipoLocal = $this->buscarEquipo($partido['equipo_local']);
         $equipoVisitante = $this->buscarEquipo($partido['equipo_visitante']);
@@ -113,6 +132,11 @@ class ImportadorPartidoDetalle
         $fecha = $calendarioPartido->horario_estimado ?? now();
         $this->plantillas[$equipoLocal->id] = $this->cargarPlantilla($equipoLocal->id, $idTemporada, $fecha);
         $this->plantillas[$equipoVisitante->id] = $this->cargarPlantilla($equipoVisitante->id, $idTemporada, $fecha);
+
+        foreach ([$equipoLocal->id, $equipoVisitante->id] as $idEquipo) {
+            $this->alias[$idEquipo] = $this->cambios->aliasDeEquipo($idEquipo);
+            $this->enCola[$idEquipo] = $this->cambios->estadosDeEquipo($idEquipo);
+        }
 
         // Todo o nada: si algo falla a medias, no se queda el partido con los
         // eventos borrados y sin volver a crear.
@@ -151,7 +175,7 @@ class ImportadorPartidoDetalle
                     $entradas[] = [
                         'datos' => $entrada,
                         'titular' => $titular,
-                        'persona' => $this->fichaDePersona($entrada['person'], $dorsal),
+                        'persona' => $this->fichaDePersona($entrada['person'], $dorsal, $equipo->id),
                     ];
                 }
             }
@@ -181,10 +205,22 @@ class ImportadorPartidoDetalle
 
                 if (! $idJugador) {
                     $dorsalTexto = $persona['dorsal'] !== null ? " (dorsal {$persona['dorsal']})" : '';
-                    $motivo = $this->motivoSinEmparejar($persona, $plantilla, $idsAsignados, $equipo);
-                    $this->avisos[] = "Jugador sin emparejar en alineación ({$equipo->nombre_corto}): {$persona['etiqueta']}{$dorsalTexto} — {$motivo}";
+                    $diagnostico = $this->diagnosticoSinEmparejar($persona, $plantilla, $idsAsignados, $equipo);
+
+                    // A la cola de cambios. Si ahí está marcado como "ignorar", tampoco se avisa.
+                    $avisar = $persona['clave'] === '' || $this->cambios->anotarSinEmparejar(
+                        $equipo->id, $this->idTemporada, $partido->id, $entrada['datos']['person'], $persona['clave'],
+                        $persona['dorsal'], $this->fotoDeEntrada($entrada['datos']),
+                        $diagnostico['pista'], $diagnostico['id_sugerido'], $diagnostico['texto']
+                    );
+
+                    if ($avisar) {
+                        $this->avisos[] = "Jugador sin emparejar en alineación ({$equipo->nombre_corto}): {$persona['etiqueta']}{$dorsalTexto} — {$diagnostico['texto']}";
+                    }
                     continue;
                 }
+
+                $this->revisarColaDelEmparejado($partido, $equipo, $entrada['datos']['person'], $persona, $idJugador, $plantilla[$idJugador]['dorsal'] ?? null);
 
                 AlineacionJugador::create([
                     'id_partido' => $partido->id,
@@ -202,22 +238,33 @@ class ImportadorPartidoDetalle
         }
     }
 
-    /** Texto del aviso: distingue "podría ser fulano", "existe pero no en esta plantilla" y "no está dado de alta". */
-    private function motivoSinEmparejar(array $persona, array $plantilla, array $idsAsignados, Equipo $equipo): string
+    /**
+     * Por qué no se pudo emparejar a alguien: distingue "podría ser fulano",
+     * "existe pero no en esta plantilla" y "no está dado de alta".
+     *
+     * @return array{pista: string, id_sugerido: ?int, texto: string}
+     */
+    private function diagnosticoSinEmparejar(array $persona, array $plantilla, array $idsAsignados, Equipo $equipo): array
     {
         $posibles = [];
+        $idPrimerPosible = null;
         foreach ($plantilla as $id => $jugador) {
             if (isset($idsAsignados[$id])) continue;
 
             $mismoDorsal = $persona['dorsal'] !== null && $jugador['dorsal'] === $persona['dorsal'];
             if ($mismoDorsal || $this->apellidoCoincide($persona, $jugador)) {
+                $idPrimerPosible ??= $id;
                 $posibles[] = $jugador['etiqueta'].($jugador['dorsal'] !== null ? " (dorsal {$jugador['dorsal']})" : ' (sin dorsal)');
             }
         }
 
         if ($posibles) {
             $lista = implode(' o ', array_slice($posibles, 0, 3));
-            return "dudoso: podría ser {$lista}, pero no hay datos suficientes para asegurarlo. Si es él, rellenar su dorsal o su nombre de camiseta lo resuelve.";
+            return [
+                'pista' => 'podria_ser',
+                'id_sugerido' => $idPrimerPosible,
+                'texto' => "dudoso: podría ser {$lista}, pero no hay datos suficientes para asegurarlo. Si es él, rellenar su dorsal o su nombre de camiseta lo resuelve.",
+            ];
         }
 
         foreach ($this->todosLosJugadores() as $jugador) {
@@ -226,11 +273,63 @@ class ImportadorPartidoDetalle
                     && $this->apellidosCompatibles($persona, $jugador));
 
             if ($esElMismo) {
-                return "existe en la base de datos ({$jugador['etiqueta']}, id {$jugador['id']}) pero no figura en la plantilla de {$equipo->nombre_corto} en la fecha del partido — revisar plantilla_temporada.";
+                return [
+                    'pista' => 'fuera_de_plantilla',
+                    'id_sugerido' => $jugador['id'],
+                    'texto' => "existe en la base de datos ({$jugador['etiqueta']}, id {$jugador['id']}) pero no figura en la plantilla de {$equipo->nombre_corto} en la fecha del partido — revisar plantilla_temporada.",
+                ];
             }
         }
 
-        return 'no está dado de alta en la base de datos (o figura con un nombre muy distinto).';
+        return [
+            'pista' => 'no_existe',
+            'id_sugerido' => null,
+            'texto' => 'no está dado de alta en la base de datos (o figura con un nombre muy distinto).',
+        ];
+    }
+
+    /**
+     * Para alguien que SÍ se ha emparejado: si estaba pendiente en la cola, ya
+     * no lo está; y si su dorsal de LaLiga no es el de plantilla_temporada, se
+     * propone el cambio (nunca se cambia solo).
+     */
+    private function revisarColaDelEmparejado(CalendarioPartido $partido, Equipo $equipo, array $person, array $persona, int $idJugador, ?int $dorsalEnPlantilla): void
+    {
+        $clave = $persona['clave'];
+        if ($clave === '') return;
+
+        if (($this->enCola[$equipo->id]["jugador|{$clave}"] ?? null) === 'pendiente') {
+            $this->cambios->cerrarPorqueYaEmpareja($equipo->id, $clave, $idJugador, $partido->id);
+        }
+
+        if ($persona['dorsal'] === null) return;
+
+        if ($persona['dorsal'] !== $dorsalEnPlantilla) {
+            $this->cambios->anotarDorsal($equipo->id, $this->idTemporada, $partido->id, $person, $clave, $persona['dorsal'], $idJugador, $dorsalEnPlantilla);
+        } elseif (($this->enCola[$equipo->id]["dorsal|{$clave}"] ?? null) === 'pendiente') {
+            $this->cambios->cerrarDorsalPorqueYaCoincide($equipo->id, $clave, $idJugador);
+        }
+    }
+
+    /** La primera foto que venga en la entrada de la alineación (LaLiga la manda anidada por tipo y tamaño). */
+    private function fotoDeEntrada(array $entrada): ?string
+    {
+        $pendientes = [$entrada['photos'] ?? null];
+
+        while ($pendientes) {
+            $actual = array_shift($pendientes);
+
+            if (is_string($actual) && str_starts_with($actual, 'http')) {
+                return $actual;
+            }
+            if (is_array($actual)) {
+                foreach ($actual as $hijo) {
+                    $pendientes[] = $hijo;
+                }
+            }
+        }
+
+        return null;
     }
 
     // --- ESTADÍSTICAS ---
@@ -409,7 +508,7 @@ class ImportadorPartidoDetalle
         $plantilla = $this->plantillas[$idEquipo] ?? [];
 
         if ($clave === '' || ! array_key_exists($clave, $this->jugadorPorPersona[$idEquipo] ?? [])) {
-            $asignados = $this->emparejarGrupo([$this->fichaDePersona($person, null)], $plantilla);
+            $asignados = $this->emparejarGrupo([$this->fichaDePersona($person, null, $idEquipo)], $plantilla);
             $this->jugadorPorPersona[$idEquipo][$clave] = $asignados[0] ?? null;
         }
 
@@ -502,8 +601,10 @@ class ImportadorPartidoDetalle
     }
 
     /** Ficha de una persona tal como la manda LaLiga (name / nickname / firstname / lastname) y su dorsal en ese partido. */
-    private function fichaDePersona(array $person, ?int $dorsal): array
+    private function fichaDePersona(array $person, ?int $dorsal, ?int $idEquipo = null): array
     {
+        $clave = $this->clavePersona($person);
+
         $nombreCompleto = $this->limpiar($person['name'] ?? null);
         $apodo = $this->limpiar($person['nickname'] ?? null);
         $nombre = $this->limpiar($person['firstname'] ?? null);
@@ -514,7 +615,8 @@ class ImportadorPartidoDetalle
 
         return [
             'etiqueta' => $person['name'] ?? $person['nickname'] ?? '?',
-            'clave' => $this->clavePersona($person),
+            'clave' => $clave,
+            'idAlias' => $idEquipo !== null && $clave !== '' ? ($this->alias[$idEquipo][$clave] ?? null) : null,
             'dorsal' => $dorsal,
             'textos' => $textos,
             'palabras' => $this->palabras(implode(' ', $textos)),
@@ -588,6 +690,7 @@ class ImportadorPartidoDetalle
         $candidatos = [];
         foreach ($libres as $id => $jugador) {
             $encaja = match ($nivel) {
+                'alias' => ($persona['idAlias'] ?? null) === $id,
                 'completo' => $jugador['completo'] !== '' && in_array($jugador['completo'], $persona['textos'], true),
                 'camiseta' => $jugador['camiseta'] !== '' && in_array($jugador['camiseta'], $persona['textos'], true)
                     && $this->nombresCompatibles($persona, $jugador) && $this->apellidosCompatibles($persona, $jugador),

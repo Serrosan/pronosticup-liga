@@ -61,6 +61,9 @@ class TareasAdmin
     public const REIMPORTAR_JORNADA = 'reimportar-jornada';
     public const REIMPORTAR_PARTIDO = 'reimportar-partido';
 
+    /** Reimporta solo los partidos afectados por cambios de plantilla ya resueltos (/admin/cambios-plantilla). */
+    public const REIMPORTAR_CAMBIOS = 'reimportar-cambios';
+
     public const TOTAL_JORNADAS = 38;
 
     /** Minutos desde el inicio de un partido a partir de los cuales se da por terminado. */
@@ -111,7 +114,7 @@ class TareasAdmin
 
     public static function esReimportacion(string $clave): bool
     {
-        return in_array($clave, [self::REIMPORTAR_JORNADA, self::REIMPORTAR_PARTIDO], true);
+        return in_array($clave, [self::REIMPORTAR_JORNADA, self::REIMPORTAR_PARTIDO, self::REIMPORTAR_CAMBIOS], true);
     }
 
     /** Se guarda el final de la salida, que es donde está el resultado. */

@@ -1,5 +1,10 @@
 import { useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import client from '../api/client'
+
+// La entrada del menú que lleva el número de cambios de plantilla por revisar.
+const RUTA_CAMBIOS = '/admin/cambios-plantilla'
 
 const GRUPOS = [
   {
@@ -48,6 +53,7 @@ const GRUPOS = [
     titulo: 'Sistema',
     items: [
       { to: '/admin/tareas', label: 'Tareas y reimportación' },
+      { to: '/admin/cambios-plantilla', label: 'Cambios de plantilla' },
       { to: '/admin/avisos-scraper', label: 'Avisos del scraper' },
     ],
   },
@@ -57,6 +63,16 @@ function AdminLayout({ children }) {
   const location = useLocation()
   const grupoActivo = GRUPOS.find((g) => g.items.some((item) => location.pathname.startsWith(item.to)))?.titulo
   const [gruposAbiertos, setGruposAbiertos] = useState(() => new Set())
+
+  // Cuántos cambios de plantilla hay por revisar. Si la consulta falla, el menú
+  // sigue igual, solo que sin número.
+  const { data: resumenCambios } = useQuery({
+    queryKey: ['admin-cambios-plantilla-resumen'],
+    queryFn: async () => (await client.get('/api/v1/admin/cambios-plantilla/resumen')).data.data,
+    refetchInterval: 120000,
+    retry: false,
+  })
+  const cambiosPendientes = resumenCambios?.pendientes ?? 0
 
   function alternarGrupo(titulo) {
     setGruposAbiertos((prev) => {
@@ -94,6 +110,7 @@ function AdminLayout({ children }) {
               const abierto = grupo.titulo === grupoActivo || gruposAbiertos.has(grupo.titulo)
 
               const esElActivo = grupo.titulo === grupoActivo
+              const avisoDelGrupo = grupo.items.some((item) => item.to === RUTA_CAMBIOS) ? cambiosPendientes : 0
 
               return (
                 <div key={grupo.titulo}>
@@ -111,6 +128,11 @@ function AdminLayout({ children }) {
                       }`}
                     >
                       {esElActivo && '● '}{grupo.titulo}
+                      {avisoDelGrupo > 0 && !abierto && (
+                        <span className="ml-2 font-marcador text-[10px] font-bold bg-premio text-fondo rounded-full px-1.5 py-0.5 normal-case tracking-normal">
+                          {avisoDelGrupo}
+                        </span>
+                      )}
                     </span>
                     <span className="text-borde text-[9px]">{abierto ? '▲' : '▼'}</span>
                   </button>
@@ -118,7 +140,17 @@ function AdminLayout({ children }) {
                     <div className="flex md:flex-col overflow-x-auto pb-1 md:border md:border-borde/15 md:rounded-lg md:divide-y md:divide-borde/15">
                       {grupo.items.map((s, i) => (
                         <div key={s.to} className={i % 2 === 1 ? 'md:bg-borde/5' : ''}>
-                          <NavLink to={s.to} className={enlaceClase}>{s.label}</NavLink>
+                          <NavLink to={s.to} className={enlaceClase}>
+                            {s.label}
+                            {s.to === RUTA_CAMBIOS && cambiosPendientes > 0 && (
+                              <span
+                                title={`${cambiosPendientes} por revisar`}
+                                className="ml-2 font-marcador text-[10px] font-bold bg-premio text-fondo rounded-full px-1.5 py-0.5"
+                              >
+                                {cambiosPendientes}
+                              </span>
+                            )}
+                          </NavLink>
                         </div>
                       ))}
                     </div>

@@ -88,6 +88,9 @@ Route::prefix('v1')->group(function () {
 
     Route::middleware('admin')->prefix('admin')->group(function () {
     Route::get('/avisos-scraper', [\App\Http\Controllers\Api\V1\Admin\AvisosScraperAdminController::class, 'index']);
+        Route::get('/tareas', [\App\Http\Controllers\Api\V1\Admin\TareasAdminController::class, 'index']);
+        Route::get('/tareas/jornadas/{jornada}/partidos', [\App\Http\Controllers\Api\V1\Admin\TareasAdminController::class, 'partidos'])->whereNumber('jornada');
+        Route::post('/tareas/{clave}/lanzar', [\App\Http\Controllers\Api\V1\Admin\TareasAdminController::class, 'lanzar']);
         Route::get('/equipos/{equipo}', [\App\Http\Controllers\Api\V1\Admin\EquipoAdminController::class, 'show']);
         Route::apiResource('equipos', \App\Http\Controllers\Api\V1\Admin\EquipoAdminController::class)->except('show');
         Route::get('/jugadores/{jugador}', [\App\Http\Controllers\Api\V1\Admin\JugadorAdminController::class, 'show']);

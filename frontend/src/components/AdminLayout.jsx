@@ -45,8 +45,9 @@ const GRUPOS = [
     ],
   },
   {
-    titulo: 'Scraper',
+    titulo: 'Sistema',
     items: [
+      { to: '/admin/tareas', label: 'Tareas y reimportación' },
       { to: '/admin/avisos-scraper', label: 'Avisos del scraper' },
     ],
   },

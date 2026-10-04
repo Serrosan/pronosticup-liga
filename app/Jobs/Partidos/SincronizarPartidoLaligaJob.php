@@ -65,6 +65,14 @@ class SincronizarPartidoLaligaJob implements ShouldQueue
             throw new \RuntimeException("Faltan claves esperadas (match/data/events) para {$partido->equipoLocal->nombre} vs {$partido->equipoVisitante->nombre}.");
         }
 
+        // Un partido terminado siempre trae eventos (como mínimo, los cambios).
+        // Si llega vacío es que LaLiga aún no los ha publicado: importar ahora
+        // BORRARÍA los eventos que ya hubiera guardados y no pondría ninguno.
+        // Mejor fallar — el automático lo reintenta a los 15 minutos.
+        if (count($events) === 0) {
+            throw new \RuntimeException("LaLiga aún no ha publicado los eventos de {$partido->equipoLocal->nombre} vs {$partido->equipoVisitante->nombre} — no se importa nada.");
+        }
+
         $partidoTraducido = [
             'equipo_local' => $match['home_team']['nickname'],
             'equipo_visitante' => $match['away_team']['nickname'],

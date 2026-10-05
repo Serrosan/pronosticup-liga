@@ -49,6 +49,7 @@ Route::prefix('v1')->group(function () {
     Route::post('/cuenta/desactivar', [\App\Http\Controllers\Api\V1\CuentaController::class, 'desactivar']);
     Route::get('/jugadores/{jugador}', [\App\Http\Controllers\Api\V1\JugadorController::class, 'show']);
     Route::get('/partidos/{partido}', [PartidoController::class, 'show']);
+    Route::get('/partidos/{partido}/arbitro', [\App\Http\Controllers\Api\V1\ArbitroPartidoController::class, 'show']);
     Route::get('/notificaciones', [\App\Http\Controllers\Api\V1\NotificacionController::class, 'index']);
     Route::get('/notificaciones/no-leidas', [\App\Http\Controllers\Api\V1\NotificacionController::class, 'noLeidas']);
     Route::post('/notificaciones/{id}/leer', [\App\Http\Controllers\Api\V1\NotificacionController::class, 'marcarLeida']);

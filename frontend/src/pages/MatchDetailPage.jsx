@@ -242,6 +242,14 @@ function MatchDetailPage() {
     queryFn: async () => (await client.get(`/api/v1/partidos/${id}`)).data.data,
   })
 
+  // Tarjetas del árbitro esta temporada. Es un adorno: si falla, la página sigue igual.
+  const { data: arbitro } = useQuery({
+    queryKey: ['partido-arbitro', id],
+    queryFn: async () => (await client.get(`/api/v1/partidos/${id}/arbitro`)).data.data,
+    enabled: !!data?.arbitro,
+    retry: false,
+  })
+
   if (isLoading || !data) return <p className="font-body text-texto p-4">Cargando...</p>
 
   const eventosLocal = data.eventos.filter((e) => e.id_equipo === data.equipo_local.id)
@@ -313,6 +321,17 @@ function MatchDetailPage() {
             )}
             {data.arbitro && <span className="font-body text-xs text-borde">🧑‍⚖️ {data.arbitro}</span>}
           </div>
+        )}
+        {arbitro && arbitro.partidos > 0 && (
+          <p className="font-body text-[11px] text-borde text-center mt-2">
+            {arbitro.nombre} esta temporada: {arbitro.partidos} partido{arbitro.partidos === 1 ? '' : 's'}
+            {' · '}{arbitro.amarillas} amarilla{arbitro.amarillas === 1 ? '' : 's'}
+            {' '}({(arbitro.amarillas / arbitro.partidos).toLocaleString('es-ES', { maximumFractionDigits: 1 })} por partido)
+            {' · '}
+            {arbitro.rojas === 0
+              ? 'ninguna roja'
+              : `roja en ${arbitro.partidos_con_roja} de ${arbitro.partidos}`}
+          </p>
         )}
       </div>
 

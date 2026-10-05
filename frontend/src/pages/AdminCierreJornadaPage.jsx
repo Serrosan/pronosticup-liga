@@ -107,6 +107,7 @@ function TarjetaLiga({ liga, jornada, onLanzar, ocupado }) {
 
 function BloquePartidos({ partidos, jornada, onReimportar, reimportando }) {
   const todosJugados = partidos.total > 0 && partidos.jugados === partidos.total
+  const ningunoJugado = partidos.jugados === 0
   const faltanDatos = partidos.sin_datos.length > 0
 
   return (
@@ -130,11 +131,17 @@ function BloquePartidos({ partidos, jornada, onReimportar, reimportando }) {
 
       <div className="px-4 py-3 border-b border-borde/10">
         <div className="flex items-start justify-between gap-3 flex-wrap">
-          <p className={`font-body text-sm font-semibold ${faltanDatos ? 'text-premio' : 'text-acento'}`}>
-            {faltanDatos
-              ? `! Faltan datos de LaLiga en ${partidos.sin_datos.length} partido(s) jugado(s)`
-              : '✓ Los partidos jugados tienen sus datos de LaLiga'}
-          </p>
+          {ningunoJugado ? (
+            <p className="font-body text-sm text-borde">
+              – Datos de LaLiga: aún no hay nada que comprobar, no se ha jugado ningún partido.
+            </p>
+          ) : (
+            <p className={`font-body text-sm font-semibold ${faltanDatos ? 'text-premio' : 'text-acento'}`}>
+              {faltanDatos
+                ? `! Faltan datos de LaLiga en ${partidos.sin_datos.length} de los ${partidos.jugados} partido(s) jugado(s)`
+                : `✓ Los ${partidos.jugados} partido(s) jugado(s) tienen sus datos de LaLiga`}
+            </p>
+          )}
           {faltanDatos && (
             <button className={BOTON_SECUNDARIO} disabled={reimportando} onClick={onReimportar}>
               Reimportar la jornada
@@ -166,8 +173,10 @@ function BloquePartidos({ partidos, jornada, onReimportar, reimportando }) {
               Si alguno marcó, su gol no está guardado hasta que lo resuelvas y reimportes.
             </span>
           </p>
+        ) : ningunoJugado ? (
+          <p className="font-body text-sm text-borde">– Jugadores sin emparejar: se sabrá cuando se importen las alineaciones.</p>
         ) : (
-          <p className="font-body text-sm text-acento font-semibold">✓ Ningún jugador de estos partidos está sin emparejar</p>
+          <p className="font-body text-sm text-acento font-semibold">✓ Ningún jugador de los partidos importados está sin emparejar</p>
         )}
       </div>
     </div>

@@ -39,6 +39,33 @@ function ordenarPorRelevancia(jugadores, normalizada) {
   })
 }
 
+/**
+ * Cómo viene el jugador, en una línea: goles de la temporada y titularidades
+ * en los últimos partidos de su equipo. Sin datos (aún no ha entrado en
+ * ninguna convocatoria importada ni ha marcado) no se enseña nada.
+ */
+function FormaJugador({ forma }) {
+  if (!forma) return null
+
+  const trozos = []
+
+  trozos.push(
+    forma.goles > 0
+      ? `⚽ ${forma.goles} gol${forma.goles === 1 ? '' : 'es'}${forma.goles_recientes > 0 ? ` (${forma.goles_recientes} reciente${forma.goles_recientes === 1 ? '' : 's'})` : ''}`
+      : '⚽ Sin goles'
+  )
+
+  if (forma.de) {
+    trozos.push(
+      forma.titular > 0
+        ? `Titular en ${forma.titular} de los últimos ${forma.de}`
+        : `Suplente en los últimos ${forma.de}`
+    )
+  }
+
+  return <p className="font-body text-[11px] text-borde truncate">{trozos.join(' · ')}</p>
+}
+
 function SeleccionGoleadoresPage() {
   const { jornada } = useParams()
   const toast = useToast()
@@ -76,6 +103,15 @@ function SeleccionGoleadoresPage() {
   const { data: motivosBloqueo } = useQuery({
     queryKey: ['goleadores-bloqueados', jornada],
     queryFn: async () => (await client.get(`/api/v1/jornadas/${jornada}/goleadores-bloqueados`)).data.data,
+  })
+
+  // Goles y titularidades recientes de cada jugador. Es una ayuda: si la
+  // petición falla o tarda, la pantalla funciona igual, solo sin esa línea.
+  const { data: forma } = useQuery({
+    queryKey: ['jugadores-forma'],
+    queryFn: async () => (await client.get('/api/v1/jugadores-forma')).data.data,
+    staleTime: 10 * 60 * 1000,
+    retry: false,
   })
 
   useEffect(() => {
@@ -159,6 +195,7 @@ function SeleccionGoleadoresPage() {
                     <div className="min-w-0 flex-1">
                       <p className="font-body text-sm text-texto truncate">{j.nombre}</p>
                       {j.equipo && <p className="font-body text-[11px] text-borde truncate">{j.equipo}</p>}
+                      <FormaJugador forma={forma?.[j.id]} />
                     </div>
                     {!jornadaBloqueada && (
                       <button onClick={() => quitar(j.id)} className="font-body text-xs text-red-500 hover:underline shrink-0">
@@ -189,6 +226,12 @@ function SeleccionGoleadoresPage() {
                 />
               </div>
 
+              {forma && (
+                <p className="font-body text-[11px] text-borde mb-2">
+                  Junto a cada jugador verás sus goles de esta temporada y cuántas veces ha sido titular en los últimos partidos de su equipo.
+                </p>
+              )}
+
               <div className="relative">
                 {resultadosBusqueda.length > 0 && (
                   <div className="bg-fondo border border-borde/30 rounded-lg shadow-lg max-h-64 overflow-y-auto">
@@ -209,7 +252,10 @@ function SeleccionGoleadoresPage() {
                             {motivo ? (
                               <p className="font-body text-[11px] text-red-500 truncate">⚠️ {motivo}</p>
                             ) : (
-                              <p className="font-body text-[11px] text-borde truncate">{j.equipo}</p>
+                              <>
+                                <p className="font-body text-[11px] text-borde truncate">{j.equipo}</p>
+                                <FormaJugador forma={forma?.[j.id]} />
+                              </>
                             )}
                           </div>
                         </button>

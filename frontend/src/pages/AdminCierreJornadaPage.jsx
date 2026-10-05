@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import client from '../api/client'
 import { useToast } from '../context/ToastContext'
@@ -94,6 +94,8 @@ function TarjetaLiga({ liga, jornada, onLanzar, ocupado }) {
           <p className="font-body text-[11px] text-borde">
             Cartas: <span className="text-texto font-semibold">{liga.cartas_resueltas}</span> resueltas
             {liga.cartas_esperando > 0 && <span className="text-premio font-semibold"> · {liga.cartas_esperando} esperando</span>}
+            {' · '}
+            <Link to={`/admin/rastro-cartas?liga=${liga.id}&jornada=${jornada}`} className="text-acento hover:underline">Ver las cartas →</Link>
           </p>
         )}
       </div>
@@ -122,7 +124,7 @@ function BloquePartidos({ partidos, jornada, onReimportar, reimportando }) {
           <ul className="mt-2 flex flex-col gap-1">
             {partidos.sin_jugar.map((p) => (
               <li key={p.id} className="font-body text-xs text-borde">
-                <span className="text-texto">{p.partido}</span> · {p.estado} · {fechaHora(p.horario)}
+                <Link to={`/partidos/${p.id}`} className="text-texto hover:text-acento hover:underline">{p.partido}</Link> · {p.estado} · {fechaHora(p.horario)}
               </li>
             ))}
           </ul>
@@ -153,7 +155,7 @@ function BloquePartidos({ partidos, jornada, onReimportar, reimportando }) {
             <ul className="mt-2 flex flex-col gap-1">
               {partidos.sin_datos.map((p) => (
                 <li key={p.id} className="font-body text-xs text-borde">
-                  <span className="text-texto">{p.partido}</span> · falta: {p.falta}
+                  <Link to={`/partidos/${p.id}`} className="text-texto hover:text-acento hover:underline">{p.partido}</Link> · falta: {p.falta}
                 </li>
               ))}
             </ul>
@@ -186,7 +188,9 @@ function BloquePartidos({ partidos, jornada, onReimportar, reimportando }) {
 function AdminCierreJornadaPage() {
   const toast = useToast()
   const queryClient = useQueryClient()
-  const [jornadaElegida, setJornadaElegida] = useState(null)
+  // Se puede llegar con la jornada ya elegida (p. ej. desde Rastro de cartas)
+  const [parametros] = useSearchParams()
+  const [jornadaElegida, setJornadaElegida] = useState(parametros.get('jornada') ? Number(parametros.get('jornada')) : null)
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['admin-cierre-jornada', jornadaElegida],

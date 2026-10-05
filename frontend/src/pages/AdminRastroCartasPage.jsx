@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import client from '../api/client'
 import TicketHeader from '../components/TicketHeader'
@@ -70,6 +71,12 @@ function Rastro({ carta }) {
             ))}
           </div>
         )}
+
+        {carta.id_partido && (
+          <p className="mt-3">
+            <Link to={`/partidos/${carta.id_partido}`} className="font-body text-xs text-acento hover:underline">Ver el partido →</Link>
+          </p>
+        )}
       </div>
     </div>
   )
@@ -96,9 +103,11 @@ function FilaCarta({ carta, abierta, onAlternar }) {
 }
 
 function AdminRastroCartasPage() {
-  const [idLiga, setIdLiga] = useState(null)
+  // Se puede llegar con la liga y la jornada ya elegidas (p. ej. desde Cierre de jornada)
+  const [parametros] = useSearchParams()
+  const [idLiga, setIdLiga] = useState(parametros.get('liga'))
   const [vista, setVista] = useState('jornada')
-  const [jornada, setJornada] = useState(null)
+  const [jornada, setJornada] = useState(parametros.get('jornada') ? Number(parametros.get('jornada')) : null)
   const [abiertas, setAbiertas] = useState({})
 
   const { data, isLoading, error } = useQuery({
@@ -167,8 +176,11 @@ function AdminRastroCartasPage() {
         </div>
 
         {vista === 'jornada' && (
-          <div className="px-4 py-3 border-t border-borde/10">
+          <div className="px-4 py-3 border-t border-borde/10 flex items-center justify-between gap-3 flex-wrap">
             <SelectorJornada jornadas={jornadas} valor={data.jornada} onCambiar={(j) => { setJornada(j); setAbiertas({}) }} />
+            <Link to={`/admin/cierre-jornada?jornada=${data.jornada}`} className="font-body text-xs text-acento hover:underline">
+              Ir al cierre de la jornada {data.jornada} →
+            </Link>
           </div>
         )}
       </div>
@@ -193,7 +205,10 @@ function AdminRastroCartasPage() {
               <div key={grupo.usuario.id} className="bg-fondo border border-borde/30 rounded-lg overflow-hidden">
                 <div className="px-4 py-2.5 bg-borde/10 flex items-center justify-between">
                   <p className="font-display text-base text-texto">{grupo.usuario.nombre}</p>
-                  <p className="font-body text-[11px] text-borde">{grupo.cartas.length} carta(s)</p>
+                  <p className="font-body text-[11px] text-borde">
+                    {grupo.cartas.length} carta(s) ·{' '}
+                    <Link to={`/clasificacion/usuarios/${grupo.usuario.id}`} className="text-acento hover:underline">Ver sus puntos →</Link>
+                  </p>
                 </div>
                 {grupo.cartas.map((carta) => (
                   <FilaCarta

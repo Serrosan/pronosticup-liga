@@ -105,6 +105,8 @@ class RastroCartasService
             'estado' => $carta->estado,
             'puntos' => (int) $carta->puntos_generados,
             'sobre' => $this->sobreQue($carta, $forma, $nombre),
+            'id_partido' => $carta->id_partido,
+            'jornada_efecto' => $carta->jornada_efecto,
             'pasos' => $pasos,
             'datos' => $carta->jugada_en ? $this->datos($carta, $forma) : [],
         ];

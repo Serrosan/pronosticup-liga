@@ -46,6 +46,7 @@ const GRUPOS = [
       { to: '/admin/tipos-carta', label: 'Tipos de Carta' },
       { to: '/admin/configuracion-cartas', label: 'Configuración por liga' },
       { to: '/admin/gestion-cartas-usuarios', label: 'Cartas de usuarios' },
+      { to: '/admin/rastro-cartas', label: 'Rastro de cartas' },
       { to: '/admin/codigos-canje', label: 'Crear códigos' },
       { to: '/admin/canjes-codigo', label: 'Historial de canjes' },
     ],

@@ -30,6 +30,7 @@ import AdminCodigosCanjePage from './pages/AdminCodigosCanjePage'
 import AdminAvisosScraperPage from './pages/AdminAvisosScraperPage'
 import AdminTareasPage from './pages/AdminTareasPage'
 import AdminCambiosPlantillaPage from './pages/AdminCambiosPlantillaPage'
+import AdminCierreJornadaPage from './pages/AdminCierreJornadaPage'
 import AdminCanjesCodigoPage from './pages/AdminCanjesCodigoPage'
 import AdminTrofeosPage from './pages/AdminTrofeosPage'
 import AdminEventosCalendarioPage from './pages/AdminEventosCalendarioPage'
@@ -169,6 +170,7 @@ function App() {
                 <Route path="/admin/avisos-scraper" element={<AdminAvisosScraperPage />} />
                 <Route path="/admin/tareas" element={<AdminTareasPage />} />
                 <Route path="/admin/cambios-plantilla" element={<AdminCambiosPlantillaPage />} />
+                <Route path="/admin/cierre-jornada" element={<AdminCierreJornadaPage />} />
               </Route>
             <Route path="*" element={<NotFoundPage />} />
             </Routes>

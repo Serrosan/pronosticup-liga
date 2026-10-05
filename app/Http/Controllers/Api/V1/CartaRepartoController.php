@@ -42,12 +42,24 @@ class CartaRepartoController extends Controller
             return response()->json(['message' => 'Esta liga no tiene el modo Cartas activado.'], 422);
         }
 
+        // Las cartas no son retroactivas: una jornada que ya había empezado cuando la
+        // liga recibió sus primeras cartas (o una anterior con un aplazado) no tiene reparto.
+        $primeraConCartas = app(\App\Services\CierreJornadaService::class)->primeraJornadaConCartas($liga);
+        if ($primeraConCartas !== null && $jornada < $primeraConCartas) {
+            return response()->json(['message' => "Las cartas de esta liga empiezan en la jornada {$primeraConCartas}: la jornada {$jornada} no tiene reparto."], 422);
+        }
+
         $yaCerrada = CierreJornada::where('id_liga', $liga->id)->where('jornada', $jornada)->where('cerrada', true)->exists();
         if (! $yaCerrada) {
             return response()->json(['message' => 'Cierra la jornada primero.'], 422);
         }
 
-        $yaRepartida = CartaUsuario::where('id_liga', $liga->id)->where('jornada_obtenida', $jornada)->exists();
+        // Solo cuenta un reparto semanal anterior. Las cartas dadas a mano o por código
+        // también llevan jornada_obtenida, y antes bloqueaban el reparto de esa jornada.
+        $yaRepartida = CartaUsuario::where('id_liga', $liga->id)
+            ->where('jornada_obtenida', $jornada)
+            ->whereIn('origen', ['reparto_semanal', 'bonus_top3'])
+            ->exists();
         if ($yaRepartida) {
             return response()->json(['message' => 'Las cartas de esta jornada ya se repartieron antes. Si necesitas corregir algo, usa el panel de admin para dar/retirar cartas sueltas.'], 409);
         }

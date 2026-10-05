@@ -219,6 +219,12 @@ class JornadaController extends Controller
             $motor = app(MotorEfectosCartas::class);
             $cartasResueltas = $motor->resolverEfectosDeEventos($liga->id, $jornada, $idsPartidos);
 
+            // Deja apuntado que los goleadores de esta jornada ya están calculados
+            // (lo leen el detalle de puntos de cada usuario y la lista de cierre).
+            CierreJornada::where('id_liga', $liga->id)
+                ->where('jornada', $jornada)
+                ->update(['goleadores_calculados_en' => now()]);
+
             return [$creados, $cartasResueltas];
         });
 

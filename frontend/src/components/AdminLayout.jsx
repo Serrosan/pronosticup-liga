@@ -31,6 +31,7 @@ const GRUPOS = [
   {
     titulo: 'Competición',
     items: [
+      { to: '/admin/cierre-jornada', label: 'Cierre de jornada' },
       { to: '/admin/calendario', label: 'Partidos' },
       { to: '/admin/eventos-partido', label: 'Eventos' },
       { to: '/admin/eventos-calendario', label: 'Calendario' },

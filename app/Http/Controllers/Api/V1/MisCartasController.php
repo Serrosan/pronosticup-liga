@@ -559,10 +559,8 @@ class MisCartasController extends Controller
      */
     private function proximaJornadaNumero(Liga $liga): ?int
     {
-        return CalendarioPartido::where('id_temporada', $liga->id_temporada)
-            ->whereIn('estado', ['Programado', 'En juego'])
-            ->orderBy('horario_estimado')
-            ->value('jornada');
+        // Ignora los aplazados que se juegan lejos de su jornada (ver el modelo).
+        return CalendarioPartido::proximaJornadaPorJugar($liga->id_temporada);
     }
 
     /**

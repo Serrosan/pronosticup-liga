@@ -100,4 +100,59 @@ class CalendarioPartido extends Model
             ->orderBy('jornada')
             ->value('jornada') ?? 1;
     }
+
+    /**
+     * La próxima jornada por jugar: la del primer partido pendiente que NO sea
+     * un descolgado de su jornada. Un aplazado que se juega semanas después
+     * (p. ej. uno de la jornada 6 colocado entre la 9 y la 10) no debe hacer
+     * que "la próxima jornada" vuelva a ser la 6: las Jugadas quedarían
+     * bloqueadas y las Faltas se apuntarían a una jornada ya pasada.
+     *
+     * Si solo quedan descolgados por jugar, manda el primero (no hay otra).
+     */
+    public static function proximaJornadaPorJugar(int $idTemporada): ?int
+    {
+        $pendientes = self::where('id_temporada', $idTemporada)
+            ->whereIn('estado', ['Programado', 'En juego'])
+            ->orderBy('horario_estimado')
+            ->get();
+
+        foreach ($pendientes as $partido) {
+            if (! $partido->estaDescolgadoDeSuJornada()) {
+                return (int) $partido->jornada;
+            }
+        }
+
+        $primero = $pendientes->first();
+
+        return $primero ? (int) $primero->jornada : null;
+    }
+
+    /**
+     * ¿Este partido cae a más de 5 días del grueso de su jornada? Misma regla
+     * (mediana de horarios ± 5 días) que ya usa jornadaBloqueada().
+     */
+    public function estaDescolgadoDeSuJornada(): bool
+    {
+        if (! $this->horario_estimado) {
+            return false;
+        }
+
+        $timestamps = self::where('id_temporada', $this->id_temporada)
+            ->where('jornada', $this->jornada)
+            ->whereNotNull('horario_estimado')
+            ->get()
+            ->map(fn ($p) => $p->horario_estimado->timestamp)
+            ->sort()
+            ->values();
+
+        if ($timestamps->isEmpty()) {
+            return false;
+        }
+
+        $mediana = $timestamps[intdiv($timestamps->count(), 2)];
+        $ventanaSegundos = 5 * 24 * 60 * 60;
+
+        return abs($this->horario_estimado->timestamp - $mediana) > $ventanaSegundos;
+    }
 }

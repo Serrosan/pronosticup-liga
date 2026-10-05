@@ -100,6 +100,10 @@ Route::prefix('v1')->group(function () {
         Route::post('/cambios-plantilla/{cambio}/dorsal', [\App\Http\Controllers\Api\V1\Admin\CambiosPlantillaAdminController::class, 'dorsal'])->whereNumber('cambio');
         Route::post('/cambios-plantilla/{cambio}/ignorar', [\App\Http\Controllers\Api\V1\Admin\CambiosPlantillaAdminController::class, 'ignorar'])->whereNumber('cambio');
         Route::post('/cambios-plantilla/{cambio}/arreglado', [\App\Http\Controllers\Api\V1\Admin\CambiosPlantillaAdminController::class, 'arreglado'])->whereNumber('cambio');
+        Route::get('/cierre-jornada', [\App\Http\Controllers\Api\V1\Admin\CierreJornadaAdminController::class, 'index']);
+        Route::post('/cierre-jornada/{liga}/{jornada}/cerrar', [\App\Http\Controllers\Api\V1\Admin\CierreJornadaAdminController::class, 'cerrar'])->whereNumber(['liga', 'jornada']);
+        Route::post('/cierre-jornada/{liga}/{jornada}/goleadores', [\App\Http\Controllers\Api\V1\Admin\CierreJornadaAdminController::class, 'goleadores'])->whereNumber(['liga', 'jornada']);
+        Route::post('/cierre-jornada/{liga}/{jornada}/repartir', [\App\Http\Controllers\Api\V1\Admin\CierreJornadaAdminController::class, 'repartir'])->whereNumber(['liga', 'jornada']);
         Route::get('/equipos/{equipo}', [\App\Http\Controllers\Api\V1\Admin\EquipoAdminController::class, 'show']);
         Route::apiResource('equipos', \App\Http\Controllers\Api\V1\Admin\EquipoAdminController::class)->except('show');
         Route::get('/jugadores/{jugador}', [\App\Http\Controllers\Api\V1\Admin\JugadorAdminController::class, 'show']);

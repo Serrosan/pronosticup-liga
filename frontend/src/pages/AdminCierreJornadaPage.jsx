@@ -64,7 +64,64 @@ function Paso({ numero, paso, liga, jornada, onLanzar, ocupado }) {
   )
 }
 
-function TarjetaLiga({ liga, jornada, onLanzar, ocupado }) {
+function ResultadoAuditoria({ resultado }) {
+  if (!resultado.auditable) {
+    return <p className="font-body text-xs text-borde">{resultado.motivo}</p>
+  }
+
+  if (resultado.cuadra) {
+    return (
+      <>
+        <p className="font-body text-sm text-acento font-semibold">✓ Todo cuadra</p>
+        <p className="font-body text-xs text-borde mt-0.5">
+          Recalculados {resultado.total_despues} punto(s) de {resultado.usuarios} jugador(es){resultado.con_goleadores ? ', goleadores incluidos' : ' (los goleadores aún no están calculados)'}: coinciden con lo guardado.
+        </p>
+      </>
+    )
+  }
+
+  return (
+    <>
+      <p className="font-body text-sm text-premio font-semibold">! Hay diferencias con lo guardado</p>
+      <p className="font-body text-xs text-borde mt-0.5">
+        Guardado: {resultado.total_antes} pt en total. Calculado ahora: {resultado.total_despues} pt. No se ha cambiado nada.
+      </p>
+
+      {resultado.diferencias.map((d) => (
+        <div key={d.id_usuario} className="mt-2.5 border border-borde/20 rounded-md overflow-hidden">
+          <p className="font-body text-xs text-texto font-semibold px-3 py-1.5 bg-borde/10">
+            {d.nombre}: {d.antes} pt guardados → {d.despues} pt ahora ({d.despues - d.antes > 0 ? '+' : ''}{d.despues - d.antes})
+          </p>
+          {d.detalle.map((linea, i) => (
+            <p key={i} className="font-body text-[11px] text-borde px-3 py-1.5 border-t border-borde/10">
+              <span className="text-texto">{linea.concepto}:</span> {linea.antes} → {linea.despues}
+            </p>
+          ))}
+        </div>
+      ))}
+
+      {resultado.cartas.length > 0 && (
+        <div className="mt-2.5 border border-borde/20 rounded-md overflow-hidden">
+          <p className="font-body text-xs text-texto font-semibold px-3 py-1.5 bg-borde/10">Cartas que cambiarían</p>
+          {resultado.cartas.map((c) => (
+            <p key={c.id} className="font-body text-[11px] text-borde px-3 py-1.5 border-t border-borde/10">
+              <span className="text-texto">Carta de {c.nombre}:</span> {c.antes} → {c.despues}
+            </p>
+          ))}
+        </div>
+      )}
+
+      <p className="font-body text-[11px] text-borde mt-2.5">
+        Suele deberse a un evento corregido después de calcular, a un pronóstico que llegó tras el cierre o a un cambio en las reglas de puntos.
+        Para dejarlo como "ahora": "Volver a calcular" goleadores aquí arriba, o "recalcular puntos" en la pantalla de Eventos.
+      </p>
+    </>
+  )
+}
+
+function TarjetaLiga({ liga, jornada, onLanzar, ocupado, auditoria, onAuditar, auditando }) {
+  const cerrada = liga.pasos.some((p) => p.clave === 'cerrar' && (p.estado === 'hecho' || p.estado === 'aviso'))
+
   return (
     <div className="bg-fondo border border-borde/30 rounded-lg overflow-hidden">
       <div className="px-4 py-3 bg-borde/10 flex items-center justify-between gap-3">
@@ -103,6 +160,27 @@ function TarjetaLiga({ liga, jornada, onLanzar, ocupado }) {
       {liga.pasos.map((paso, i) => (
         <Paso key={paso.clave} numero={i + 1} paso={paso} liga={liga} jornada={jornada} onLanzar={onLanzar} ocupado={ocupado} />
       ))}
+
+      {cerrada && (
+        <div className="px-4 py-3 border-t border-borde/20 bg-borde/5">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div className="min-w-0">
+              <p className="font-body text-sm font-semibold text-texto">Comprobar los puntos</p>
+              <p className="font-body text-xs text-borde mt-0.5">
+                Los calcula otra vez sin guardar nada y los compara con los que hay apuntados.
+              </p>
+            </div>
+            {liga.soy_admin ? (
+              <button className={BOTON_SECUNDARIO} disabled={auditando} onClick={() => onAuditar(liga)}>
+                {auditando ? 'Comprobando…' : auditoria ? 'Comprobar otra vez' : 'Comprobar'}
+              </button>
+            ) : (
+              <p className="font-body text-[11px] text-borde">Solo el admin de esta liga.</p>
+            )}
+          </div>
+          {auditoria && <div className="mt-3"><ResultadoAuditoria resultado={auditoria} /></div>}
+        </div>
+      )}
     </div>
   )
 }
@@ -206,12 +284,21 @@ function AdminCierreJornadaPage() {
     mutationFn: ({ idLiga, jornada, paso }) => client.post(`/api/v1/admin/cierre-jornada/${idLiga}/${jornada}/${paso}`),
     onSuccess: (respuesta) => {
       toast.exito(respuesta.data.message ?? 'Hecho.')
+      setAuditorias({}) // lo comprobado antes ya no vale: los puntos acaban de cambiar
       refrescar()
     },
     onError: (err) => {
       toast.error(err.response?.data?.message ?? 'No se pudo hacer.')
       refrescar()
     },
+  })
+
+  // Resultado de la última comprobación de puntos, por liga (se olvida al cambiar de jornada)
+  const [auditorias, setAuditorias] = useState({})
+  const auditar = useMutation({
+    mutationFn: ({ idLiga, jornada }) => client.post(`/api/v1/admin/cierre-jornada/${idLiga}/${jornada}/auditar`),
+    onSuccess: (respuesta, { idLiga }) => setAuditorias((a) => ({ ...a, [idLiga]: respuesta.data.data })),
+    onError: (err) => toast.error(err.response?.data?.message ?? 'No se pudo comprobar.'),
   })
 
   const reimportar = useMutation({
@@ -236,7 +323,7 @@ function AdminCierreJornadaPage() {
             Qué está hecho y qué falta, liga por liga. Los pasos van en orden: cerrar, calcular goleadores cuando estén los eventos y,
             en las ligas con cartas, repartir al final para que el Top 3 cuente todos los puntos.
           </p>
-          <SelectorJornada jornadas={jornadas} valor={jornada} onCambiar={setJornadaElegida} />
+          <SelectorJornada jornadas={jornadas} valor={jornada} onCambiar={(j) => { setJornadaElegida(j); setAuditorias({}) }} />
         </div>
 
         {otrasSinCerrar.length > 0 && (
@@ -244,7 +331,7 @@ function AdminCierreJornadaPage() {
             <p className="font-body text-xs text-premio font-semibold mb-1.5">Otras jornadas ya empezadas que siguen sin cerrar:</p>
             <div className="flex flex-col gap-1">
               {otrasSinCerrar.map((s) => (
-                <button key={s.jornada} onClick={() => setJornadaElegida(s.jornada)} className="font-body text-xs text-left text-texto hover:text-acento">
+                <button key={s.jornada} onClick={() => { setJornadaElegida(s.jornada); setAuditorias({}) }} className="font-body text-xs text-left text-texto hover:text-acento">
                   <span className="font-semibold underline">Jornada {s.jornada}</span>
                   <span className="text-borde">
                     {' '}· {s.ligas.join(', ')}
@@ -272,6 +359,9 @@ function AdminCierreJornadaPage() {
             jornada={jornada}
             ocupado={accion.isPending}
             onLanzar={(l, paso) => accion.mutate({ idLiga: l.id, jornada, paso })}
+            auditoria={auditorias[liga.id]}
+            auditando={auditar.isPending && auditar.variables?.idLiga === liga.id}
+            onAuditar={(l) => auditar.mutate({ idLiga: l.id, jornada })}
           />
         ))}
       </div>

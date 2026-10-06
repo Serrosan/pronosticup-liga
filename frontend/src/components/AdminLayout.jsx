@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import client from '../api/client'
+import { ES_PRODUCCION, ENTORNO } from '../utils/entorno'
 
 // La entrada del menú que lleva el número de cambios de plantilla por revisar.
 const RUTA_CAMBIOS = '/admin/cambios-plantilla'
@@ -96,10 +97,21 @@ function AdminLayout({ children }) {
 
   return (
     <div>
-      <div className="flex justify-center py-2 border-b border-borde/30">
+      <div className="flex flex-wrap items-center justify-center gap-2 py-2 border-b border-borde/30">
         <div className="bg-premio/90 text-fondo rounded-full px-4 py-1.5 flex items-center gap-3">
           <span className="font-body text-xs font-semibold">🛠️ Modo administrador</span>
           <Link to="/" className="font-body text-xs underline hover:no-underline">Salir al área de usuarios</Link>
+        </div>
+        {/* En qué entorno estás tocando cosas: con palabra e icono, no solo color. */}
+        <div
+          className={`rounded-full px-4 py-1.5 border-2 ${
+            ES_PRODUCCION ? 'border-red-500 bg-red-500/10' : 'border-dashed border-borde bg-borde/10'
+          }`}
+        >
+          <span className={`font-body text-xs font-bold ${ES_PRODUCCION ? 'text-red-500' : 'text-texto'}`}>
+            {ENTORNO.icono} {ENTORNO.nombre}
+          </span>
+          <span className="font-body text-xs text-borde"> · {ENTORNO.detalle}</span>
         </div>
       </div>
       <div className="max-w-6xl mx-auto px-4 py-6 flex flex-col md:flex-row gap-6">

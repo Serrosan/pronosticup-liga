@@ -41,6 +41,7 @@ import AdminResourceDetailPage from './pages/AdminResourceDetailPage'
 import NavBar from './components/NavBar'
 import AdminLayout from './components/AdminLayout'
 import NotificacionModal from './components/NotificacionModal'
+import MarcaEntorno from './components/MarcaEntorno'
 import AdminEntrenadoresPage from './pages/AdminEntrenadoresPage'
 import ErrorBoundary from './components/ErrorBoundary'
 import NotFoundPage from './pages/NotFoundPage'
@@ -102,6 +103,7 @@ function RutaAdmin() {
 function App() {
   return (
     <ErrorBoundary>
+      <MarcaEntorno />
       <ToastProvider>
         <AuthProvider>
           <AvisoSinConexion />

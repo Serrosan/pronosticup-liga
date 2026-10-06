@@ -12,6 +12,10 @@ const DESTINO_POR_TIPO = {
   carta_manual: { to: '/mis-cartas', pestana: 'mano' },
   cartas_resueltas: { to: '/mis-cartas', pestana: 'historial' },
   falta_recibida: { to: '/mis-cartas', pestana: 'amenazas' },
+  // Avisos de la vigilancia al admin (AvisoAdmin.php)
+  admin_jornada_lista: { to: '/admin/cierre-jornada' },
+  admin_tarea_fallida: { to: '/admin/tareas' },
+  admin_error_nuevo: { to: '/admin/sistema' },
 }
 
 function tiempoRelativo(fechaISO) {

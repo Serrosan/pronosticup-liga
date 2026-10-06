@@ -38,6 +38,13 @@ class TareasAdmin
             'frecuencia' => 'Cada día a las 08:00',
             'confirmar' => null,
         ],
+        'vigilar' => [
+            'comando' => 'admin:vigilar',
+            'nombre' => 'Vigilancia y avisos al admin',
+            'cron' => '*/5 * * * *',
+            'frecuencia' => 'Cada 5 minutos',
+            'confirmar' => null,
+        ],
     ];
 
     /**

@@ -75,6 +75,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/estadisticas-cartas', [\App\Http\Controllers\Api\V1\EstadisticasCartasController::class, 'index']);
     Route::post('/chat/{mensajeChat}/fijar', [\App\Http\Controllers\Api\V1\ChatController::class, 'fijar']);
     Route::get('/logros', [\App\Http\Controllers\Api\V1\LogrosController::class, 'index']);
+    Route::get('/logros-secretos', [\App\Http\Controllers\Api\V1\LogrosSecretosController::class, 'index']);
     Route::post('/liga-activa/personalizar', [\App\Http\Controllers\Api\V1\LigaPersonalizacionController::class, 'actualizar']);
     Route::post('/jornadas/{jornada}/repartir-cartas', [\App\Http\Controllers\Api\V1\CartaRepartoController::class, 'repartirJornada']);
     Route::get('/mis-cartas', [\App\Http\Controllers\Api\V1\MisCartasController::class, 'index']);

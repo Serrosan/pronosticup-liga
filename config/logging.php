@@ -54,7 +54,9 @@ return [
 
         'stack' => [
             'driver' => 'stack',
-            'channels' => explode(',', (string) env('LOG_STACK', 'single')),
+            // Un archivo por día (ver el canal 'daily'): así el registro no crece sin fin
+            // ahora que se conserva entre despliegues.
+            'channels' => explode(',', (string) env('LOG_STACK', 'daily')),
             'ignore_exceptions' => false,
         ],
 
@@ -70,6 +72,9 @@ return [
             'path' => storage_path('logs/laravel.log'),
             'level' => env('LOG_LEVEL', 'debug'),
             'max_files' => env('LOG_DAILY_DAYS', 14),
+            // Lo escriben tanto la web como las tareas programadas, que corren con
+            // usuarios distintos: sin esto, el que llega segundo no puede escribir.
+            'permission' => 0666,
             'replace_placeholders' => true,
         ],
 

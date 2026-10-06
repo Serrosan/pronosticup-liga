@@ -55,6 +55,7 @@ const GRUPOS = [
     titulo: 'Sistema',
     items: [
       { to: '/admin/tareas', label: 'Tareas y reimportación' },
+      { to: '/admin/sistema', label: 'Errores y versión' },
       { to: '/admin/cambios-plantilla', label: 'Cambios de plantilla' },
       { to: '/admin/avisos-scraper', label: 'Avisos del scraper' },
     ],

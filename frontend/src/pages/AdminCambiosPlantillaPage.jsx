@@ -14,6 +14,10 @@ const PISTAS = {
 }
 
 const CAMPO = 'w-full font-body text-sm bg-borde/10 text-texto rounded border border-borde/40 px-2.5 py-1.5 focus:outline-none focus:border-acento'
+// Los desplegables llevan fondo sólido (no translúcido) y sus opciones también: si no,
+// en el tema oscuro la lista se abre en blanco con el texto claro y no se lee.
+const DESPLEGABLE = CAMPO.replace('bg-borde/10', 'bg-fondo')
+const OPCION = 'bg-fondo text-texto'
 const BOTON_PRINCIPAL = 'font-body text-xs font-semibold bg-acento text-fondo rounded px-3 py-1.5 hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed'
 const BOTON_SECUNDARIO = 'font-body text-xs text-texto border border-borde/40 rounded px-3 py-1.5 hover:bg-borde/10 disabled:opacity-40 disabled:cursor-not-allowed'
 
@@ -89,9 +93,9 @@ function FormularioAlta({ cambio, posiciones, dorsalCanterano, onGuardar, onCanc
           <input className={CAMPO} value={datos.nombre_camiseta} onChange={(e) => cambiar('nombre_camiseta', e.target.value)} />
         </Etiqueta>
         <Etiqueta texto="Posición *">
-          <select className={CAMPO} value={datos.posicion} onChange={(e) => cambiar('posicion', e.target.value)}>
-            <option value="">Elige…</option>
-            {posiciones.map((p) => <option key={p} value={p}>{p}</option>)}
+          <select className={DESPLEGABLE} value={datos.posicion} onChange={(e) => cambiar('posicion', e.target.value)}>
+            <option className={OPCION} value="">Elige…</option>
+            {posiciones.map((p) => <option className={OPCION} key={p} value={p}>{p}</option>)}
           </select>
         </Etiqueta>
         <Etiqueta texto="Dorsal">
@@ -121,9 +125,9 @@ function FormularioAlta({ cambio, posiciones, dorsalCanterano, onGuardar, onCanc
       </div>
 
       <datalist id="opciones-pie">
-        <option value="Derecho" />
-        <option value="Izquierdo" />
-        <option value="Ambidiestro" />
+        <option className={OPCION} value="Derecho" />
+        <option className={OPCION} value="Izquierdo" />
+        <option className={OPCION} value="Ambidiestro" />
       </datalist>
 
       {cambio.foto_laliga && (
@@ -176,12 +180,12 @@ function FormularioAsignar({ cambio, onGuardar, onCancelar, guardando }) {
           <input className={CAMPO} value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Deja vacío para ver la plantilla" />
         </Etiqueta>
         <Etiqueta texto="Jugador">
-          <select className={CAMPO} value={idElegido} onChange={(e) => setIdElegido(e.target.value)}>
-            <option value="">Elige…</option>
+          <select className={DESPLEGABLE} value={idElegido} onChange={(e) => setIdElegido(e.target.value)}>
+            <option className={OPCION} value="">Elige…</option>
             {cambio.sugerido && !(candidatos ?? []).some((c) => c.id === cambio.sugerido.id) && (
-              <option value={cambio.sugerido.id}>{cambio.sugerido.nombre}</option>
+              <option className={OPCION} value={cambio.sugerido.id}>{cambio.sugerido.nombre}</option>
             )}
-            {(candidatos ?? []).map((c) => <option key={c.id} value={c.id}>{c.nombre} · {c.detalle}</option>)}
+            {(candidatos ?? []).map((c) => <option className={OPCION} key={c.id} value={c.id}>{c.nombre} · {c.detalle}</option>)}
           </select>
         </Etiqueta>
       </div>

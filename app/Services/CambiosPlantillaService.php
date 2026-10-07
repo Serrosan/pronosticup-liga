@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\AliasJugadorLaliga;
+use App\Models\AlineacionJugador;
 use App\Models\CalendarioPartido;
 use App\Models\CambioPlantilla;
 use App\Models\Equipo;
@@ -95,6 +96,13 @@ class CambiosPlantillaService
     /** Propone cambiar el dorsal de un jugador ya emparejado, porque LaLiga trae otro. */
     public function anotarDorsal(int $idEquipo, ?int $idTemporada, int $idPartido, array $person, string $clave, int $dorsalLaliga, int $idJugador, ?int $dorsalActual): void
     {
+        // Un jugador puede cambiar de número durante la temporada. Manda el de su partido
+        // más reciente: el dorsal de un partido antiguo no se propone, o al reimportar
+        // jornadas viejas volvería a pedir el número que llevaba entonces, una y otra vez.
+        if ($this->jugoDespuesConEseEquipo($idEquipo, $idJugador, $idPartido)) {
+            return;
+        }
+
         $cambio = CambioPlantilla::firstOrNew(['id_equipo' => $idEquipo, 'clave' => $clave, 'tipo' => 'dorsal']);
 
         // Ignorado para ESTE dorsal: no se vuelve a proponer. Si LaLiga cambia a otro número, sí.
@@ -452,6 +460,23 @@ class CambiosPlantillaService
             'resuelto_en' => now(),
             'partidos_por_reimportar' => $reimportar && ! empty($cambio->partidos) ? array_values($cambio->partidos) : null,
         ]);
+    }
+
+    /** ¿Hay guardada una alineación suya con ese equipo en un partido posterior a este? */
+    private function jugoDespuesConEseEquipo(int $idEquipo, int $idJugador, int $idPartido): bool
+    {
+        $fecha = CalendarioPartido::where('id', $idPartido)->value('horario_estimado');
+
+        if (! $fecha) {
+            return false;
+        }
+
+        return AlineacionJugador::join('calendariopartidos', 'calendariopartidos.id', '=', 'alineaciones_jugador.id_partido')
+            ->where('alineaciones_jugador.id_jugador', $idJugador)
+            ->where('alineaciones_jugador.id_equipo', $idEquipo)
+            ->where('alineaciones_jugador.id_partido', '!=', $idPartido)
+            ->where('calendariopartidos.horario_estimado', '>', $fecha)
+            ->exists();
     }
 
     private function temporadaDe(CambioPlantilla $cambio): int

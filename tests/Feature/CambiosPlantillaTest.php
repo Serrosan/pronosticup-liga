@@ -262,6 +262,38 @@ class CambiosPlantillaTest extends TestCase
         $this->assertNull($this->pendiente());
     }
 
+    public function test_el_dorsal_de_un_partido_antiguo_no_se_propone_si_despues_jugo_con_otro(): void
+    {
+        // Caso real: un jugador con un número en las primeras jornadas y otro después.
+        // Al reimportar la jornada vieja volvía a proponer el número antiguo.
+        $isaac = $this->crearJugador($this->local, 'Isaac', 'Romero', 14);
+
+        CalendarioPartido::factory()->create([
+            'id_temporada' => $this->temporada->id, 'id_equipo_local' => $this->local->id, 'id_equipo_visitante' => $this->visitante->id,
+            'jornada' => 2, 'horario_estimado' => '2026-08-22 19:30:00',
+        ]);
+
+        $jornada2 = fn (int $dorsal) => $this->importador->importar([
+            'equipo_local' => 'Sevilla FC', 'equipo_visitante' => 'Rayo Vallecano', 'id_laliga_local' => 17, 'id_laliga_visitante' => 14,
+            'jornada' => 2, 'formacion_local' => '4231', 'formacion_visitante' => '4231',
+            'lineups' => ['home' => ['starts' => [['shirt_number' => $dorsal, 'status' => 'start', 'person' => $this->persona('Isaac', 'Romero')]], 'subs' => []], 'away' => ['starts' => [], 'subs' => []]],
+            'stats' => ['home' => [], 'away' => []], 'events' => [],
+        ], $this->temporada->id);
+
+        // Jornada 2 (la más reciente) con el 14, que es el que tiene: nada que proponer.
+        $jornada2(14);
+        $this->assertNull($this->pendiente('dorsal'));
+
+        // Se reimporta la jornada 1, donde llevaba el 30: no se propone volver al 30.
+        $this->importar([[30, $this->persona('Isaac', 'Romero')]]);
+        $this->assertNull($this->pendiente('dorsal'));
+
+        // Pero si en su partido más reciente lleva otro número, eso sí se propone.
+        $jornada2(9);
+        $this->assertSame(9, $this->pendiente('dorsal')->dorsal);
+        $this->assertSame($isaac->id, $this->pendiente('dorsal')->id_jugador_sugerido);
+    }
+
     public function test_un_ignorado_deja_de_avisar_y_no_se_reabre(): void
     {
         $persona = $this->persona('Aimar', 'Blázquez', 'Aimar');

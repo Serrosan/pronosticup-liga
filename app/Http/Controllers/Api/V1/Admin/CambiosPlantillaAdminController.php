@@ -91,9 +91,9 @@ class CambiosPlantillaAdminController extends Controller
         ]);
 
         return $this->resolver(function () use ($cambio, $datos) {
-            $this->cambios->asignar($cambio, Jugador::findOrFail($datos['id_jugador']), (bool) ($datos['actualizar_dorsal'] ?? false));
+            $nota = $this->cambios->asignar($cambio, Jugador::findOrFail($datos['id_jugador']), (bool) ($datos['actualizar_dorsal'] ?? false));
 
-            return ['message' => 'Asignado. A partir de ahora ese nombre de LaLiga se empareja con él.'];
+            return ['message' => 'Asignado. A partir de ahora ese nombre de LaLiga se empareja con él.'.($nota ? ' '.$nota : '')];
         });
     }
 

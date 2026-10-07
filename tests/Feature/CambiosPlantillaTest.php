@@ -219,6 +219,49 @@ class CambiosPlantillaTest extends TestCase
         $this->cambios->asignar($cambio, $delRayo, actualizarDorsal: false);
     }
 
+    public function test_asignar_a_alguien_con_fecha_de_incorporacion_posterior_al_partido_ya_no_vuelve_a_salir(): void
+    {
+        // Caso real: el jugador existe y está en la plantilla, pero su ficha empieza
+        // DESPUÉS del partido. Antes, "es este jugador" lo daba por resuelto y la
+        // siguiente importación lo reabría, una y otra vez.
+        $iker = Jugador::factory()->create(['nombre' => 'Iker', 'apellidos' => 'Munoz', 'nombre_camiseta' => null]);
+        $ficha = PlantillaTemporada::create([
+            'id_jugador' => $iker->id, 'id_equipo' => $this->local->id, 'id_temporada' => $this->temporada->id,
+            'dorsal' => 34, 'fecha_incorporacion' => '2026-10-04', 'fecha_salida' => null,
+        ]);
+
+        $this->importar([[34, $this->persona('Iker', 'Munoz')]]);
+        $this->assertNotNull($this->pendiente());
+
+        $nota = $this->cambios->asignar($this->pendiente(), $iker, actualizarDorsal: false);
+
+        $this->assertStringContainsString('2026-08-15', (string) $nota);
+        $this->assertSame('2026-08-15', substr((string) $ficha->fresh()->fecha_incorporacion, 0, 10));
+
+        // Reimportar el mismo partido: ahora empareja y no se reabre.
+        $resultado = $this->importar([[34, $this->persona('Iker', 'Munoz')]]);
+        $this->assertEmpty($resultado['avisos']);
+        $this->assertNull($this->pendiente());
+        $this->assertDatabaseHas('alineaciones_jugador', ['id_partido' => $this->partido->id, 'id_jugador' => $iker->id]);
+    }
+
+    public function test_asignar_a_alguien_sin_equipo_lo_mete_en_la_plantilla_desde_el_primer_partido(): void
+    {
+        $libre = Jugador::factory()->create(['nombre' => 'Victor', 'apellidos' => 'Garcia', 'nombre_camiseta' => null]);
+
+        $this->importar([[17, $this->persona('Victor', 'Garcia')]]);
+
+        $nota = $this->cambios->asignar($this->pendiente(), $libre, actualizarDorsal: true);
+
+        $this->assertStringContainsString('Sevilla', (string) $nota);
+        $ficha = PlantillaTemporada::where('id_jugador', $libre->id)->where('id_equipo', $this->local->id)->firstOrFail();
+        $this->assertSame('2026-08-15', substr((string) $ficha->fecha_incorporacion, 0, 10));
+        $this->assertSame(17, (int) $ficha->dorsal);
+
+        $this->assertEmpty($this->importar([[17, $this->persona('Victor', 'Garcia')]])['avisos']);
+        $this->assertNull($this->pendiente());
+    }
+
     public function test_un_ignorado_deja_de_avisar_y_no_se_reabre(): void
     {
         $persona = $this->persona('Aimar', 'Blázquez', 'Aimar');

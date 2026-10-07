@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\AliasJugadorLaliga;
+use App\Models\CalendarioPartido;
 use App\Models\CambioPlantilla;
 use App\Models\Equipo;
 use App\Models\Jugador;
@@ -215,12 +216,27 @@ class CambiosPlantillaService
         return ['jugador' => $jugador, 'aviso' => $aviso];
     }
 
-    /** "Ese nombre de LaLiga es este jugador que ya tengo". Queda recordado para siempre. */
-    public function asignar(CambioPlantilla $cambio, Jugador $jugador, bool $actualizarDorsal): void
+    /**
+     * "Ese nombre de LaLiga es este jugador que ya tengo". Queda recordado para siempre.
+     *
+     * Además deja su ficha de plantilla cubriendo los partidos donde LaLiga lo
+     * alineó. Sin eso la equivalencia no servía de nada: el importador solo
+     * empareja con quien figura en la plantilla el DÍA del partido, así que un
+     * jugador con fecha de incorporación posterior (o sin ficha en el equipo)
+     * volvía a salir como pendiente en cada reimportación.
+     *
+     * @return ?string lo que se ha tocado en su ficha, para contárselo al admin
+     */
+    public function asignar(CambioPlantilla $cambio, Jugador $jugador, bool $actualizarDorsal): ?string
     {
         $this->exigirPendiente($cambio, 'jugador');
 
         $idTemporada = $this->temporadaDe($cambio);
+        [$desde, $hasta] = $this->fechasDeLosPartidos($cambio);
+
+        $equipo = Equipo::find($cambio->id_equipo);
+        $nombreEquipo = $equipo->nombre_corto ?? $equipo->nombre ?? 'ese equipo';
+        $nombreJugador = trim("{$jugador->nombre} {$jugador->apellidos}");
 
         $ficha = PlantillaTemporada::where('id_jugador', $jugador->id)
             ->where('id_equipo', $cambio->id_equipo)
@@ -229,12 +245,50 @@ class CambiosPlantillaService
             ->first();
 
         if (! $ficha) {
-            $equipo = Equipo::find($cambio->id_equipo);
-            $nombreEquipo = $equipo->nombre_corto ?? $equipo->nombre ?? 'ese equipo';
-            throw new \DomainException("{$jugador->nombre} {$jugador->apellidos} no está en la plantilla de {$nombreEquipo}. Fíchalo primero desde su ficha de jugador y vuelve aquí.");
+            // Si está en activo en OTRO equipo, esto es un traspaso: hay que decidir fechas a mano.
+            $enOtroEquipo = PlantillaTemporada::with('equipo')
+                ->where('id_jugador', $jugador->id)
+                ->where('id_temporada', $idTemporada)
+                ->whereNull('fecha_salida')
+                ->first();
+
+            if ($enOtroEquipo) {
+                $otro = $enOtroEquipo->equipo->nombre_corto ?? $enOtroEquipo->equipo->nombre ?? 'otro equipo';
+                throw new \DomainException("{$nombreJugador} no está en la plantilla de {$nombreEquipo}: figura en la de {$otro}. Si ha cambiado de equipo, fíchalo desde su ficha de jugador (con la fecha real del fichaje) y vuelve aquí.");
+            }
         }
 
-        DB::transaction(function () use ($cambio, $jugador, $ficha, $actualizarDorsal, $idTemporada) {
+        $notas = [];
+
+        DB::transaction(function () use ($cambio, $jugador, &$ficha, $actualizarDorsal, $idTemporada, $desde, $hasta, $nombreEquipo, &$notas) {
+            if (! $ficha) {
+                $ficha = PlantillaTemporada::create([
+                    'id_jugador' => $jugador->id,
+                    'id_equipo' => $cambio->id_equipo,
+                    'id_temporada' => $idTemporada,
+                    'dorsal' => null,
+                    'fecha_incorporacion' => $desde,
+                    'fecha_salida' => null,
+                ]);
+                $notas[] = "no tenía equipo: se le ha puesto en la plantilla de {$nombreEquipo}";
+            } else {
+                $ajuste = [];
+                $incorporacion = $ficha->fecha_incorporacion ? substr((string) $ficha->fecha_incorporacion, 0, 10) : null;
+                $salida = $ficha->fecha_salida ? substr((string) $ficha->fecha_salida, 0, 10) : null;
+
+                if ($desde && $incorporacion && $incorporacion > $desde) {
+                    $ajuste['fecha_incorporacion'] = $desde;
+                    $notas[] = "su fecha de incorporación era el {$incorporacion}, posterior a un partido que ya jugó: se ha adelantado al {$desde}";
+                }
+                if ($hasta && $salida && $salida < $hasta) {
+                    $ajuste['fecha_salida'] = $hasta;
+                    $notas[] = "su fecha de salida era el {$salida}, anterior a un partido que jugó: se ha retrasado al {$hasta}";
+                }
+                if ($ajuste) {
+                    $ficha->update($ajuste);
+                }
+            }
+
             if ($actualizarDorsal && $cambio->dorsal !== null && (int) $ficha->dorsal !== (int) $cambio->dorsal) {
                 $this->exigirDorsalLibre($cambio->id_equipo, $idTemporada, (int) $cambio->dorsal, $ficha->id);
                 $ficha->update(['dorsal' => $cambio->dorsal]);
@@ -243,6 +297,26 @@ class CambiosPlantillaService
             $this->recordarAlias($cambio, $jugador->id);
             $this->marcarResuelto($cambio, 'asignado', $jugador->id, reimportar: true);
         });
+
+        return $notas ? ucfirst(implode('; ', $notas)).'.' : null;
+    }
+
+    /**
+     * Primer y último día en que LaLiga alineó a esta persona, según los partidos
+     * apuntados en el cambio.
+     *
+     * @return array{0:?string,1:?string} fechas 'Y-m-d'
+     */
+    private function fechasDeLosPartidos(CambioPlantilla $cambio): array
+    {
+        $fechas = CalendarioPartido::whereIn('id', $cambio->partidos ?? [])
+            ->whereNotNull('horario_estimado')
+            ->get(['id', 'horario_estimado'])
+            ->map(fn ($p) => $p->horario_estimado->toDateString())
+            ->sort()
+            ->values();
+
+        return [$fechas->first(), $fechas->last()];
     }
 
     /** Pone en la plantilla el dorsal que trae LaLiga. */

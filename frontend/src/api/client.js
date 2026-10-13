@@ -1,9 +1,18 @@
 import axios from 'axios'
+import { leerVerComo } from '../utils/verComo'
 
 const client = axios.create({
   baseURL: import.meta.env.PROD ? '' : 'http://localhost',
   withCredentials: true,
   withXSRFToken: true,
+})
+
+// "Ver como un usuario" (solo superadmin, solo lectura): cada petición
+// lleva a quién se está mirando. El backend decide si vale (VerComoUsuario).
+client.interceptors.request.use((config) => {
+  const verComo = leerVerComo()
+  if (verComo) config.headers['X-Ver-Como'] = verComo.id
+  return config
 })
 
 let avisandoSesionCaducada = false

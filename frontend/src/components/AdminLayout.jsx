@@ -12,6 +12,7 @@ const GRUPOS = [
     titulo: 'General',
     items: [
       { to: '/admin/usuarios', label: 'Usuarios' },
+      { to: '/admin/ver-como', label: 'Ver como un usuario' },
       { to: '/admin/ligas', label: 'Ligas' },
       { to: '/admin/novedades', label: 'Novedades' },
       { to: '/admin/registro-actividad', label: 'Actividad' },

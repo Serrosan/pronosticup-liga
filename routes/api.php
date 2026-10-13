@@ -12,7 +12,7 @@ Route::prefix('v1')->group(function () {
     Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1');
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['auth:sanctum', \App\Http\Middleware\VerComoUsuario::class])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
     Route::get('/ligas', [App\Http\Controllers\Api\V1\LigaController::class, 'index']);
@@ -112,6 +112,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/rastro-cartas', [\App\Http\Controllers\Api\V1\Admin\RastroCartasAdminController::class, 'index']);
         Route::get('/sistema', [\App\Http\Controllers\Api\V1\Admin\SistemaAdminController::class, 'index']);
         Route::get('/calidad-datos', [\App\Http\Controllers\Api\V1\Admin\CalidadDatosAdminController::class, 'index']);
+        Route::get('/ver-como/usuarios', [\App\Http\Controllers\Api\V1\Admin\VerComoAdminController::class, 'usuarios']);
         Route::get('/equipos/{equipo}', [\App\Http\Controllers\Api\V1\Admin\EquipoAdminController::class, 'show']);
         Route::apiResource('equipos', \App\Http\Controllers\Api\V1\Admin\EquipoAdminController::class)->except('show');
         Route::get('/jugadores/{jugador}', [\App\Http\Controllers\Api\V1\Admin\JugadorAdminController::class, 'show']);

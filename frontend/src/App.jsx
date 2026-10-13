@@ -43,6 +43,8 @@ import NavBar from './components/NavBar'
 import AdminLayout from './components/AdminLayout'
 import NotificacionModal from './components/NotificacionModal'
 import MarcaEntorno from './components/MarcaEntorno'
+import BandaVerComo from './components/BandaVerComo'
+import AdminVerComoPage from './pages/AdminVerComoPage'
 import AdminEntrenadoresPage from './pages/AdminEntrenadoresPage'
 import ErrorBoundary from './components/ErrorBoundary'
 import NotFoundPage from './pages/NotFoundPage'
@@ -106,6 +108,7 @@ function App() {
   return (
     <ErrorBoundary>
       <MarcaEntorno />
+      <BandaVerComo />
       <ToastProvider>
         <AuthProvider>
           <AvisoSinConexion />
@@ -181,6 +184,7 @@ function App() {
                 <Route path="/admin/rastro-cartas" element={<AdminRastroCartasPage />} />
                 <Route path="/admin/sistema" element={<AdminSistemaPage />} />
                 <Route path="/admin/calidad-datos" element={<AdminCalidadDatosPage />} />
+                <Route path="/admin/ver-como" element={<AdminVerComoPage />} />
               </Route>
             <Route path="*" element={<NotFoundPage />} />
             </Routes>

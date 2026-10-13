@@ -330,6 +330,147 @@ function PestanaCartas({ datos }) {
   )
 }
 
+// ---------------------------------------------------------------- Resumen
+
+const MEDALLAS = ['🥇', '🥈', '🥉']
+const ORDINAL = (n) => `${n}º`
+
+function Nombre({ p }) {
+  return (
+    <span className={`font-semibold ${p.soy_yo ? 'text-acento' : 'text-texto'}`}>
+      {p.usuario}
+      {p.soy_yo && <span className="font-body text-[10px] font-normal text-acento"> (tú)</span>}
+    </span>
+  )
+}
+
+function Nombres({ lista }) {
+  return lista.map((p, i) => (
+    <span key={p.id_usuario}>
+      {i > 0 && (i === lista.length - 1 ? ' y ' : ', ')}
+      <Nombre p={p} />
+    </span>
+  ))
+}
+
+function Tarjeta({ titulo, children }) {
+  return (
+    <div className="bg-fondo border border-borde/30 rounded-lg overflow-hidden">
+      <p className="font-body text-[10px] uppercase tracking-widest text-borde px-4 pt-3 pb-2">{titulo}</p>
+      {children}
+    </div>
+  )
+}
+
+function Destacado({ icono, children }) {
+  return (
+    <div className="flex items-start gap-3 px-4 py-2.5">
+      <span className="text-base leading-none mt-0.5 shrink-0" aria-hidden="true">{icono}</span>
+      <p className="font-body text-sm text-texto leading-snug">{children}</p>
+    </div>
+  )
+}
+
+function PestanaResumen({ datos }) {
+  const r = datos.resumen
+  const destacados = []
+
+  r.exactos_unicos.forEach((e) =>
+    destacados.push(
+      <Destacado key={`exacto-${e.id_usuario}-${e.partido}`} icono="🎯">
+        <Nombre p={e} /> clavó el <span className="font-marcador font-bold">{e.marcador}</span> del {e.partido} y nadie más lo vio
+        <span className="text-borde"> (pronosticaron {e.pronosticaron})</span>
+      </Destacado>
+    )
+  )
+  r.contra_todos.forEach((c) =>
+    destacados.push(
+      <Destacado key={`contra-${c.id_usuario}-${c.partido}`} icono="🐺">
+        <Nombre p={c} /> dijo <span className="font-marcador font-bold">{CORTO[c.signo]}</span> en el {c.partido} contra {c.contra} más… y acertó
+      </Destacado>
+    )
+  )
+  if (r.mas_exactos) {
+    destacados.push(
+      <Destacado key="mas-exactos" icono="★">
+        <Nombres lista={r.mas_exactos.quienes} /> {r.mas_exactos.quienes.length > 1 ? 'hicieron' : 'hizo'} {r.mas_exactos.exactos} resultados exactos
+      </Destacado>
+    )
+  }
+  if (r.mejor_carta) {
+    destacados.push(
+      <Destacado key="carta" icono="🃏">
+        <Nombre p={r.mejor_carta} /> sacó <span className="font-marcador font-bold text-premio">+{r.mejor_carta.puntos}</span> con{' '}
+        <span className="font-semibold text-premio">{r.mejor_carta.carta}</span>
+        {r.mejor_carta.partido && <span className="text-borde"> · {r.mejor_carta.partido}</span>}
+      </Destacado>
+    )
+  }
+  if (r.goleador) {
+    destacados.push(
+      <Destacado key="goleador" icono="⚽">
+        <Link to={`/jugadores/${r.goleador.id_jugador}`} className="font-semibold text-texto hover:underline">{r.goleador.nombre}</Link> marcó{' '}
+        {r.goleador.goles} gol{r.goleador.goles > 1 ? 'es' : ''} y lo tenía{r.goleador.quienes.length > 1 ? 'n' : ''} <Nombres lista={r.goleador.quienes} />
+      </Destacado>
+    )
+  }
+
+  const movimientos = [r.lider, r.sube, r.baja].some(Boolean)
+
+  return (
+    <div className="flex flex-col gap-3">
+      <Tarjeta titulo="Los mejores de la jornada">
+        <div className="divide-y divide-borde/10">
+          {r.podio.map((p) => (
+            <div key={p.id_usuario} className={`flex items-center gap-3 px-4 py-2.5 ${p.soy_yo ? 'bg-acento/5' : ''}`}>
+              <span className="w-6 text-center text-lg leading-none" aria-label={`${p.posicion}º`}>{MEDALLAS[p.posicion - 1]}</span>
+              <Avatar url={p.avatar_url} nombre={p.usuario} tamano="w-8 h-8" />
+              <p className="font-body text-sm flex-1 min-w-0 truncate"><Nombre p={p} /></p>
+              <span className="font-marcador text-base font-bold text-acento tabular-nums">{p.puntos}<span className="font-body text-[10px] font-normal text-borde"> pt</span></span>
+            </div>
+          ))}
+        </div>
+        <div className="px-4 py-2.5 border-t border-borde/10 flex flex-wrap justify-between gap-2">
+          {r.media !== null && <p className="font-body text-xs text-borde">Media de la liga: <span className="font-marcador text-texto">{r.media}</span> pt</p>}
+          {r.farolillo.length > 0 && (
+            <p className="font-body text-xs text-borde">
+              🏮 Farolillo rojo: <Nombres lista={r.farolillo} /> ({r.farolillo[0].puntos} pt)
+            </p>
+          )}
+        </div>
+      </Tarjeta>
+
+      {movimientos && (
+        <Tarjeta titulo="La clasificación">
+          {r.lider && (
+            <Destacado icono="👑">
+              <Nombre p={r.lider} /> {r.lider.nuevo ? 'es el nuevo líder' : 'sigue líder'}
+            </Destacado>
+          )}
+          {r.sube && (
+            <Destacado icono="📈">
+              <Nombre p={r.sube} /> sube {r.sube.puestos} puesto{r.sube.puestos > 1 ? 's' : ''} <span className="text-borde">(ahora {ORDINAL(r.sube.puesto)})</span>
+            </Destacado>
+          )}
+          {r.baja && (
+            <Destacado icono="📉">
+              <Nombre p={r.baja} /> baja {r.baja.puestos} puesto{r.baja.puestos > 1 ? 's' : ''} <span className="text-borde">(ahora {ORDINAL(r.baja.puesto)})</span>
+            </Destacado>
+          )}
+        </Tarjeta>
+      )}
+
+      <Tarjeta titulo="Lo más comentado">
+        {destacados.length > 0 ? (
+          <div className="divide-y divide-borde/10 pb-1">{destacados}</div>
+        ) : (
+          <p className="font-body text-sm text-borde px-4 pb-3">Jornada tranquila: nada fuera de lo normal.</p>
+        )}
+      </Tarjeta>
+    </div>
+  )
+}
+
 // ---------------------------------------------------------------- Página
 
 function LaJornadaPage() {
@@ -348,15 +489,18 @@ function LaJornadaPage() {
   })
 
   const pestanas = [
+    ...(data?.resumen ? [{ clave: 'resumen', texto: 'Resumen' }] : []),
     { clave: 'pronosticos', texto: 'Pronósticos' },
     { clave: 'goleadores', texto: 'Goleadores' },
     ...(data?.con_cartas ? [{ clave: 'cartas', texto: 'Cartas', cuenta: data.cartas?.total || null }] : []),
   ]
   const pedida = params.get('ver')
-  const activa = pestanas.some((p) => p.clave === pedida) ? pedida : 'pronosticos'
+  // Jornada cerrada: se abre por el Resumen. Si no, por los Pronósticos.
+  const defecto = pestanas[0].clave
+  const activa = pestanas.some((p) => p.clave === pedida) ? pedida : defecto
 
   function irA(n) {
-    if (n >= 1 && n <= 38) navigate(`/jornadas/${n}/liga${activa !== 'pronosticos' ? `?ver=${activa}` : ''}`)
+    if (n >= 1 && n <= 38) navigate(`/jornadas/${n}/liga${activa !== defecto ? `?ver=${activa}` : ''}`)
   }
 
   return (
@@ -376,7 +520,7 @@ function LaJornadaPage() {
             type="button"
             role="tab"
             aria-selected={activa === p.clave}
-            onClick={() => setParams(p.clave === 'pronosticos' ? {} : { ver: p.clave }, { replace: true })}
+            onClick={() => setParams(p.clave === defecto ? {} : { ver: p.clave }, { replace: true })}
             className={`font-body text-sm px-3 pb-1.5 transition whitespace-nowrap ${
               activa === p.clave ? 'text-acento border-b-2 border-acento font-semibold' : 'text-borde border-b-2 border-transparent hover:text-texto'
             }`}
@@ -390,6 +534,7 @@ function LaJornadaPage() {
       {error && <p className="font-body text-sm text-red-500 text-center">{error.response?.data?.message ?? 'No se pudo cargar.'}</p>}
       {isLoading && <SkeletonLista />}
 
+      {data && activa === 'resumen' && data.resumen && <PestanaResumen datos={data} />}
       {data && activa === 'pronosticos' && <PestanaPronosticos datos={data} />}
       {data && activa === 'goleadores' && <PestanaGoleadores datos={data} />}
       {data && activa === 'cartas' && data.cartas && <PestanaCartas datos={data} />}

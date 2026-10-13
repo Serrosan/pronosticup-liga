@@ -36,7 +36,7 @@ class LaJornadaService
     /** Con cuántos pronósticos en un partido tiene gracia decir quién va "contra todos". */
     private const MINIMO_PARA_CONTRA_TODOS = 4;
 
-    public function __construct(private RastroCartasService $rastro) {}
+    public function __construct(private RastroCartasService $rastro, private ResumenJornadaService $resumen) {}
 
     public function resumen(Liga $liga, int $jornada, User $yo): array
     {
@@ -61,6 +61,8 @@ class LaJornadaService
             'partidos' => $this->partidos($liga, $partidos, $bloqueada, $yo),
             'goleadores' => $this->goleadores($liga, $jornada, $partidos, $bloqueada, $yo),
             'cartas' => $conCartas ? $this->cartas($liga, $jornada, $bloqueada, $yo) : null,
+            // Solo con la jornada cerrada; si no, null y la pestaña no sale.
+            'resumen' => $this->resumen->resumen($liga, $jornada, $yo),
         ];
     }
 

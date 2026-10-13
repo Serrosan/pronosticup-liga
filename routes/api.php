@@ -136,7 +136,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/jugadores/{jugador}/cambiar-dorsal', [\App\Http\Controllers\Api\V1\Admin\FichajeAdminController::class, 'cambiarDorsal']);
         Route::apiResource('estadios', \App\Http\Controllers\Api\V1\Admin\EstadioAdminController::class)->except('show');
         Route::apiResource('arbitros', \App\Http\Controllers\Api\V1\Admin\ArbitroAdminController::class)->except('show');
-    Route::apiResource('codigos-canje', \App\Http\Controllers\Api\V1\Admin\CodigoCanjeAdminController::class);
+    Route::apiResource('codigos-canje', \App\Http\Controllers\Api\V1\Admin\CodigoCanjeAdminController::class)->parameters(['codigos-canje' => 'codigoCanje']);
     Route::get('/canjes-codigo', [\App\Http\Controllers\Api\V1\Admin\CanjeCodigoAdminController::class, 'index']);
         Route::post('/subir-imagen', [\App\Http\Controllers\Api\V1\Admin\ImagenAdminController::class, 'subir']);
         Route::apiResource('trofeos', \App\Http\Controllers\Api\V1\Admin\TrofeoAdminController::class)->except('show');

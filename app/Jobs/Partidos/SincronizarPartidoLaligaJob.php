@@ -12,6 +12,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 /**
@@ -34,7 +35,32 @@ class SincronizarPartidoLaligaJob implements ShouldQueue
         return [900, 900]; // 15 min antes del 2º intento, 15 min antes del 3º
     }
 
+    /**
+     * Si un intento falla y aún quedan reintentos, se apunta como AVISO (no error)
+     * y se vuelve a la cola en 15 minutos: LaLiga a veces tarda en publicar la
+     * página o falla un momento, y casi siempre se arregla solo. Solo el último
+     * intento fallido cuenta como error (y avisa al admin vía failed()).
+     * Lanzado a mano (cola síncrona) no hay reintentos: el error sale tal cual.
+     */
     public function handle(ImportadorPartidoDetalle $importador): void
+    {
+        try {
+            $this->importarPartido($importador);
+        } catch (\Throwable $e) {
+            $enCola = $this->job && $this->job->getConnectionName() !== 'sync';
+
+            if ($enCola && $this->attempts() < $this->tries) {
+                Log::warning("Scraper de LaLiga: intento {$this->attempts()} de {$this->tries} fallido para el partido {$this->idPartido}, se reintenta en 15 minutos. {$e->getMessage()}");
+                $this->release(900);
+
+                return;
+            }
+
+            throw $e;
+        }
+    }
+
+    private function importarPartido(ImportadorPartidoDetalle $importador): void
     {
         $partido = CalendarioPartido::with(['equipoLocal', 'equipoVisitante'])->findOrFail($this->idPartido);
 
@@ -126,8 +152,25 @@ class SincronizarPartidoLaligaJob implements ShouldQueue
         $contexto = stream_context_create(['http' => [
             'header' => 'User-Agent: Mozilla/5.0 (compatible; PronostiCupBot/1.0; uso personal, no comercial)',
             'timeout' => 15,
+            'ignore_errors' => true, // para poder leer el código de respuesta aunque no sea 200
         ]]);
-        return file_get_contents($url, false, $contexto) ?: '';
+
+        $html = @file_get_contents($url, false, $contexto);
+
+        // Código de la última respuesta (tras posibles redirecciones).
+        $cabeceras = function_exists('http_get_last_response_headers') ? (http_get_last_response_headers() ?? []) : [];
+        $estado = null;
+        foreach ($cabeceras as $linea) {
+            if (preg_match('#^HTTP/\S+\s+(\d{3})#', $linea, $m)) {
+                $estado = (int) $m[1];
+            }
+        }
+
+        if ($html === false || ($estado !== null && $estado !== 200)) {
+            throw new \RuntimeException('LaLiga respondió '.($estado ?? 'sin respuesta')." al pedir {$url}");
+        }
+
+        return $html;
     }
 
     private function encontrarLinkDelPartido(array $links, string $nombreLocal, string $nombreVisitante): ?string

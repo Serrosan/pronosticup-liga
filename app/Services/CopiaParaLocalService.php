@@ -9,7 +9,9 @@ use Illuminate\Support\Facades\Hash;
  * Genera un .sql de TODA la base de datos para cargarlo en local con HeidiSQL.
  * Admin → Sistema → Copia para local.
  *
- * - Sin la tabla `migrations` (en local ya tienes la tuya; luego `migrate`).
+ * - Sin la tabla `migrations`: en local se queda la tuya. Cargar con local y
+ *   producción al día (si no, una tabla cambiada solo en local volvería a la
+ *   versión de producción).
  * - Sesiones, tokens, colas y caché: la tabla se crea, pero vacía.
  * - Opcional: correos falsos (menos superadmins) y contraseña "password"
  *   para todos, para que el archivo no lleve datos de acceso reales.
@@ -137,7 +139,7 @@ class CopiaParaLocalService
 --  Correos: {$correos}
 --  Contraseñas: {$passwords}
 --  Sin la tabla migrations. Sesiones, tokens, colas y caché van vacías.
---  Después de cargarla:  ./vendor/bin/sail artisan migrate
+--  Cárgala con local y producción al día (el mismo código subido).
 -- =============================================================
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;

@@ -110,6 +110,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/cierre-jornada/{liga}/{jornada}/auditar', [\App\Http\Controllers\Api\V1\Admin\AuditoriaPuntosAdminController::class, 'auditar'])->whereNumber(['liga', 'jornada']);
         Route::get('/rastro-cartas', [\App\Http\Controllers\Api\V1\Admin\RastroCartasAdminController::class, 'index']);
         Route::get('/sistema', [\App\Http\Controllers\Api\V1\Admin\SistemaAdminController::class, 'index']);
+        Route::get('/calidad-datos', [\App\Http\Controllers\Api\V1\Admin\CalidadDatosAdminController::class, 'index']);
         Route::get('/equipos/{equipo}', [\App\Http\Controllers\Api\V1\Admin\EquipoAdminController::class, 'show']);
         Route::apiResource('equipos', \App\Http\Controllers\Api\V1\Admin\EquipoAdminController::class)->except('show');
         Route::get('/jugadores/{jugador}', [\App\Http\Controllers\Api\V1\Admin\JugadorAdminController::class, 'show']);

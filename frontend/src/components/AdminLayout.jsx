@@ -23,6 +23,7 @@ const GRUPOS = [
     items: [
       { to: '/admin/equipos', label: 'Equipos' },
       { to: '/admin/jugadores', label: 'Jugadores' },
+      { to: '/admin/calidad-datos', label: 'Calidad de datos' },
       { to: '/admin/entrenadores', label: 'Entrenadores' },
       { to: '/admin/estadios', label: 'Estadios' },
       { to: '/admin/arbitros', label: 'Árbitros' },

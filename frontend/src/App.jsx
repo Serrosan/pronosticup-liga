@@ -33,6 +33,7 @@ import AdminCambiosPlantillaPage from './pages/AdminCambiosPlantillaPage'
 import AdminCierreJornadaPage from './pages/AdminCierreJornadaPage'
 import AdminRastroCartasPage from './pages/AdminRastroCartasPage'
 import AdminSistemaPage from './pages/AdminSistemaPage'
+import AdminCalidadDatosPage from './pages/AdminCalidadDatosPage'
 import AdminCanjesCodigoPage from './pages/AdminCanjesCodigoPage'
 import AdminTrofeosPage from './pages/AdminTrofeosPage'
 import AdminEventosCalendarioPage from './pages/AdminEventosCalendarioPage'
@@ -177,6 +178,7 @@ function App() {
                 <Route path="/admin/cierre-jornada" element={<AdminCierreJornadaPage />} />
                 <Route path="/admin/rastro-cartas" element={<AdminRastroCartasPage />} />
                 <Route path="/admin/sistema" element={<AdminSistemaPage />} />
+                <Route path="/admin/calidad-datos" element={<AdminCalidadDatosPage />} />
               </Route>
             <Route path="*" element={<NotFoundPage />} />
             </Routes>

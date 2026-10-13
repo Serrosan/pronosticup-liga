@@ -113,6 +113,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/sistema', [\App\Http\Controllers\Api\V1\Admin\SistemaAdminController::class, 'index']);
         Route::get('/calidad-datos', [\App\Http\Controllers\Api\V1\Admin\CalidadDatosAdminController::class, 'index']);
         Route::get('/ver-como/usuarios', [\App\Http\Controllers\Api\V1\Admin\VerComoAdminController::class, 'usuarios']);
+        Route::post('/copia-local', [\App\Http\Controllers\Api\V1\Admin\CopiaLocalAdminController::class, 'descargar']);
         Route::get('/equipos/{equipo}', [\App\Http\Controllers\Api\V1\Admin\EquipoAdminController::class, 'show']);
         Route::apiResource('equipos', \App\Http\Controllers\Api\V1\Admin\EquipoAdminController::class)->except('show');
         Route::get('/jugadores/{jugador}', [\App\Http\Controllers\Api\V1\Admin\JugadorAdminController::class, 'show']);

@@ -59,6 +59,7 @@ const GRUPOS = [
     items: [
       { to: '/admin/tareas', label: 'Tareas y reimportación' },
       { to: '/admin/sistema', label: 'Errores y versión' },
+      { to: '/admin/copia-local', label: 'Copia para local' },
       { to: '/admin/cambios-plantilla', label: 'Cambios de plantilla' },
       { to: '/admin/avisos-scraper', label: 'Avisos del scraper' },
     ],

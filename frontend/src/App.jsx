@@ -72,6 +72,7 @@ import AdminConfiguracionCartasPage from './pages/AdminConfiguracionCartasPage'
 import AdminGestionCartasUsuariosPage from './pages/AdminGestionCartasUsuariosPage'
 import MisCartasPage from './pages/MisCartasPage'
 import CatalogoCartasPage from './pages/CatalogoCartasPage'
+import LaJornadaPage from './pages/LaJornadaPage'
 
 function RutaProtegida() {
   const { usuario, cargando } = useAuth()
@@ -136,6 +137,7 @@ function App() {
                 <Route path="/verificar-email/:id/:hash" element={<VerifyEmailPage />} />
                 <Route path="/jugadores/:idJugador" element={<PlayerDetailPage />} />
                 <Route path="/jornadas/:jornada/goleadores" element={<SeleccionGoleadoresPage />} />
+                <Route path="/jornadas/:jornada/liga" element={<LaJornadaPage />} />
                 <Route path="/chat" element={<ChatPage />} />
                 <Route path="/logros" element={<LogrosPage />} />
                 <Route path="/catalogo-cartas" element={<CatalogoCartasPage />} />

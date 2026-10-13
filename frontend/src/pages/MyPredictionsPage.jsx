@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { Link } from 'react-router-dom'
 import client from '../api/client'
 import EstadoVacio from '../components/EstadoVacio'
 import SkeletonLista from '../components/SkeletonLista'
@@ -161,7 +162,10 @@ function BloqueJornada({ bloque }) {
           <div className="flex items-baseline justify-between gap-3 px-4 pt-3 pb-1">
             <p className="font-body text-[10px] uppercase tracking-widest text-borde">Partidos</p>
             {bloque.bloqueada && (
-              <p className="font-body text-[10px] text-borde text-right">Pulsa un partido para ver los pronósticos del grupo</p>
+              <p className="font-body text-[10px] text-borde text-right">
+                Pulsa un partido para ver los pronósticos del grupo ·{' '}
+                <Link to={`/jornadas/${bloque.jornada}/liga`} className="text-acento hover:underline">toda la jornada →</Link>
+              </p>
             )}
           </div>
           <div>

@@ -323,6 +323,9 @@ function StandingsPage() {
           <p className="font-body text-sm text-premio font-semibold">
             📅 Puntos conseguidos en la Jornada {jornadaSeleccionada}
           </p>
+          <Link to={`/jornadas/${jornadaSeleccionada}/liga`} className="font-body text-xs text-acento hover:underline">
+            Ver qué puso cada uno →
+          </Link>
         </div>
       )}
 

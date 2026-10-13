@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import client from '../api/client'
 import MatchCard from '../components/MatchCard'
 import SelectorJornada from '../components/SelectorJornada'
+import PestanasJornada from '../components/PestanasJornada'
 import useTitulo from '../hooks/useTitulo'
 import SkeletonJornada from '../components/SkeletonJornada'
 import MomentoDecisivo from '../components/MomentoDecisivo'
@@ -185,6 +186,7 @@ function MatchdayPage() {
       <div className="flex justify-center mb-1">
         <SelectorJornada jornadas={JORNADAS} valor={numeroJornada} onCambiar={ir} grande />
       </div>
+      <PestanasJornada jornada={numeroJornada} activa="pronosticar" />
       <EstadoGoleadores jornada={numeroJornada} />
       <CopiarDeOtraLiga jornada={numeroJornada} jornadaBloqueada={data?.jornadaBloqueada} />
 

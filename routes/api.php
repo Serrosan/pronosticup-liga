@@ -58,6 +58,7 @@ Route::prefix('v1')->group(function () {
     Route::delete('/notificaciones/{id}', [\App\Http\Controllers\Api\V1\NotificacionController::class, 'destroy']);
     Route::get('/clasificacion/usuarios/{usuario}/detalle', [\App\Http\Controllers\Api\V1\ClasificacionController::class, 'detalle']);
     Route::get('/jornadas/{jornada}/otros-pronosticos', [\App\Http\Controllers\Api\V1\PronosticoController::class, 'deOtros']);
+    Route::get('/jornadas/{jornada}/la-jornada', [\App\Http\Controllers\Api\V1\LaJornadaController::class, 'show']);
     Route::get('/estadisticas-jugadores/goleadores', [\App\Http\Controllers\Api\V1\EstadisticasJugadoresController::class, 'goleadores']);
     Route::get('/jugadores-forma', [\App\Http\Controllers\Api\V1\FormaJugadoresController::class, 'index']);
     Route::get('/estadisticas-jugadores/asistencias', [\App\Http\Controllers\Api\V1\EstadisticasJugadoresController::class, 'asistencias']);

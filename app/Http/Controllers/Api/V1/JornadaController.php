@@ -16,6 +16,7 @@ use App\Models\User;
 use App\Notifications\CartasResueltas;
 use App\Notifications\JornadaCerradaConPuntos;
 use App\Services\MotorEfectosCartas;
+use App\Services\ResumenJornadaService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Services\MotorFaltas;
@@ -424,72 +425,34 @@ class JornadaController extends Controller
         }
     }
 
+    /**
+     * La Novedad de "jornada cerrada" de la liga, con lo más comentado de la
+     * jornada: lo mismo que la pestaña Resumen (ResumenJornadaService), en una
+     * línea. Si algo falla aquí, el cierre ya está hecho: se publica un titular
+     * sencillo y el error queda en el registro.
+     */
     private function generarResumenJornada($liga, int $jornada, array $puntosPorUsuario): void
     {
         if (empty($puntosPorUsuario)) {
             return;
         }
 
-        $idLider = array_search(max($puntosPorUsuario), $puntosPorUsuario);
-        $puntosLider = $puntosPorUsuario[$idLider];
-        $lider = User::find($idLider);
+        $titulo = "📊 Jornada {$jornada} cerrada";
 
-        if (! $lider) {
-            return;
-        }
-
-        $nombreLider = $lider->nombre_visible ?? $lider->name;
-        $partes = ["{$nombreLider} lideró con {$puntosLider}pt"];
-
-        $posicionesAntes = EventoPuntos::where('id_liga', $liga->id)
-            ->where('jornada', '<', $jornada)
-            ->selectRaw('id_usuario, SUM(puntos) as total')
-            ->groupBy('id_usuario')
-            ->orderByDesc('total')
-            ->get()
-            ->pluck('id_usuario')
-            ->values()
-            ->flip();
-
-        $posicionesDespues = EventoPuntos::where('id_liga', $liga->id)
-            ->where('jornada', '<=', $jornada)
-            ->selectRaw('id_usuario, SUM(puntos) as total')
-            ->groupBy('id_usuario')
-            ->orderByDesc('total')
-            ->get()
-            ->pluck('id_usuario')
-            ->values()
-            ->flip();
-
-        $mejorSubidaUsuario = null;
-        $mejorSubidaPuestos = 0;
-
-        foreach ($posicionesDespues as $idUsuario => $posDespues) {
-            $posAntes = $posicionesAntes->get($idUsuario);
-
-            if (is_null($posAntes)) {
-                continue;
+        try {
+            $servicio = app(ResumenJornadaService::class);
+            $quien = auth()->user() ?? User::find(array_key_first($puntosPorUsuario));
+            $resumen = $quien ? $servicio->resumen($liga, $jornada, $quien) : null;
+            if ($resumen) {
+                $titulo = $servicio->titular($resumen, $jornada);
             }
-
-            $subida = $posAntes - $posDespues;
-
-            if ($subida > $mejorSubidaPuestos) {
-                $mejorSubidaPuestos = $subida;
-                $mejorSubidaUsuario = $idUsuario;
-            }
-        }
-
-        if ($mejorSubidaUsuario && $mejorSubidaPuestos >= 1) {
-            $usuarioSubida = User::find($mejorSubidaUsuario);
-            if ($usuarioSubida) {
-                $nombreSubida = $usuarioSubida->nombre_visible ?? $usuarioSubida->name;
-                $partes[] = "{$nombreSubida} subió {$mejorSubidaPuestos} puesto(s)";
-            }
+        } catch (\Throwable $e) {
+            report($e);
         }
 
         Novedad::create([
             'id_liga' => $liga->id,
-            'titulo' => "📊 Jornada {$jornada} cerrada: ".implode(' · ', $partes),
+            'titulo' => $titulo,
             'emoji' => '📊',
             'activa' => true,
         ]);

@@ -294,6 +294,57 @@ class ResumenJornadaService
         ];
     }
 
+    /** Lo que cabe en el título de una Novedad (columna de 255 caracteres). */
+    public const LARGO_TITULAR = 250;
+
+    /**
+     * El resumen en una línea, para la Novedad que se publica al cerrar la
+     * jornada. Va de lo más importante a lo menos y se corta antes de pasarse
+     * de largo: lo que no cabe, simplemente no sale.
+     */
+    public function titular(array $r, int $jornada): string
+    {
+        $nombres = function (array $lista): string {
+            $nombres = array_column($lista, 'usuario');
+            $ultimo = array_pop($nombres);
+
+            return $nombres ? implode(', ', $nombres).' y '.$ultimo : (string) $ultimo;
+        };
+
+        $partes = [];
+
+        $ganadores = array_values(array_filter($r['podio'] ?? [], fn ($p) => $p['posicion'] === 1));
+        if ($ganadores) {
+            $partes[] = '🥇 '.$nombres($ganadores).(count($ganadores) > 1 ? ' ganan' : ' gana')." con {$ganadores[0]['puntos']}pt";
+        }
+        if (($r['lider']['nuevo'] ?? false) === true) {
+            $partes[] = "👑 {$r['lider']['usuario']} se pone líder";
+        }
+        if ($r['sube'] ?? null) {
+            $partes[] = "📈 {$r['sube']['usuario']} sube {$r['sube']['puestos']}";
+        }
+        if ($e = ($r['exactos_unicos'][0] ?? null)) {
+            $partes[] = "🎯 {$e['usuario']} clava el {$e['marcador']} del {$e['partido']}";
+        }
+        if ($c = ($r['contra_todos'][0] ?? null)) {
+            $partes[] = "🐺 {$c['usuario']} acierta contra todos en el {$c['partido']}";
+        }
+        if ($carta = ($r['mejor_carta'] ?? null)) {
+            $partes[] = "🃏 +{$carta['puntos']} de {$carta['usuario']} con {$carta['carta']}";
+        }
+
+        $titular = "📊 Jornada {$jornada} cerrada";
+        foreach ($partes as $i => $parte) {
+            $siguiente = $titular.($i === 0 ? ': ' : ' · ').$parte;
+            if (mb_strlen($siguiente) > self::LARGO_TITULAR) {
+                break;
+            }
+            $titular = $siguiente;
+        }
+
+        return $titular;
+    }
+
     // ------------------------------------------------------------------
 
     private function etiqueta(CalendarioPartido $partido): string

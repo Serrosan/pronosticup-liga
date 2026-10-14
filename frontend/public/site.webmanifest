@@ -1,10 +1,18 @@
 {
   "name": "PronostiCup Liga",
   "short_name": "PronostiCup",
-  "icons": [
-    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }
-  ],
-  "theme_color": "#0E1B2B",
+  "description": "Pronostica LaLiga con tus amigos — clasificación, cartas, y mucho más.",
+  "lang": "es",
+  "id": "/",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#0E1B2B",
-  "display": "standalone"
+  "theme_color": "#0E1B2B",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
 }

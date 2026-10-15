@@ -138,6 +138,27 @@ function FilaBaja({ b, accion }) {
       <button type="button" className={BOTON_PELIGRO} disabled={!!accion.ocupado} onClick={() => accion.lanzar(`baja-${b.id_jugador}`, url, { fecha, dar_de_baja: true })}>
         Cerrar y dar de baja
       </button>
+      <BotonSigue id={b.id_jugador} accion={accion} />
+    </Fila>
+  )
+}
+
+function BotonSigue({ id, accion }) {
+  return (
+    <button type="button" className={BOTON_SEC} disabled={!!accion.ocupado}
+      onClick={() => accion.lanzar(`sigue-${id}`, `/api/v1/admin/comparador-plantillas/jugadores/${id}/sigue`)}>
+      Sigue, no avisar más
+    </button>
+  )
+}
+
+function FilaFilial({ f, accion }) {
+  return (
+    <Fila
+      titulo={<><Link to={`/admin/jugadores/detalle/${f.id_jugador}`} className="hover:underline">{f.jugador}</Link> · {f.equipo}{f.dorsal ? ` · ${f.dorsal}` : ''}</>}
+      detalle={f.convocado_hace_poco ? 'Convocado en los últimos 90 días.' : 'Dorsal del filial.'}
+    >
+      <BotonSigue id={f.id_jugador} accion={accion} />
     </Fila>
   )
 }
@@ -355,7 +376,10 @@ function AdminComparadorPlantillasPage() {
 
           {data.consultados > 0 && (
             <>
-              <p className="font-body text-xs text-borde mb-3">✓ {data.sin_cambios} jugadores coinciden con football-data, sin cambios.</p>
+              <p className="font-body text-xs text-borde mb-3">
+                ✓ {data.sin_cambios} jugadores coinciden con football-data, sin cambios.
+                {data.siguen_ignorados > 0 && ` · ${data.siguen_ignorados} que marcaste como «sigue» no se vuelven a avisar.`}
+              </p>
 
               {!data.todos && (
                 <p className="font-body text-xs text-premio bg-premio/10 border border-premio/30 rounded-lg px-3 py-2 mb-3">
@@ -377,8 +401,15 @@ function AdminComparadorPlantillasPage() {
 
               {data.todos && (
                 <Seccion titulo="Ya no están en LaLiga" gravedad="aviso" cantidad={data.bajas.length}
-                  explicacion="No aparecen en ningún equipo. Cerrar la ficha basta si puede volver (una cesión); dar de baja, si se fue del todo.">
+                  explicacion="No aparecen en ningún equipo y no son del filial ni se han convocado hace poco. Cerrar la ficha si puede volver (una cesión); dar de baja si se fue del todo; o «sigue» si sabes que está.">
                   {data.bajas.map((b) => <FilaBaja key={b.id_jugador} b={b} accion={accion} />)}
+                </Seccion>
+              )}
+
+              {data.todos && (
+                <Seccion titulo="Del filial o que suben puntualmente" cantidad={data.filial.length} abiertaDeInicio={false}
+                  explicacion="football-data solo lista la primera plantilla: estos (dorsal 26 o más, o convocados hace poco) no salen ahí, pero pueden volver a jugar. Lo normal es dejarlos como están.">
+                  {data.filial.map((f) => <FilaFilial key={f.id_jugador} f={f} accion={accion} />)}
                 </Seccion>
               )}
 

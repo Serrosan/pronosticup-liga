@@ -110,6 +110,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/comparador-plantillas/jugadores/{jugador}/vincular', [\App\Http\Controllers\Api\V1\Admin\ComparadorPlantillasAdminController::class, 'vincular'])->whereNumber('jugador');
         Route::post('/comparador-plantillas/jugadores/{jugador}/quitar-identificador', [\App\Http\Controllers\Api\V1\Admin\ComparadorPlantillasAdminController::class, 'quitarIdentificador'])->whereNumber('jugador');
         Route::post('/comparador-plantillas/jugadores/{jugador}/confirmar-identificador', [\App\Http\Controllers\Api\V1\Admin\ComparadorPlantillasAdminController::class, 'confirmarIdentificador'])->whereNumber('jugador');
+        Route::post('/comparador-plantillas/jugadores/{jugador}/sigue', [\App\Http\Controllers\Api\V1\Admin\ComparadorPlantillasAdminController::class, 'sigue'])->whereNumber('jugador');
         Route::post('/comparador-plantillas/jugadores/{jugador}/traspaso', [\App\Http\Controllers\Api\V1\Admin\ComparadorPlantillasAdminController::class, 'traspaso'])->whereNumber('jugador');
         Route::post('/comparador-plantillas/jugadores/{jugador}/salida', [\App\Http\Controllers\Api\V1\Admin\ComparadorPlantillasAdminController::class, 'salida'])->whereNumber('jugador');
         Route::get('/cierre-jornada', [\App\Http\Controllers\Api\V1\Admin\CierreJornadaAdminController::class, 'index']);

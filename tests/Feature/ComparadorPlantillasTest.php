@@ -50,12 +50,12 @@ class ComparadorPlantillasTest extends TestCase
         ]);
     }
 
-    private function jugador(string $nombre, ?string $apellidos, ?int $idApi, Equipo $equipo, ?string $camiseta = null): Jugador
+    private function jugador(string $nombre, ?string $apellidos, ?int $idApi, Equipo $equipo, ?string $camiseta = null, ?int $dorsal = null): Jugador
     {
         $jugador = Jugador::factory()->create(['nombre' => $nombre, 'apellidos' => $apellidos, 'nombre_camiseta' => $camiseta, 'id_externo_api' => $idApi, 'dado_de_baja_en' => null]);
         PlantillaTemporada::create([
             'id_jugador' => $jugador->id, 'id_equipo' => $equipo->id, 'id_temporada' => $this->temporada->id,
-            'dorsal' => null, 'fecha_incorporacion' => null, 'fecha_salida' => null,
+            'dorsal' => $dorsal, 'fecha_incorporacion' => null, 'fecha_salida' => null,
         ]);
 
         return $jugador;
@@ -165,6 +165,22 @@ class ComparadorPlantillasTest extends TestCase
         $this->comparador->confirmarIdentificador($perez);
 
         $this->assertSame([], $this->comparador->resultado()['dudosos']);
+    }
+
+    public function test_los_del_filial_no_salen_como_bajas_y_sigue_los_quita_de_en_medio(): void
+    {
+        $canterano = $this->jugador('Pablo', 'García', 600, $this->betis, null, 32);   // dorsal de filial
+        $navas = $this->jugador('Jesús', 'Navas', 300, $this->sevilla);
+
+        $r = $this->consultarTodo();
+        $this->assertSame([$canterano->id], array_column($r['filial'], 'id_jugador'));
+        $this->assertSame([$navas->id], array_column($r['bajas'], 'id_jugador'));
+
+        $this->comparador->marcarQueSigue($navas);
+
+        $r = $this->comparador->resultado();
+        $this->assertSame([], $r['bajas']);
+        $this->assertSame(1, $r['siguen_ignorados']);
     }
 
     public function test_solo_el_superadmin_entra(): void

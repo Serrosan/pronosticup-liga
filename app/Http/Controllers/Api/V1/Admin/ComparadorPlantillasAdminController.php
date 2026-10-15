@@ -42,6 +42,11 @@ class ComparadorPlantillasAdminController extends Controller
         return $this->intentar(fn () => ['message' => $this->comparador->confirmarIdentificador($jugador)]);
     }
 
+    public function sigue(Jugador $jugador)
+    {
+        return $this->intentar(fn () => ['message' => $this->comparador->marcarQueSigue($jugador)]);
+    }
+
     public function quitarIdentificador(Jugador $jugador)
     {
         return $this->intentar(fn () => ['message' => $this->comparador->quitarIdentificador($jugador)]);

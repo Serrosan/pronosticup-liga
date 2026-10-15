@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Models\AlineacionJugador;
+use App\Models\CalendarioPartido;
 use App\Models\Equipo;
 use App\Models\Jugador;
 use App\Models\PlantillaTemporada;
@@ -157,10 +159,21 @@ class ComparadorPlantillasService
 
         $idsApiConocidos = Jugador::whereNotNull('id_externo_api')->pluck('id', 'id_externo_api');
         $confirmados = Cache::get('comparador:confirmados', []);
+        $siguen = Cache::get('comparador:siguen', []);
+
+        // Convocados en los últimos 90 días: aunque football-data ya no los
+        // liste (suelen ser del filial), siguen en LaLiga a efectos de la app.
+        $convocadosRecientes = AlineacionJugador::whereIn('id_partido', CalendarioPartido::where('id_temporada', $idTemporada)
+            ->where('horario_estimado', '>=', now()->subDays(90))->pluck('id'))
+            ->whereNotNull('id_jugador')
+            ->pluck('id_jugador')
+            ->flip();
 
         $sinCambios = 0;
         $traspasos = [];
         $bajas = [];
+        $filial = [];
+        $siguenIgnorados = 0;
         $dudosos = [];
         $sinId = [];
 
@@ -203,6 +216,10 @@ class ComparadorPlantillasService
 
             if ($dondeEsta) {
                 $traspasos[] = $base + ['id_api' => $idApi, 'id_equipo_destino' => $dondeEsta, 'equipo_destino' => $nombreEquipo($dondeEsta)];
+            } elseif (($siguen[$jugador->id] ?? null) === $idApi) {
+                $siguenIgnorados++; // ya dijiste que sigue: no se vuelve a avisar
+            } elseif (($ficha->dorsal ?? 0) >= CambiosPlantillaService::DORSAL_CANTERANO || $convocadosRecientes->has($jugador->id)) {
+                $filial[] = $base + ['id_api' => $idApi, 'convocado_hace_poco' => $convocadosRecientes->has($jugador->id)];
             } else {
                 $bajas[] = $base + ['id_api' => $idApi];
             }
@@ -232,7 +249,7 @@ class ComparadorPlantillasService
         }
 
         usort($altas, fn ($a, $b) => [$a['equipo'], $a['nombre_api']] <=> [$b['equipo'], $b['nombre_api']]);
-        foreach ([&$traspasos, &$bajas, &$dudosos, &$sinId] as &$lista) {
+        foreach ([&$traspasos, &$bajas, &$filial, &$dudosos, &$sinId] as &$lista) {
             usort($lista, fn ($a, $b) => [$a['equipo'], $a['jugador']] <=> [$b['equipo'], $b['jugador']]);
         }
         unset($lista);
@@ -245,6 +262,8 @@ class ComparadorPlantillasService
             'sin_cambios' => $sinCambios,
             'traspasos' => $traspasos,
             'bajas' => $bajas,
+            'filial' => $filial,
+            'siguen_ignorados' => $siguenIgnorados,
             'altas' => $altas,
             'dudosos' => $dudosos,
             'sin_id' => $sinId,
@@ -278,6 +297,19 @@ class ComparadorPlantillasService
         Cache::forever('comparador:confirmados', $confirmados);
 
         return "Anotado: el identificador de {$this->nombreLocal($jugador)} está bien.";
+    }
+
+    /**
+     * "Sigue, no avisar más": no figura en football-data pero sigue en el
+     * club (lo normal en los del filial). Si cambia su identificador, vuelve.
+     */
+    public function marcarQueSigue(Jugador $jugador): string
+    {
+        $siguen = Cache::get('comparador:siguen', []);
+        $siguen[$jugador->id] = (int) $jugador->id_externo_api;
+        Cache::forever('comparador:siguen', $siguen);
+
+        return "Anotado: {$this->nombreLocal($jugador)} sigue en su equipo aunque football-data no lo liste.";
     }
 
     public function quitarIdentificador(Jugador $jugador): string

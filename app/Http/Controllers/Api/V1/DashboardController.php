@@ -163,7 +163,7 @@ class DashboardController extends Controller
                     })
                     ->orderByDesc('id')
                     ->limit(5)
-                    ->get(['titulo', 'emoji', 'created_at']),
+                    ->get(['titulo', 'enlace', 'emoji', 'created_at']),
 
                 'avisos' => $avisos,
 

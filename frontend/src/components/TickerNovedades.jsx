@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom'
+
 const PATRON_URL = /(https?:\/\/[^\s]+)/g
 
 function esReciente(fechaCreacion) {
@@ -6,17 +8,20 @@ function esReciente(fechaCreacion) {
   return horas < 48
 }
 
-function TituloConEnlaces({ texto }) {
+function TituloConEnlaces({ texto, conEnlaces }) {
+  // Si la novedad entera ya lleva a algún sitio, no se pintan enlaces dentro
+  // (un enlace dentro de otro no es válido y confunde al pulsar).
+  if (!conEnlaces) return <span>{texto}</span>
+
   const partes = texto.split(PATRON_URL)
 
   return (
     <>
       {partes.map((parte, i) => {
-        const esUrl = /^https?:\/\//.test(parte)
-        if (esUrl) {
+        if (/^https?:\/\//.test(parte)) {
           return (
-            
-              <a key={i}
+            <a
+              key={i}
               href={parte}
               target="_blank"
               rel="noopener noreferrer"
@@ -30,6 +35,47 @@ function TituloConEnlaces({ texto }) {
         return <span key={i}>{parte}</span>
       })}
     </>
+  )
+}
+
+// Una línea del ticker. Si la novedad trae "enlace" (p. ej. /jornadas/8/liga),
+// toda la línea se puede pulsar y lleva allí, con una flecha que lo indica.
+function LineaNovedad({ novedad }) {
+  const reciente = esReciente(novedad.created_at)
+  const enlace = novedad.enlace
+
+  const contenido = (
+    <>
+      <span className="text-sm shrink-0">{novedad.emoji || '🆕'}</span>
+      <p
+        className="font-marcador text-xs font-semibold tracking-wide text-acento dark:font-normal"
+        style={{
+          textShadow: reciente
+            ? '0 0 8px var(--color-acento), 0 0 16px var(--color-acento)66'
+            : '0 0 3px var(--color-acento)55',
+        }}
+      >
+        <TituloConEnlaces texto={novedad.titulo} conEnlaces={!enlace} />
+        {enlace && <span className="font-body ml-1.5 whitespace-nowrap">→</span>}
+      </p>
+      {reciente && (
+        <span className="font-body text-[8px] font-bold text-fondo bg-acento rounded-full px-1.5 py-0.5 shrink-0">
+          NUEVO
+        </span>
+      )}
+    </>
+  )
+
+  if (!enlace) return <div className="flex items-center gap-2">{contenido}</div>
+
+  const clase = 'flex items-center gap-2 rounded hover:bg-acento/10 -mx-1 px-1 transition'
+  if (enlace.startsWith('/')) {
+    return <Link to={enlace} className={clase}>{contenido}</Link>
+  }
+  return (
+    <a href={enlace} target="_blank" rel="noopener noreferrer" className={clase}>
+      {contenido}
+    </a>
   )
 }
 
@@ -50,29 +96,7 @@ function TickerNovedades({ novedades }) {
         <p className="font-body text-[10px] uppercase tracking-widest text-acento font-semibold">Novedades</p>
       </div>
       <div className="px-4 py-2.5 flex flex-col gap-1.5 relative">
-        {novedades.map((n, i) => {
-          const reciente = esReciente(n.created_at)
-          return (
-            <div key={i} className="flex items-center gap-2">
-              <span className="text-sm shrink-0">{n.emoji || '🆕'}</span>
-              <p
-                className="font-marcador text-xs font-semibold tracking-wide text-acento dark:font-normal"
-                style={{
-                  textShadow: reciente
-                    ? '0 0 8px var(--color-acento), 0 0 16px var(--color-acento)66'
-                    : '0 0 3px var(--color-acento)55',
-                }}
-              >
-                <TituloConEnlaces texto={n.titulo} />
-              </p>
-              {reciente && (
-                <span className="font-body text-[8px] font-bold text-fondo bg-acento rounded-full px-1.5 py-0.5 shrink-0">
-                  NUEVO
-                </span>
-              )}
-            </div>
-          )
-        })}
+        {novedades.map((n, i) => <LineaNovedad key={i} novedad={n} />)}
       </div>
     </div>
   )

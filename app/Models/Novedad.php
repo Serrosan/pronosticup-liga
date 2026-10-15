@@ -11,7 +11,7 @@ class Novedad extends Model
 
     protected $table = 'novedades';
 
-    protected $fillable = ['id_liga', 'titulo', 'emoji', 'activa'];
+    protected $fillable = ['id_liga', 'titulo', 'enlace', 'emoji', 'activa'];
 
     protected function casts(): array
     {

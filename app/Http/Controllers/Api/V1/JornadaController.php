@@ -453,6 +453,7 @@ class JornadaController extends Controller
         Novedad::create([
             'id_liga' => $liga->id,
             'titulo' => $titulo,
+            'enlace' => "/jornadas/{$jornada}/liga",
             'emoji' => '📊',
             'activa' => true,
         ]);

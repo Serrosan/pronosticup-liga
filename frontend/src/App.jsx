@@ -46,6 +46,7 @@ import MarcaEntorno from './components/MarcaEntorno'
 import BandaVerComo from './components/BandaVerComo'
 import AdminVerComoPage from './pages/AdminVerComoPage'
 import AdminCopiaLocalPage from './pages/AdminCopiaLocalPage'
+import AdminComparadorPlantillasPage from './pages/AdminComparadorPlantillasPage'
 import AdminEntrenadoresPage from './pages/AdminEntrenadoresPage'
 import ErrorBoundary from './components/ErrorBoundary'
 import NotFoundPage from './pages/NotFoundPage'
@@ -187,6 +188,7 @@ function App() {
                 <Route path="/admin/calidad-datos" element={<AdminCalidadDatosPage />} />
                 <Route path="/admin/ver-como" element={<AdminVerComoPage />} />
                 <Route path="/admin/copia-local" element={<AdminCopiaLocalPage />} />
+                <Route path="/admin/comparador-plantillas" element={<AdminComparadorPlantillasPage />} />
               </Route>
             <Route path="*" element={<NotFoundPage />} />
             </Routes>

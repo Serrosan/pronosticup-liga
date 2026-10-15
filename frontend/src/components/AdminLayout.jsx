@@ -61,6 +61,7 @@ const GRUPOS = [
       { to: '/admin/sistema', label: 'Errores y versión' },
       { to: '/admin/copia-local', label: 'Copia para local' },
       { to: '/admin/cambios-plantilla', label: 'Cambios de plantilla' },
+      { to: '/admin/comparador-plantillas', label: 'Comparar plantillas' },
       { to: '/admin/avisos-scraper', label: 'Avisos del scraper' },
     ],
   },

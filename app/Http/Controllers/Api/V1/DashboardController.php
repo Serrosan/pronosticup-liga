@@ -39,9 +39,10 @@ class DashboardController extends Controller
             $empatados = $clasificacion->where('puntos_totales', $puntosLider);
 
             if ($empatados->count() >= 2 && $puntosLider > 0) {
-                $nombresEmpatados = $empatados->map(function ($fila) {
-                    $u = User::find($fila->id_usuario);
-                    return $u->nombre_visible ?? $u->name;
+                $usuariosEmpatados = User::whereIn('id', $empatados->pluck('id_usuario'))->get()->keyBy('id');
+                $nombresEmpatados = $empatados->map(function ($fila) use ($usuariosEmpatados) {
+                    $u = $usuariosEmpatados->get($fila->id_usuario);
+                    return $u ? ($u->nombre_visible ?? $u->name) : 'Alguien';
                 })->values();
 
                 $empateLiderato = [
@@ -135,11 +136,14 @@ class DashboardController extends Controller
         $jornadasConDatos = $eventosPorJornada->pluck('jornada')->unique()->sort()->values();
         $usuariosLiga = $liga->usuarios()->get(['users.id', 'users.name', 'users.nombre_visible']);
 
-        $series = $usuariosLiga->map(function ($usuario) use ($eventosPorJornada, $jornadasConDatos) {
+        // Índice "jornada-usuario" → puntos: cada punto de la gráfica se lee
+        // directo, en vez de recorrer todos los eventos una y otra vez.
+        $puntosPorJornadaYUsuario = $eventosPorJornada->mapWithKeys(fn ($e) => [$e->jornada.'-'.$e->id_usuario => (int) $e->puntos]);
+
+        $series = $usuariosLiga->map(function ($usuario) use ($puntosPorJornadaYUsuario, $jornadasConDatos) {
             $acumulado = 0;
-            $datos = $jornadasConDatos->map(function ($jornada) use ($eventosPorJornada, $usuario, &$acumulado) {
-                $fila = $eventosPorJornada->first(fn ($e) => $e->jornada == $jornada && $e->id_usuario == $usuario->id);
-                $acumulado += $fila->puntos ?? 0;
+            $datos = $jornadasConDatos->map(function ($jornada) use ($puntosPorJornadaYUsuario, $usuario, &$acumulado) {
+                $acumulado += $puntosPorJornadaYUsuario->get($jornada.'-'.$usuario->id, 0);
                 return $acumulado;
             });
 

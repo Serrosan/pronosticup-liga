@@ -81,6 +81,21 @@ class ComparadorPlantillasService
         return ['equipo' => $equipo->nombre, 'jugadores' => count($plantilla)];
     }
 
+    /**
+     * La plantilla de un equipo en football-data: la guardada si hay (de los
+     * últimos días), y si no, la consulta. La usan también los comandos.
+     *
+     * @return array<int,array{id:int,nombre:string,posicion:?string,fecha_nacimiento:?string,nacionalidad:?string}>
+     */
+    public function plantilla(Equipo $equipo, bool $refrescar = false): array
+    {
+        if ($refrescar || ! Cache::has($this->clave($equipo->id))) {
+            $this->consultarEquipo($equipo);
+        }
+
+        return Cache::get($this->clave($equipo->id))['jugadores'] ?? [];
+    }
+
     private function esperarTurno(): void
     {
         $ultima = (float) Cache::get('comparador:ultima_consulta', 0);
@@ -432,7 +447,7 @@ class ComparadorPlantillasService
     }
 
     /** ¿Alguna palabra de 4+ letras del nombre de la API está en su nombre completo o de camiseta? */
-    private function compartenApellido(Jugador $jugador, string $nombreApi): bool
+    public function compartenApellido(Jugador $jugador, string $nombreApi): bool
     {
         $local = ' '.$this->normalizar("{$jugador->nombre} {$jugador->apellidos} {$jugador->nombre_camiseta}").' ';
         foreach (explode(' ', $this->normalizar($nombreApi)) as $palabra) {

@@ -4,78 +4,135 @@ namespace App\Console\Commands;
 
 use App\Models\Equipo;
 use App\Models\Jugador;
+use App\Models\Temporada;
+use App\Services\ComparadorPlantillasService;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Str;
+use RuntimeException;
 
+/**
+ * Rellena id_externo_api a los jugadores que no lo tienen, buscando SOLO en la
+ * plantilla real de su propio equipo en football-data.
+ *
+ * Más prudente que antes:
+ *  - compara también con el nombre de camiseta y los apellidos (no solo con
+ *    nombre + apellidos), con el mismo cálculo que Comparar plantillas;
+ *  - solo asigna con un 75 % de parecido, o con un 55 % si además comparten
+ *    un apellido;
+ *  - si hay dos candidatos casi igual de buenos, no elige: lo deja para ti;
+ *  - al terminar, lista qué ha asignado a quién, para poder revisarlo.
+ * Lo que no asigna se resuelve a mano en Admin → Comparar plantillas.
+ *
+ * Usa las plantillas que ya consultó Comparar plantillas si son recientes;
+ * si no, las pide a football-data (unos 7 segundos por equipo).
+ */
 class CompletarIdsApi extends Command
 {
-    protected $signature = 'liga:completar-ids-api';
-    protected $description = 'Intenta rellenar id_externo_api para jugadores que se quedaron sin él, buscando SOLO dentro de la plantilla real de su propio equipo';
+    protected $signature = 'liga:completar-ids-api
+        {--en-seco : Solo enseña lo que haría, sin guardar nada}
+        {--umbral=75 : Parecido mínimo (%) para asignar sin más}';
 
-    public function handle()
+    protected $description = 'Rellena el identificador de football-data a los jugadores que no lo tienen, buscando solo en la plantilla de su equipo';
+
+    /** Con un apellido en común, basta este parecido. */
+    private const UMBRAL_CON_APELLIDO = 55;
+
+    /** Si el segundo candidato está a menos de esto del primero, no se elige ninguno. */
+    private const MARGEN_EMPATE = 8;
+
+    public function handle(ComparadorPlantillasService $comparador): int
     {
-        $equipos = Equipo::whereNotNull('id_equipo_api')->get();
-        $completados = 0;
-        $sinResolver = [];
+        $enSeco = (bool) $this->option('en-seco');
+        $umbral = max(50, min(100, (int) $this->option('umbral')));
+        $idTemporada = (int) Temporada::orderByDesc('fecha_inicio')->value('id');
 
+        $equipos = Equipo::whereNotNull('id_equipo_api')->orderBy('nombre')->get();
+        $asignados = [];
+        $sinResolver = [];
+        $fallos = [];
+
+        $this->line($enSeco ? 'EN SECO: no se guarda nada.' : "Umbral: {$umbral} % (o ".self::UMBRAL_CON_APELLIDO.' % con un apellido en común).');
         $barra = $this->output->createProgressBar($equipos->count());
         $barra->start();
 
         foreach ($equipos as $equipo) {
-            $respuesta = Http::withHeaders(['X-Auth-Token' => config('services.football_data.token')])
-                ->get("https://api.football-data.org/v4/teams/{$equipo->id_equipo_api}");
+            try {
+                $plantilla = collect($comparador->plantilla($equipo));
+            } catch (RuntimeException $e) {
+                $fallos[] = "{$equipo->nombre}: {$e->getMessage()}";
+                $barra->advance();
+                continue;
+            }
 
-            $squad = $respuesta->successful() ? $respuesta->json('squad', []) : [];
+            $idsUsados = Jugador::whereNotNull('id_externo_api')->pluck('id_externo_api')->map(fn ($id) => (int) $id)->flip();
+            $libres = $plantilla->reject(fn ($j) => $idsUsados->has($j['id']))->values();
 
-            $idsYaUsados = Jugador::whereNotNull('id_externo_api')->pluck('id_externo_api')->all();
-            $squadDisponible = collect($squad)->reject(fn ($j) => in_array($j['id'], $idsYaUsados))->values();
-
-            $sinId = Jugador::whereHas('plantillasTemporada', fn ($q) => $q->where('id_equipo', $equipo->id)->whereNull('fecha_salida'))
+            $sinId = Jugador::whereHas('plantillasTemporada', fn ($q) => $q->where('id_equipo', $equipo->id)
+                ->where('id_temporada', $idTemporada)->whereNull('fecha_salida'))
                 ->whereNull('dado_de_baja_en')
                 ->whereNull('id_externo_api')
                 ->get();
 
-            foreach ($sinId as $jugadorLocal) {
-                $normalizado = Str::of("{$jugadorLocal->nombre} {$jugadorLocal->apellidos}")->lower()->ascii()->toString();
+            foreach ($sinId as $jugador) {
+                $candidatos = $libres
+                    ->map(fn ($c) => $c + [
+                        'parecido' => $comparador->parecido($jugador, $c['nombre']),
+                        'apellido' => $comparador->compartenApellido($jugador, $c['nombre']),
+                    ])
+                    ->sortByDesc('parecido')
+                    ->values();
 
-                $mejorPorcentaje = 0;
-                $mejorCandidato = null;
+                $mejor = $candidatos->first();
+                $segundo = $candidatos->get(1);
+                $nombre = $comparador->nombreLocal($jugador);
+                $vale = $mejor && ($mejor['parecido'] >= $umbral || ($mejor['apellido'] && $mejor['parecido'] >= self::UMBRAL_CON_APELLIDO));
+                $empate = $mejor && $segundo && ($mejor['parecido'] - $segundo['parecido']) < self::MARGEN_EMPATE;
 
-                foreach ($squadDisponible as $candidato) {
-                    $normalizadoApi = Str::of($candidato['name'])->lower()->ascii()->toString();
-                    similar_text($normalizado, $normalizadoApi, $porcentaje);
-                    if ($porcentaje > $mejorPorcentaje) {
-                        $mejorPorcentaje = $porcentaje;
-                        $mejorCandidato = $candidato;
+                if ($vale && ! $empate) {
+                    if (! $enSeco) {
+                        $jugador->update(['id_externo_api' => $mejor['id']]);
                     }
+                    $libres = $libres->reject(fn ($c) => $c['id'] === $mejor['id'])->values();
+                    $asignados[] = sprintf('%s ← «%s» (id %d, %d %%%s) · %s',
+                        $nombre, $mejor['nombre'], $mejor['id'], round($mejor['parecido']), $mejor['apellido'] ? ', mismo apellido' : '', $equipo->nombre);
+                    continue;
                 }
 
-                if ($mejorPorcentaje >= 55 && $mejorCandidato) {
-                    $jugadorLocal->update(['id_externo_api' => $mejorCandidato['id']]);
-                    $idsYaUsados[] = $mejorCandidato['id'];
-                    $squadDisponible = $squadDisponible->reject(fn ($c) => $c['id'] === $mejorCandidato['id'])->values();
-                    $completados++;
-                } else {
-                    $sinResolver[] = "{$jugadorLocal->nombre} {$jugadorLocal->apellidos} (id {$jugadorLocal->id}) en {$equipo->nombre} — candidatos API sin asignar: ".$squadDisponible->pluck('name')->implode(', ');
-                }
+                $pistas = $candidatos->take(3)->map(fn ($c) => sprintf('%s %d %%', $c['nombre'], round($c['parecido'])))->implode(', ');
+                $motivo = match (true) {
+                    ! $mejor => 'en su equipo de football-data no queda nadie libre',
+                    $vale && $empate => 'dos candidatos casi igual de parecidos',
+                    default => 'ningún candidato se parece lo suficiente',
+                };
+                $sinResolver[] = "{$nombre} · {$equipo->nombre} — {$motivo}".($pistas ? ". Candidatos: {$pistas}" : '');
             }
 
             $barra->advance();
-            usleep(6500000);
         }
 
         $barra->finish();
         $this->newLine(2);
 
-        $this->info("Completados: {$completados}");
-        $this->newLine();
+        $this->info(($enSeco ? 'Se asignarían: ' : 'Asignados: ').count($asignados));
+        foreach ($asignados as $linea) {
+            $this->line("  {$linea}");
+        }
 
-        if (! empty($sinResolver)) {
-            $this->warn('=== SIN RESOLVER, revisar a mano ('.count($sinResolver).') ===');
+        if ($sinResolver) {
+            $this->newLine();
+            $this->warn('=== SIN RESOLVER ('.count($sinResolver).') — resuélvelos en Admin → Comparar plantillas ===');
             foreach ($sinResolver as $linea) {
                 $this->line("  {$linea}");
             }
         }
+
+        if ($fallos) {
+            $this->newLine();
+            $this->error('=== EQUIPOS QUE NO SE PUDIERON CONSULTAR ('.count($fallos).') ===');
+            foreach ($fallos as $linea) {
+                $this->line("  {$linea}");
+            }
+        }
+
+        return self::SUCCESS;
     }
 }

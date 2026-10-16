@@ -44,6 +44,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/calendario', [\App\Http\Controllers\Api\V1\CalendarioController::class, 'mes']);
     Route::get('/jornadas/{jornada}/goleadores', [\App\Http\Controllers\Api\V1\GoleadoresController::class, 'show']);
     Route::get('/jornadas/{jornada}/goleadores-bloqueados', [\App\Http\Controllers\Api\V1\GoleadoresController::class, 'bloqueados']);
+    Route::get('/jornadas/{jornada}/goleadores-ayuda', [\App\Http\Controllers\Api\V1\AyudaGoleadoresController::class, 'show'])->whereNumber('jornada');
     Route::post('/jornadas/{jornada}/goleadores', [\App\Http\Controllers\Api\V1\GoleadoresController::class, 'store']);
     Route::get('/equipos/{equipo}/partidos', [\App\Http\Controllers\Api\V1\EquipoPartidosController::class, 'index']);
     Route::post('/cuenta/desactivar', [\App\Http\Controllers\Api\V1\CuentaController::class, 'desactivar']);

@@ -1,0 +1,35 @@
+name: Dependencias
+
+on:
+  schedule:
+    - cron: '0 5 * * 1'   # lunes 05:00 UTC = 07:00 en Madrid (06:00 en invierno)
+  workflow_dispatch:       # botón "Run workflow" para lanzarlo a mano
+
+jobs:
+  php:
+    name: Avisos de seguridad en PHP
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          coverage: none
+      - name: composer audit
+        run: composer audit --locked --abandoned=report
+
+  npm:
+    name: Avisos de seguridad en npm
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: npm audit
+        run: npm audit --omit=dev --audit-level=high

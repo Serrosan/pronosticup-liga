@@ -25,6 +25,9 @@ class MotorFaltas
         'FAL-PCOM-VISITA' => ['tipo' => 'Visitante', 'cantidad' => 3],
         'FAL-RAR-VISITA' => ['tipo' => 'Visitante', 'cantidad' => 4],
         'FAL-LEG-VISITA' => ['tipo' => 'Visitante', 'cantidad' => 5],
+        // Resultado Gafas: faltaban aquí y por eso no se aplicaban (jornada 9).
+        'FAL-COM-EMPATE' => ['tipo' => 'Empate', 'cantidad' => 1],
+        'FAL-PCOM-EMPATE' => ['tipo' => 'Empate', 'cantidad' => 2],
     ];
 
     /**
@@ -201,25 +204,22 @@ class MotorFaltas
      */
     public function comprobarRequisitoPronostico(int $idLiga, int $idUsuario, int $jornada, int $totalPartidosJornada, int $totalPronosticosConEsteIncluido, Collection $tiposConEsteIncluido): ?string
     {
-        $faltaActiva = CartaUsuario::where('id_liga', $idLiga)
-            ->where('id_usuario_objetivo', $idUsuario)
-            ->where('jornada_efecto', $jornada)
-            ->where('estado', 'jugada')
-            ->whereHas('tipoCarta', fn ($q) => $q->whereIn('codigo_efecto', array_keys(self::REQUISITOS_PRONOSTICO)))
-            ->with('tipoCarta')
-            ->first();
+        $requisitos = $this->requisitosActivos($idLiga, $idUsuario, $jornada);
 
-        if (! $faltaActiva) {
+        if ($requisitos->isEmpty()) {
             return null;
         }
 
-        $requisito = self::REQUISITOS_PRONOSTICO[$faltaActiva->tipoCarta->codigo_efecto];
-
-        $cumplidosHastaAhora = $tiposConEsteIncluido->filter(fn ($tipo) => $tipo === $requisito['tipo'])->count();
+        // Los tipos no se solapan (un pronóstico es Local, Empate o Visitante),
+        // así que con varias Faltas a la vez lo que falte de cada una se suma y
+        // tiene que caber en los partidos que quedan por pronosticar.
         $partidosAunSinPredecir = $totalPartidosJornada - $totalPronosticosConEsteIncluido;
 
-        if ($cumplidosHastaAhora + $partidosAunSinPredecir < $requisito['cantidad']) {
-            return "Tienes una Falta activa contra ti: debes incluir al menos {$requisito['cantidad']} pronóstico(s) de \"{$requisito['tipo']}\" esta jornada, y guardar así ya lo haría imposible de cumplir.";
+        if ($this->deficit($requisitos, $tiposConEsteIncluido) > $partidosAunSinPredecir) {
+            $lista = $requisitos->map(fn ($r) => "{$r['cantidad']} pronóstico(s) de \"{$r['tipo']}\"")->implode(' y ');
+            $quien = $requisitos->count() > 1 ? 'Faltas activas' : 'una Falta activa';
+
+            return "Tienes {$quien} contra ti: debes incluir al menos {$lista} esta jornada, y guardar así ya lo haría imposible de cumplir.";
         }
 
         return null;
@@ -233,37 +233,60 @@ class MotorFaltas
      */
     public function estadoRequisitoPronostico(int $idLiga, int $idUsuario, int $jornada, Collection $idsPartidosJornada): ?array
     {
-        $faltaActiva = CartaUsuario::where('id_liga', $idLiga)
-            ->where('id_usuario_objetivo', $idUsuario)
-            ->where('jornada_efecto', $jornada)
-            ->where('estado', 'jugada')
-            ->whereHas('tipoCarta', fn ($q) => $q->whereIn('codigo_efecto', array_keys(self::REQUISITOS_PRONOSTICO)))
-            ->with('tipoCarta')
-            ->first();
+        $requisitos = $this->requisitosActivos($idLiga, $idUsuario, $jornada);
 
-        if (! $faltaActiva) {
+        if ($requisitos->isEmpty()) {
             return null;
         }
-
-        $requisito = self::REQUISITOS_PRONOSTICO[$faltaActiva->tipoCarta->codigo_efecto];
 
         $misPronosticos = Pronostico::where('id_liga', $idLiga)
             ->where('id_usuario', $idUsuario)
             ->whereIn('id_partido', $idsPartidosJornada)
             ->pluck('resultado_1x2');
 
-        $cumplidos = $misPronosticos->filter(fn ($tipo) => $tipo === $requisito['tipo'])->count();
         $partidosSinPronosticar = $idsPartidosJornada->count() - $misPronosticos->count();
+        $estados = $requisitos->map(fn ($r) => [
+            'tipo' => $r['tipo'],
+            'cantidad' => $r['cantidad'],
+            'cumplidos' => $misPronosticos->filter(fn ($tipo) => $tipo === $r['tipo'])->count(),
+        ]);
 
-        return [
-            'tipo' => $requisito['tipo'],
-            'cantidad' => $requisito['cantidad'],
-            'cumplidos' => $cumplidos,
+        // Se enseña primero la que aún no está cumplida; con varias, todas van en 'requisitos'.
+        $principal = $estados->first(fn ($e) => $e['cumplidos'] < $e['cantidad']) ?? $estados->first();
+
+        return $principal + [
             'partidos_sin_pronosticar' => $partidosSinPronosticar,
-            // Sigue siendo posible cumplirlo con lo que queda por pronosticar — si sale
-            // false, el próximo pronóstico que no sea del tipo exigido ya lo rompería.
-            'cumplible' => ($cumplidos + $partidosSinPronosticar) >= $requisito['cantidad'],
+            // Sigue siendo posible cumplirlo (todas a la vez) con lo que queda por pronosticar.
+            'cumplible' => $this->deficit($requisitos, $misPronosticos) <= $partidosSinPronosticar,
+            'requisitos' => $estados->values()->all(),
         ];
+    }
+
+    /**
+     * Las Faltas de "requisito de pronóstico" activas contra este usuario en esa
+     * jornada, una por tipo (si hay dos del mismo tipo, manda la más exigente).
+     *
+     * @return Collection<int,array{tipo:string,cantidad:int}>
+     */
+    private function requisitosActivos(int $idLiga, int $idUsuario, int $jornada): Collection
+    {
+        return CartaUsuario::where('id_liga', $idLiga)
+            ->where('id_usuario_objetivo', $idUsuario)
+            ->where('jornada_efecto', $jornada)
+            ->where('estado', 'jugada')
+            ->whereHas('tipoCarta', fn ($q) => $q->whereIn('codigo_efecto', array_keys(self::REQUISITOS_PRONOSTICO)))
+            ->with('tipoCarta')
+            ->get()
+            ->map(fn ($carta) => self::REQUISITOS_PRONOSTICO[$carta->tipoCarta->codigo_efecto])
+            ->groupBy('tipo')
+            ->map(fn ($mismoTipo) => $mismoTipo->sortByDesc('cantidad')->first())
+            ->values();
+    }
+
+    /** Cuántos pronósticos faltan, sumando todos los requisitos, para cumplirlos. */
+    private function deficit(Collection $requisitos, Collection $tipos): int
+    {
+        return (int) $requisitos->sum(fn ($r) => max(0, $r['cantidad'] - $tipos->filter(fn ($tipo) => $tipo === $r['tipo'])->count()));
     }
 
     public function tieneFalloClamorosoActivo(int $idLiga, int $idUsuario, int $jornada): bool

@@ -47,7 +47,7 @@ class PronosticoController extends Controller
         $otrosPronosticosDeEstaJornada = Pronostico::where('id_usuario', $request->user()->id)
             ->where('id_liga', $liga->id)
             ->where('id_partido', '!=', $partido->id)
-            ->whereHas('partido', fn ($q) => $q->where('jornada', $partido->jornada))
+            ->whereHas('partido', fn ($q) => $q->where('id_temporada', $liga->id_temporada)->where('jornada', $partido->jornada))
             ->pluck('resultado_1x2');
 
         $tiposConEsteIncluido = $otrosPronosticosDeEstaJornada->push($resultado1x2);

@@ -254,8 +254,9 @@ class MisCartasController extends Controller
 
         $validated = $request->validate([
             'id_usuario_objetivo' => ['required', 'exists:users,id', 'different:'.$request->user()->id],
-            'mensaje' => ['nullable', 'string', 'max:200'],
-        ]);
+            // Silbato y Amigo Invisible son solo el mensaje: sin él no harían nada.
+            'mensaje' => [in_array($cartaUsuario->tipoCarta->codigo_efecto, ['FAL-COM-SILBATO', 'FAL-COM-INVISIBLE'], true) ? 'required' : 'nullable', 'string', 'max:200'],
+        ], ['mensaje.required' => 'Esta carta es un mensaje: escribe qué quieres decirle.']);
 
         $esMiembro = $liga->usuarios()->where('users.id', $validated['id_usuario_objetivo'])->exists();
         if (! $esMiembro) {

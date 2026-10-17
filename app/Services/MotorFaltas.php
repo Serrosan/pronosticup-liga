@@ -28,6 +28,8 @@ class MotorFaltas
         // Resultado Gafas: faltaban aquí y por eso no se aplicaban (jornada 9).
         'FAL-COM-EMPATE' => ['tipo' => 'Empate', 'cantidad' => 1],
         'FAL-PCOM-EMPATE' => ['tipo' => 'Empate', 'cantidad' => 2],
+        'FAL-RAR-EMPATE' => ['tipo' => 'Empate', 'cantidad' => 3],
+        'FAL-LEG-EMPATE' => ['tipo' => 'Empate', 'cantidad' => 4],
     ];
 
     /**

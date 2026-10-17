@@ -279,7 +279,10 @@ class LaJornadaService
                 'objetivo' => $esFalta && ! $paraSiMismo ? $this->nombre($carta->usuarioObjetivo) : null,
                 'objetivo_soy_yo' => $esFalta && ! $paraSiMismo && $carta->id_usuario_objetivo === $yo->id,
                 'sobre' => $esFalta ? null : ($carta->partido ? $this->etiquetaPartido($carta->partido) : 'Toda la jornada'),
-                'mensaje' => $esFalta && ! $paraSiMismo ? $carta->mensaje_falta : null,
+                // El mensaje del Silbato solo lo leen quien lo recibe y quien lo mandó.
+                'mensaje' => $esFalta && ! $paraSiMismo && ($tipo?->codigo_efecto !== 'FAL-COM-SILBATO' || $mia || $carta->id_usuario_objetivo === $yo->id)
+                    ? $carta->mensaje_falta
+                    : null,
                 'estado' => match ($carta->estado) {
                     'resuelta_cumplida' => 'cumplida',
                     'resuelta_no_cumplida' => 'sin_efecto',

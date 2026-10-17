@@ -366,6 +366,7 @@ class ResolucionCartasTest extends TestCase
 
         $respuesta = $this->actingAs($this->usuario)->postJson("/api/v1/mis-cartas/{$silbato->id}/jugar-falta", [
             'id_usuario_objetivo' => $victima->id,
+            'mensaje' => 'Piiiii',
         ]);
 
         $respuesta->assertStatus(422);

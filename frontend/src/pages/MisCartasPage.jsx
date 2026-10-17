@@ -566,7 +566,7 @@ function MisCartasPage() {
           titulo="Mis Cartas"
           accion={
             <span className={`font-marcador text-sm font-bold ${sobreTope ? 'text-red-500' : 'text-acento'}`}>
-              {data.cartas.length}/{data.tope_mano_cartas}
+              {sobreTope ? '⚠️ ' : ''}{data.cartas.length}/{data.tope_mano_cartas}
             </span>
           }
         />

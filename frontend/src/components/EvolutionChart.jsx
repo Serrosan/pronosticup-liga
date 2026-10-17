@@ -2,6 +2,8 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, Ca
 
 const COLORES = ['#2F9E44', '#C97F17', '#5B6B7D', '#a855f7', '#ec4899', '#0ea5e9']
 const MAX_LINEAS_DESTACADAS = 6
+// Cada línea con su propio trazo, para distinguirlas sin depender del color.
+const TRAZOS = ['', '8 4', '2 4', '12 4 2 4', '4 4', '1 3']
 
 function EvolutionChart({ evolucion }) {
   if (!evolucion || evolucion.jornadas.length === 0) {
@@ -40,6 +42,7 @@ function EvolutionChart({ evolucion }) {
           />
           <YAxis tick={{ fill: 'var(--color-borde)', fontSize: 11 }} axisLine={{ stroke: 'var(--color-borde)', opacity: 0.3 }} />
           <Tooltip
+            itemSorter={(item) => -(item.value ?? 0)}
             contentStyle={{ backgroundColor: 'var(--color-fondo)', border: '1px solid var(--color-borde)', borderRadius: 8, fontSize: 12 }}
           />
           <Legend
@@ -56,6 +59,8 @@ function EvolutionChart({ evolucion }) {
                 stroke={destacada ? COLORES[i % COLORES.length] : 'var(--color-borde)'}
                 strokeOpacity={destacada ? 1 : 0.35}
                 strokeWidth={destacada ? 2 : 1}
+                strokeDasharray={destacada ? TRAZOS[i % TRAZOS.length] : undefined}
+                legendType="plainline"
                 dot={{ r: destacada ? 3 : 2 }}
                 activeDot={{ r: 5 }}
               />

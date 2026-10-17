@@ -382,6 +382,22 @@ function TeamMatchesPage() {
               const jugados = data.partidos.filter((p) => p.estado === 'Jugado')
               const proximos = data.partidos.filter((p) => p.estado !== 'Jugado')
 
+              // V/E/D escrito, para no depender del color del borde.
+              function LetraResultado({ p }) {
+                if (p.estado !== 'Jugado') return null
+                const golesFavor = p.es_local ? p.goles_casa : p.goles_fuera
+                const golesContra = p.es_local ? p.goles_fuera : p.goles_casa
+                const r = golesFavor > golesContra ? 'V' : golesFavor < golesContra ? 'D' : 'E'
+                return (
+                  <span
+                    className="font-marcador text-[10px] font-bold w-5 h-5 rounded border border-borde/30 text-texto flex items-center justify-center shrink-0"
+                    title={r === 'V' ? 'Victoria' : r === 'D' ? 'Derrota' : 'Empate'}
+                  >
+                    {r}
+                  </span>
+                )
+              }
+
               function resultadoColor(p) {
                 if (p.estado !== 'Jugado') return 'border-l-transparent'
                 const golesFavor = p.es_local ? p.goles_casa : p.goles_fuera
@@ -438,11 +454,13 @@ function TeamMatchesPage() {
                             {ultimosCinco.map((r, i) => (
                               <span
                                 key={i}
-                                className={`w-2 h-2 rounded-full ${
-                                  r === 'V' ? 'bg-acento' : r === 'D' ? 'bg-red-500' : 'bg-borde/40'
+                                className={`w-4 h-4 rounded-full flex items-center justify-center font-marcador text-[9px] font-bold ${
+                                  r === 'V' ? 'bg-acento text-fondo' : r === 'D' ? 'bg-red-500 text-white' : 'bg-borde/30 text-texto'
                                 }`}
                                 title={r === 'V' ? 'Victoria' : r === 'D' ? 'Derrota' : 'Empate'}
-                              />
+                              >
+                                {r}
+                              </span>
                             ))}
                           </div>
                         </div>
@@ -460,6 +478,7 @@ function TeamMatchesPage() {
                             <Escudo url={p.escudo_rival} alt={p.rival} />
                             <p className="font-body text-sm text-texto truncate flex-1 min-w-0">{p.rival}</p>
                             <span className="font-marcador text-base font-bold text-texto shrink-0">{p.goles_casa}-{p.goles_fuera}</span>
+                            <LetraResultado p={p} />
                           </div>
                         ))}
                       </div>

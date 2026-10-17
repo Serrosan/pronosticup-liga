@@ -191,7 +191,7 @@ function ProfilePage() {
             <p className={`font-body text-xs px-3 py-2 rounded ${
               mensajePassword.tipo === 'exito' ? 'bg-acento/10 text-acento' : 'bg-red-500/10 text-red-500'
             }`}>
-              {mensajePassword.texto}
+              {mensajePassword.tipo === 'exito' ? '✓ ' : '⚠️ '}{mensajePassword.texto}
             </p>
           )}
           <input

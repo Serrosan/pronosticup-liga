@@ -233,8 +233,8 @@ function FilaClasificacion({ fila, index, usuario, puntosLider }) {
     <Link
       to={`/clasificacion/usuarios/${fila.id_usuario}`}
       state={{ nombre: fila.usuario, avatar_url: fila.avatar_url }}
-      className={`flex items-start gap-3 px-4 py-3 border-b border-borde/10 last:border-0 odd:bg-borde/5 hover:bg-acento/5 transition ${
-        fila.id_usuario === usuario?.id ? 'bg-acento/5' : ''
+      className={`flex items-start gap-3 px-4 py-3 border-b border-l-4 border-b-borde/10 last:border-b-0 odd:bg-borde/5 hover:bg-acento/5 transition ${
+        fila.id_usuario === usuario?.id ? 'bg-acento/5 border-l-acento' : 'border-l-transparent'
       }`}
     >
       <div className="flex items-center gap-2 shrink-0 pt-0.5">
@@ -248,7 +248,10 @@ function FilaClasificacion({ fila, index, usuario, puntosLider }) {
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
-          <p className="font-body text-base font-medium text-texto truncate">{fila.usuario}</p>
+          <p className={`font-body text-base text-texto truncate ${fila.id_usuario === usuario?.id ? 'font-bold' : 'font-medium'}`}>
+            {fila.usuario}
+            {fila.id_usuario === usuario?.id && <span className="font-body text-xs font-normal text-borde"> (tú)</span>}
+          </p>
           <span className="font-marcador text-lg font-bold text-texto shrink-0">{fila.puntos_totales}</span>
         </div>
         <p className="font-body text-[10px] text-borde mb-1.5">

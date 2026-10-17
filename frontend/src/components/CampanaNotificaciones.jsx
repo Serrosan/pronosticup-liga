@@ -120,7 +120,7 @@ function CampanaNotificaciones() {
             }`}
             title={hayImportantePendiente ? 'Tienes algo importante sin leer' : undefined}
           >
-            {total > 9 ? '9+' : total}
+            {hayImportantePendiente ? '!' : ''}{total > 9 ? '9+' : total}
           </span>
         )}
       </button>
@@ -175,7 +175,11 @@ function CampanaNotificaciones() {
                             className={`flex items-start gap-2 flex-1 min-w-0 ${navegable || !n.leida ? 'cursor-pointer' : ''}`}
                           >
                             {!n.leida ? (
-                              <span className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${n.importante ? 'bg-red-500' : 'bg-acento'}`} />
+                              n.importante ? (
+                                <span className="text-[11px] leading-none mt-0.5 shrink-0" title="Importante">❗</span>
+                              ) : (
+                                <span className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 bg-acento" />
+                              )
                             ) : (
                               <span className="w-1.5 h-1.5 mt-1.5 shrink-0" />
                             )}

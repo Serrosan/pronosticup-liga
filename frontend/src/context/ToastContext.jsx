@@ -30,6 +30,8 @@ export function ToastProvider({ children }) {
               t.tipo === 'exito' ? 'bg-acento text-fondo' : t.tipo === 'error' ? 'bg-red-500 text-white' : 'bg-fondo border border-borde/30 text-texto'
             }`}
           >
+            {t.tipo === 'exito' && <span aria-hidden="true">✓ </span>}
+            {t.tipo === 'error' && <span aria-hidden="true">⚠️ </span>}
             {t.mensaje}
           </div>
         ))}

@@ -59,7 +59,7 @@ function AvisoCartas({ cartas }) {
       }`}
     >
       <p className={`font-body text-sm font-semibold ${urgente ? 'text-red-500' : 'text-premio'}`}>
-        🃏 Tienes {partes.join(' y ')} — entra a Mis Cartas →
+        {urgente ? '⚠️' : '🃏'} Tienes {partes.join(' y ')} — entra a Mis Cartas →
       </p>
     </Link>
   )
@@ -104,7 +104,7 @@ function ProgresoJornada({ partidos }) {
         />
       </div>
       <span className={`font-marcador text-[10px] font-bold shrink-0 ${completo ? 'text-acento' : 'text-premio'}`}>
-        {hechos}/{total}
+        {completo ? '✓ ' : ''}{hechos}/{total}
       </span>
     </div>
   )
@@ -179,7 +179,7 @@ function CuentaAtrasCierre({ cierreEn }) {
 
   return (
     <p className={`font-body text-[11px] mt-1 px-1 ${urgente ? 'text-red-400 font-semibold' : 'text-borde'}`}>
-      ⏱️ Quedan {restante} para que se bloquee esta jornada
+      {urgente ? '⚠️' : '⏱️'} Quedan {restante} para que se bloquee esta jornada{urgente ? ' ¡date prisa!' : ''}
     </p>
   )
 }

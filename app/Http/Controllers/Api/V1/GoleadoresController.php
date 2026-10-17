@@ -60,8 +60,8 @@ class GoleadoresController extends Controller
         $motorFaltas = app(MotorFaltas::class);
 
         if ($motorFaltas->tieneFalloClamorosoActivo($liga->id, $request->user()->id, $jornada)) {
-            foreach ($motorFaltas->topGoleadoresRealesIds(3) as $id) {
-                $motivos[$id] = 'Falta activa: no puedes elegir a los máximos goleadores reales de LaLiga';
+            foreach ($motorFaltas->topGoleadoresRealesIds((int) $liga->id_temporada) as $id) {
+                $motivos[$id] = 'Falta activa (Fallo clamoroso): está en el TOP 3 de goleadores de LaLiga esta temporada';
             }
         }
 
@@ -100,18 +100,18 @@ class GoleadoresController extends Controller
             ], 422);
         }
 
-        // Falta "Fallo clamoroso" activa contra ti: no puedes elegir a los 3
-        // máximos goleadores REALES de LaLiga esta temporada.
+        // Falta "Fallo clamoroso" activa contra ti: no puedes elegir al TOP 3 de
+        // goleadores REALES de LaLiga de esta temporada (empatados en el 3.º incluidos).
         $motorFaltas = app(MotorFaltas::class);
 
         if ($motorFaltas->tieneFalloClamorosoActivo($liga->id, $request->user()->id, $jornada)) {
-            $topGoleadoresReales = $motorFaltas->topGoleadoresRealesIds(3);
+            $topGoleadoresReales = $motorFaltas->topGoleadoresRealesIds((int) $liga->id_temporada);
             $bloqueados = array_intersect($validated['jugadores'], $topGoleadoresReales);
 
             if (! empty($bloqueados)) {
                 $nombresBloqueados = Jugador::whereIn('id', $bloqueados)->pluck('nombre')->implode(', ');
                 return response()->json([
-                    'message' => "Tienes una Falta activa: no puedes elegir a los 3 máximos goleadores reales de LaLiga esta jornada: {$nombresBloqueados}.",
+                    'message' => "Tienes una Falta activa (Fallo clamoroso): no puedes elegir al TOP 3 de goleadores de LaLiga de esta temporada, empatados incluidos: {$nombresBloqueados}.",
                 ], 422);
             }
         }

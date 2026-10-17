@@ -5,14 +5,20 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\EventoPartido;
 use App\Models\Jugador;
+use App\Models\Temporada;
 use Illuminate\Http\Request;
 
+/**
+ * Estadísticas de jugadores (goleadores, asistencias, tarjetas) de UNA temporada:
+ * la de tu liga activa o, si no tienes, la más reciente. Antes sumaba todas.
+ */
 class EstadisticasJugadoresController extends Controller
 {
     public function goleadores(Request $request)
     {
         $conteo = EventoPartido::where('tipo_evento', 'gol')
             ->whereNotNull('id_jugador')
+            ->whereHas('partido', fn ($q) => $q->where('id_temporada', $this->temporada($request)))
             ->selectRaw('id_jugador, count(*) as goles')
             ->groupBy('id_jugador')
             ->orderByDesc('goles')
@@ -26,6 +32,7 @@ class EstadisticasJugadoresController extends Controller
     {
         $conteo = EventoPartido::where('tipo_evento', 'gol')
             ->whereNotNull('id_jugador_relacionado')
+            ->whereHas('partido', fn ($q) => $q->where('id_temporada', $this->temporada($request)))
             ->selectRaw('id_jugador_relacionado as id_jugador, count(*) as asistencias')
             ->groupBy('id_jugador_relacionado')
             ->orderByDesc('asistencias')
@@ -39,12 +46,14 @@ class EstadisticasJugadoresController extends Controller
     {
         $amarillas = EventoPartido::where('tipo_evento', 'tarjeta_amarilla')
             ->whereNotNull('id_jugador')
+            ->whereHas('partido', fn ($q) => $q->where('id_temporada', $this->temporada($request)))
             ->selectRaw('id_jugador, count(*) as total')
             ->groupBy('id_jugador')
             ->pluck('total', 'id_jugador');
 
         $rojas = EventoPartido::where('tipo_evento', 'tarjeta_roja')
             ->whereNotNull('id_jugador')
+            ->whereHas('partido', fn ($q) => $q->where('id_temporada', $this->temporada($request)))
             ->selectRaw('id_jugador, count(*) as total')
             ->groupBy('id_jugador')
             ->pluck('total', 'id_jugador');
@@ -74,6 +83,12 @@ class EstadisticasJugadoresController extends Controller
         })->filter()->sortByDesc(fn ($f) => $f['amarillas'] + ($f['rojas'] * 3))->take(50)->values();
 
         return response()->json(['data' => $filas]);
+    }
+
+    private function temporada(Request $request): int
+    {
+        return (int) ($request->user()?->ligaActiva?->id_temporada
+            ?? Temporada::orderByDesc('fecha_inicio')->value('id'));
     }
 
     private function conFichaJugador($conteo, string $campo)

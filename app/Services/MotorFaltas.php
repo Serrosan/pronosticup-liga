@@ -302,21 +302,31 @@ class MotorFaltas
     }
 
     /**
-     * Los N jugadores con más goles reales marcados en toda la temporada —
-     * misma consulta que ya usa EstadisticasJugadoresController::goleadores(),
-     * reutilizada aquí en vez de duplicarla (un controller nunca se llama
-     * desde otro como si fuera un servicio).
+     * El "TOP N" de goleadores reales de LaLiga en UNA temporada, para el
+     * Fallo clamoroso. Si hay empate en el último puesto entran todos los
+     * empatados (con el 3.º y el 4.º a 6 goles, quedan bloqueados los dos):
+     * así no depende del orden en que la base de datos devuelva los empates.
+     * Solo cuenta 'gol' (los goles en propia puerta tienen su propio tipo).
+     *
+     * @return array<int,int> ids de jugador
      */
-    public function topGoleadoresRealesIds(int $cantidad = 3): array
+    public function topGoleadoresRealesIds(int $idTemporada, int $cantidad = 3): array
     {
-        return EventoPartido::where('tipo_evento', 'gol')
+        $goles = EventoPartido::where('tipo_evento', 'gol')
             ->whereNotNull('id_jugador')
+            ->whereHas('partido', fn ($q) => $q->where('id_temporada', $idTemporada))
             ->selectRaw('id_jugador, count(*) as goles')
             ->groupBy('id_jugador')
             ->orderByDesc('goles')
-            ->limit($cantidad)
-            ->pluck('id_jugador')
-            ->all();
+            ->pluck('goles', 'id_jugador')
+            ->map(fn ($total) => (int) $total);
+
+        if ($goles->count() > $cantidad) {
+            $corte = $goles->values()[$cantidad - 1];
+            $goles = $goles->filter(fn ($total) => $total >= $corte);
+        }
+
+        return $goles->keys()->map(fn ($id) => (int) $id)->values()->all();
     }
 
     /**

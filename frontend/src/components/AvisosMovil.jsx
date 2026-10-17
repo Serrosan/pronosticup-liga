@@ -78,6 +78,7 @@ function AvisosMovil() {
   const [estado, setEstado] = useState('cargando') // cargando | ios-instalar | no-admite | denegado | apagado | encendido
   const [ocupado, setOcupado] = useState(false)
   const [dispositivos, setDispositivos] = useState(0)
+  const [preferencias, setPreferencias] = useState([])
   const ios = esIOS()
   const instalada = esAppInstalada()
 
@@ -90,6 +91,7 @@ function AvisosMovil() {
         if (cancelado) return
         setConfig(data.data)
         setDispositivos(data.data.dispositivos ?? 0)
+        setPreferencias(data.data.preferencias ?? [])
         if (!data.data.configurado) return
 
         if (!admiteAvisos()) {
@@ -155,6 +157,18 @@ function AvisosMovil() {
       toast.error('No se pudieron desactivar los avisos.')
     } finally {
       setOcupado(false)
+    }
+  }
+
+  async function cambiarPreferencia(clave, activa) {
+    const anteriores = preferencias
+    setPreferencias((lista) => lista.map((p) => (p.clave === clave ? { ...p, activa } : p)))
+    try {
+      const { data } = await client.patch('/api/v1/push/preferencias', { clave, activa })
+      setPreferencias(data.data)
+    } catch {
+      setPreferencias(anteriores)
+      toast.error('No se pudo guardar. Inténtalo otra vez.')
     }
   }
 
@@ -230,6 +244,27 @@ function AvisosMovil() {
 
             {!instalada && !ios && <SugerenciaInstalar />}
 
+            {encendido && preferencias.length > 0 && (
+              <div className="flex flex-col gap-3 border-t border-borde/20 pt-3">
+                <p className="font-body text-xs uppercase tracking-widest text-borde">Qué avisos quieres</p>
+                {preferencias.map((p) => (
+                  <label key={p.clave} className="flex items-center justify-between gap-3 cursor-pointer">
+                    <div>
+                      <p className="font-body text-sm text-texto">{p.etiqueta}</p>
+                      <p className="font-body text-[11px] text-borde">{p.descripcion}</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={p.activa}
+                      onChange={(e) => cambiarPreferencia(p.clave, e.target.checked)}
+                      className="w-5 h-5 accent-acento shrink-0"
+                    />
+                  </label>
+                ))}
+                <p className="font-body text-[11px] text-borde">Se aplica a todos tus dispositivos. La campana 🔔 de la app te lo sigue enseñando todo.</p>
+              </div>
+            )}
+
             {dispositivos > 0 && (
               <p className="font-body text-[11px] text-texto">
                 📱 Los tienes activados en {dispositivos === 1 ? '1 dispositivo' : `${dispositivos} dispositivos`}.
@@ -237,7 +272,7 @@ function AvisosMovil() {
             )}
 
             <p className="font-body text-[11px] text-borde">
-              Se activa en cada dispositivo por separado. De momento solo llega la prueba; los avisos de la liga (cierre de jornada, Faltas, puntos…) vienen enseguida.
+              Se activa en cada dispositivo por separado.
             </p>
           </>
         )}

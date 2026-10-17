@@ -33,13 +33,14 @@ class PushService
 
     /**
      * @param  string|null  $etiqueta  Avisos con la misma etiqueta se sustituyen en vez de apilarse.
+     * @param  int|null  $pendientes  Número para el puntito del icono de la app (sin leer).
      * @return array{enviados:int, caducadas:int, fallidos:int}
      */
-    public function enviarA(User $usuario, string $titulo, string $cuerpo, string $url = '/dashboard', ?string $etiqueta = null): array
+    public function enviarA(User $usuario, string $titulo, string $cuerpo, string $url = '/dashboard', ?string $etiqueta = null, ?int $pendientes = null): array
     {
         return $this->enviar(
             PushSuscripcion::where('id_usuario', $usuario->id)->get(),
-            array_filter(['titulo' => $titulo, 'cuerpo' => $cuerpo, 'url' => $url, 'tag' => $etiqueta], fn ($v) => $v !== null)
+            array_filter(['titulo' => $titulo, 'cuerpo' => $cuerpo, 'url' => $url, 'tag' => $etiqueta, 'pendientes' => $pendientes], fn ($v) => $v !== null)
         );
     }
 

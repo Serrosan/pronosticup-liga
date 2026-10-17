@@ -4,24 +4,41 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\PushSuscripcion;
+use App\Services\AvisosPush;
 use App\Services\PushService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 /**
- * Avisos al móvil, fase 1: activar o desactivar en este dispositivo y mandarse
- * una prueba. Todavía no se envía ningún aviso automático.
+ * Avisos al móvil: activar o desactivar en este dispositivo, elegir qué tipos
+ * de aviso quieres y mandarte una prueba. El envío de cada aviso lo hace
+ * EnviarAvisoAlMovil cuando llega una notificación a la campana.
  */
 class PushController extends Controller
 {
     /** GET /push/config — si el servidor tiene claves, y la pública para suscribirse. */
-    public function config(Request $request, PushService $push)
+    public function config(Request $request, PushService $push, AvisosPush $avisos)
     {
         return response()->json(['data' => [
             'configurado' => $push->configurado(),
             'clave_publica' => $push->clavePublica(),
             'dispositivos' => PushSuscripcion::where('id_usuario', $request->user()->id)->count(),
+            'preferencias' => $avisos->paraPerfil($request->user()),
         ]]);
+    }
+
+    /** PATCH /push/preferencias — activa o desactiva un tipo de aviso (para todos tus dispositivos). */
+    public function preferencias(Request $request, AvisosPush $avisos)
+    {
+        $usuario = $request->user();
+        $datos = $request->validate([
+            'clave' => ['required', 'string', 'in:'.implode(',', array_keys($avisos->preferencias($usuario)))],
+            'activa' => ['required', 'boolean'],
+        ]);
+
+        $usuario->forceFill(['preferencias_push' => [...(array) ($usuario->preferencias_push ?? []), $datos['clave'] => (bool) $datos['activa']]])->save();
+
+        return response()->json(['data' => $avisos->paraPerfil($usuario->fresh())]);
     }
 
     /** POST /push/suscripciones — guarda (o renueva) este dispositivo. */

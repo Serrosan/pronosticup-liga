@@ -30,6 +30,7 @@ class User extends Authenticatable implements MustVerifyEmailContract
             'activado_en' => 'datetime',
             'password' => 'hashed',
             'es_superadmin' => 'boolean',
+            'preferencias_push' => 'array',
         ];
     }
 

@@ -109,6 +109,14 @@ function CampanaNotificaciones() {
   const hayLeidas = lista?.some((n) => n.leida) ?? false
   const hayImportantePendiente = !!noLeidas?.importante_pendiente
 
+  // El numerito sobre el icono de la app instalada, igual que la campana
+  // (en los móviles que lo admiten; en el resto no hace nada).
+  useEffect(() => {
+    if (!noLeidas || !('setAppBadge' in navigator)) return
+    const accion = total > 0 ? navigator.setAppBadge(total) : navigator.clearAppBadge()
+    accion?.catch?.(() => {})
+  }, [noLeidas, total])
+
   return (
     <div className="relative">
       <button onClick={() => setAbierto(!abierto)} className="relative p-1.5 hover:opacity-80 transition" aria-label="Notificaciones">

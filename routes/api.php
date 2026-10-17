@@ -77,6 +77,7 @@ Route::prefix('v1')->group(function () {
     Route::post('/push/suscripciones', [\App\Http\Controllers\Api\V1\PushController::class, 'suscribir']);
     Route::delete('/push/suscripciones', [\App\Http\Controllers\Api\V1\PushController::class, 'desuscribir']);
     Route::post('/push/prueba', [\App\Http\Controllers\Api\V1\PushController::class, 'prueba'])->middleware('throttle:5,1');
+    Route::patch('/push/preferencias', [\App\Http\Controllers\Api\V1\PushController::class, 'preferencias']);
     Route::get('/resumen-rendimiento', [\App\Http\Controllers\Api\V1\PronosticoController::class, 'resumenRendimiento']);
     Route::get('/estadisticas-liga', [\App\Http\Controllers\Api\V1\EstadisticasLigaController::class, 'index']);
     Route::get('/estadisticas-cartas', [\App\Http\Controllers\Api\V1\EstadisticasCartasController::class, 'index']);

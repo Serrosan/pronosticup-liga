@@ -5,6 +5,7 @@ import client from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import TicketHeader from '../components/TicketHeader'
+import AvisosMovil from '../components/AvisosMovil'
 
 function ProfilePage() {
   const { usuario, refrescar, logout, actualizarUsuario } = useAuth()
@@ -141,6 +142,9 @@ function ProfilePage() {
           ))}
         </div>
       </div>
+
+      {/* Avisos en el móvil (push) */}
+      <AvisosMovil />
 
       {/* Preferencias de email */}
       <div className="bg-fondo border border-borde/30 rounded-lg overflow-hidden">

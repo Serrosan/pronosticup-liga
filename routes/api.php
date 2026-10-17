@@ -72,6 +72,11 @@ Route::prefix('v1')->group(function () {
     Route::get('/jornadas/{jornada}/progreso-liga', [\App\Http\Controllers\Api\V1\PronosticoController::class, 'progresoLiga']);
     Route::get('/jornadas-cerradas', [\App\Http\Controllers\Api\V1\ClasificacionController::class, 'jornadasCerradas']);
     Route::patch('/profile/preferencias-email', [\App\Http\Controllers\Api\V1\ProfileController::class, 'updatePreferenciasEmail']);
+    // Avisos al móvil (push)
+    Route::get('/push/config', [\App\Http\Controllers\Api\V1\PushController::class, 'config']);
+    Route::post('/push/suscripciones', [\App\Http\Controllers\Api\V1\PushController::class, 'suscribir']);
+    Route::delete('/push/suscripciones', [\App\Http\Controllers\Api\V1\PushController::class, 'desuscribir']);
+    Route::post('/push/prueba', [\App\Http\Controllers\Api\V1\PushController::class, 'prueba'])->middleware('throttle:5,1');
     Route::get('/resumen-rendimiento', [\App\Http\Controllers\Api\V1\PronosticoController::class, 'resumenRendimiento']);
     Route::get('/estadisticas-liga', [\App\Http\Controllers\Api\V1\EstadisticasLigaController::class, 'index']);
     Route::get('/estadisticas-cartas', [\App\Http\Controllers\Api\V1\EstadisticasCartasController::class, 'index']);

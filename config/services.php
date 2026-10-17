@@ -32,6 +32,13 @@ return [
         'token' => env('FOOTBALL_DATA_TOKEN'),
     ],
 
+    // Avisos al móvil (push). Claves: php artisan push:claves
+    'webpush' => [
+        'public_key' => env('VAPID_PUBLIC_KEY'),
+        'private_key' => env('VAPID_PRIVATE_KEY'),
+        'subject' => env('VAPID_SUBJECT', 'https://pronosticup.es'),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

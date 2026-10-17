@@ -77,6 +77,7 @@ function AvisosMovil() {
   const [config, setConfig] = useState(null)
   const [estado, setEstado] = useState('cargando') // cargando | ios-instalar | no-admite | denegado | apagado | encendido
   const [ocupado, setOcupado] = useState(false)
+  const [dispositivos, setDispositivos] = useState(0)
   const ios = esIOS()
   const instalada = esAppInstalada()
 
@@ -88,6 +89,7 @@ function AvisosMovil() {
         const { data } = await client.get('/api/v1/push/config')
         if (cancelado) return
         setConfig(data.data)
+        setDispositivos(data.data.dispositivos ?? 0)
         if (!data.data.configurado) return
 
         if (!admiteAvisos()) {
@@ -127,7 +129,8 @@ function AvisosMovil() {
         toast.error('No se activaron: no diste permiso.')
         return
       }
-      await client.post('/api/v1/push/suscripciones', suscripcion.toJSON())
+      const { data } = await client.post('/api/v1/push/suscripciones', suscripcion.toJSON())
+      setDispositivos(data.data.dispositivos)
       setEstado('encendido')
       toast.exito('Avisos activados en este dispositivo.')
     } catch {
@@ -142,7 +145,8 @@ function AvisosMovil() {
     try {
       const suscripcion = await suscripcionActual()
       if (suscripcion) {
-        await client.delete('/api/v1/push/suscripciones', { data: { endpoint: suscripcion.endpoint } })
+        const { data } = await client.delete('/api/v1/push/suscripciones', { data: { endpoint: suscripcion.endpoint } })
+        setDispositivos(data.data.dispositivos)
         await suscripcion.unsubscribe()
       }
       setEstado('apagado')
@@ -225,6 +229,12 @@ function AvisosMovil() {
             )}
 
             {!instalada && !ios && <SugerenciaInstalar />}
+
+            {dispositivos > 0 && (
+              <p className="font-body text-[11px] text-texto">
+                📱 Los tienes activados en {dispositivos === 1 ? '1 dispositivo' : `${dispositivos} dispositivos`}.
+              </p>
+            )}
 
             <p className="font-body text-[11px] text-borde">
               Se activa en cada dispositivo por separado. De momento solo llega la prueba; los avisos de la liga (cierre de jornada, Faltas, puntos…) vienen enseguida.

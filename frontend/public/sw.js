@@ -25,11 +25,15 @@ self.addEventListener('push', (evento) => {
 
   const opciones = {
     body: datos.cuerpo || '',
-    icon: '/icons/icon-192.png',
     badge: '/icons/badge-96.png',
     vibrate: [120, 60, 120],
     lang: 'es',
     data: { url: datos.url || '/dashboard' },
+  }
+  // En Android el icono de la app ya sale a la izquierda: el grande de la
+  // derecha sobraría. En ordenador sí hace falta (si no, sale el del navegador).
+  if (!/Android/i.test(self.navigator.userAgent)) {
+    opciones.icon = '/icons/icon-192.png'
   }
   if (datos.tag) {
     opciones.tag = datos.tag

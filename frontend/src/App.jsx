@@ -1,83 +1,87 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import LoginPage from './pages/LoginPage'
-import RegisterPage from './pages/RegisterPage'
-import ForgotPasswordPage from './pages/ForgotPasswordPage'
-import ResetPasswordPage from './pages/ResetPasswordPage'
-import HomePage from './pages/HomePage'
-import OnboardingPage from './pages/OnboardingPage'
-import JoinByLinkPage from './pages/JoinByLinkPage'
-import DashboardPage from './pages/DashboardPage'
-import MatchdayPage from './pages/MatchdayPage'
-import MatchDetailPage from './pages/MatchDetailPage'
-import StandingsPage from './pages/StandingsPage'
-import UserPointsDetailPage from './pages/UserPointsDetailPage'
-import MyPredictionsPage from './pages/MyPredictionsPage'
-import ProfilePage from './pages/ProfilePage'
-import TeamMatchesPage from './pages/TeamMatchesPage'
-import LaLigaStandingsPage from './pages/LaLigaStandingsPage'
-import CalendarPage from './pages/CalendarPage'
-import ChatPage from './pages/ChatPage'
-import AdminUsersPage from './pages/AdminUsersPage'
-import AdminLigasPage from './pages/AdminLigasPage'
-import AdminCalendarioPage from './pages/AdminCalendarioPage'
-import AdminEventosPartidoPage from './pages/AdminEventosPartidoPage'
-import AdminEquiposPage from './pages/AdminEquiposPage'
-import AdminJugadoresPage from './pages/AdminJugadoresPage'
-import AdminEstadiosPage from './pages/AdminEstadiosPage'
-import AdminArbitrosPage from './pages/AdminArbitrosPage'
-import AdminCodigosCanjePage from './pages/AdminCodigosCanjePage'
-import AdminAvisosScraperPage from './pages/AdminAvisosScraperPage'
-import AdminTareasPage from './pages/AdminTareasPage'
-import AdminCambiosPlantillaPage from './pages/AdminCambiosPlantillaPage'
-import AdminCierreJornadaPage from './pages/AdminCierreJornadaPage'
-import AdminRastroCartasPage from './pages/AdminRastroCartasPage'
-import AdminSistemaPage from './pages/AdminSistemaPage'
-import AdminCalidadDatosPage from './pages/AdminCalidadDatosPage'
-import AdminCanjesCodigoPage from './pages/AdminCanjesCodigoPage'
-import AdminTrofeosPage from './pages/AdminTrofeosPage'
-import AdminEventosCalendarioPage from './pages/AdminEventosCalendarioPage'
-import AdminNovedadesPage from './pages/AdminNovedadesPage'
-import AdminResourceDetailPage from './pages/AdminResourceDetailPage'
 import NavBar from './components/NavBar'
 import AdminLayout from './components/AdminLayout'
 import NotificacionModal from './components/NotificacionModal'
 import MarcaEntorno from './components/MarcaEntorno'
 import BandaVerComo from './components/BandaVerComo'
-import AdminVerComoPage from './pages/AdminVerComoPage'
-import AdminCopiaLocalPage from './pages/AdminCopiaLocalPage'
-import AdminAvisosPage from './pages/AdminAvisosPage'
-import AdminComparadorPlantillasPage from './pages/AdminComparadorPlantillasPage'
-import AdminEntrenadoresPage from './pages/AdminEntrenadoresPage'
 import ErrorBoundary from './components/ErrorBoundary'
-import NotFoundPage from './pages/NotFoundPage'
 import AvisoSinConexion from './components/AvisoSinConexion'
 import AvisoSesionCaducada from './components/AvisoSesionCaducada'
 import { ToastProvider } from './context/ToastContext'
-import PrivacyPage from './pages/PrivacyPage'
-import AdminRegistroActividadPage from './pages/AdminRegistroActividadPage'
-import StadiumsPage from './pages/StadiumsPage'
-import PlayerDetailPage from './pages/PlayerDetailPage'
 import BotonVolverArriba from './components/BotonVolverArriba'
-import AdminConfiguracionPuntosPage from './pages/AdminConfiguracionPuntosPage'
-import SeleccionGoleadoresPage from './pages/SeleccionGoleadoresPage'
-import QuinielaPage from './pages/QuinielaPage'
-import AdminQuinielasPage from './pages/AdminQuinielasPage'
-import VerifyEmailPage from './pages/VerifyEmailPage'
-import AdminImportarHistoricoPage from './pages/AdminImportarHistoricoPage'
-import PuntuacionesPage from './pages/PuntuacionesPage'
 import RedirectJornadaActual from './pages/RedirectJornadaActual'
-import GuiaPage from './pages/GuiaPage'
-import EstadisticasLigaPage from './pages/EstadisticasLigaPage'
-import EstadisticasCartasPage from './pages/EstadisticasCartasPage'
-import LogrosPage from './pages/LogrosPage'
-import AdminCategoriasCartaPage from './pages/AdminCategoriasCartaPage'
-import AdminTiposCartaPage from './pages/AdminTiposCartaPage'
-import AdminConfiguracionCartasPage from './pages/AdminConfiguracionCartasPage'
-import AdminGestionCartasUsuariosPage from './pages/AdminGestionCartasUsuariosPage'
-import MisCartasPage from './pages/MisCartasPage'
-import CatalogoCartasPage from './pages/CatalogoCartasPage'
-import LaJornadaPage from './pages/LaJornadaPage'
+import { Suspense } from 'react'
+import { lazyPagina, CargandoPagina } from './utils/cargaPaginas'
+
+// Cada página se descarga la primera vez que se abre.
+const RegisterPage = lazyPagina(() => import('./pages/RegisterPage'))
+const ForgotPasswordPage = lazyPagina(() => import('./pages/ForgotPasswordPage'))
+const ResetPasswordPage = lazyPagina(() => import('./pages/ResetPasswordPage'))
+const HomePage = lazyPagina(() => import('./pages/HomePage'))
+const OnboardingPage = lazyPagina(() => import('./pages/OnboardingPage'))
+const JoinByLinkPage = lazyPagina(() => import('./pages/JoinByLinkPage'))
+const DashboardPage = lazyPagina(() => import('./pages/DashboardPage'))
+const MatchdayPage = lazyPagina(() => import('./pages/MatchdayPage'))
+const MatchDetailPage = lazyPagina(() => import('./pages/MatchDetailPage'))
+const StandingsPage = lazyPagina(() => import('./pages/StandingsPage'))
+const UserPointsDetailPage = lazyPagina(() => import('./pages/UserPointsDetailPage'))
+const MyPredictionsPage = lazyPagina(() => import('./pages/MyPredictionsPage'))
+const ProfilePage = lazyPagina(() => import('./pages/ProfilePage'))
+const TeamMatchesPage = lazyPagina(() => import('./pages/TeamMatchesPage'))
+const LaLigaStandingsPage = lazyPagina(() => import('./pages/LaLigaStandingsPage'))
+const CalendarPage = lazyPagina(() => import('./pages/CalendarPage'))
+const ChatPage = lazyPagina(() => import('./pages/ChatPage'))
+const AdminUsersPage = lazyPagina(() => import('./pages/AdminUsersPage'))
+const AdminLigasPage = lazyPagina(() => import('./pages/AdminLigasPage'))
+const AdminCalendarioPage = lazyPagina(() => import('./pages/AdminCalendarioPage'))
+const AdminEventosPartidoPage = lazyPagina(() => import('./pages/AdminEventosPartidoPage'))
+const AdminEquiposPage = lazyPagina(() => import('./pages/AdminEquiposPage'))
+const AdminJugadoresPage = lazyPagina(() => import('./pages/AdminJugadoresPage'))
+const AdminEstadiosPage = lazyPagina(() => import('./pages/AdminEstadiosPage'))
+const AdminArbitrosPage = lazyPagina(() => import('./pages/AdminArbitrosPage'))
+const AdminCodigosCanjePage = lazyPagina(() => import('./pages/AdminCodigosCanjePage'))
+const AdminAvisosScraperPage = lazyPagina(() => import('./pages/AdminAvisosScraperPage'))
+const AdminTareasPage = lazyPagina(() => import('./pages/AdminTareasPage'))
+const AdminCambiosPlantillaPage = lazyPagina(() => import('./pages/AdminCambiosPlantillaPage'))
+const AdminCierreJornadaPage = lazyPagina(() => import('./pages/AdminCierreJornadaPage'))
+const AdminRastroCartasPage = lazyPagina(() => import('./pages/AdminRastroCartasPage'))
+const AdminSistemaPage = lazyPagina(() => import('./pages/AdminSistemaPage'))
+const AdminCalidadDatosPage = lazyPagina(() => import('./pages/AdminCalidadDatosPage'))
+const AdminCanjesCodigoPage = lazyPagina(() => import('./pages/AdminCanjesCodigoPage'))
+const AdminTrofeosPage = lazyPagina(() => import('./pages/AdminTrofeosPage'))
+const AdminEventosCalendarioPage = lazyPagina(() => import('./pages/AdminEventosCalendarioPage'))
+const AdminNovedadesPage = lazyPagina(() => import('./pages/AdminNovedadesPage'))
+const AdminResourceDetailPage = lazyPagina(() => import('./pages/AdminResourceDetailPage'))
+const AdminVerComoPage = lazyPagina(() => import('./pages/AdminVerComoPage'))
+const AdminCopiaLocalPage = lazyPagina(() => import('./pages/AdminCopiaLocalPage'))
+const AdminAvisosPage = lazyPagina(() => import('./pages/AdminAvisosPage'))
+const AdminComparadorPlantillasPage = lazyPagina(() => import('./pages/AdminComparadorPlantillasPage'))
+const AdminEntrenadoresPage = lazyPagina(() => import('./pages/AdminEntrenadoresPage'))
+const NotFoundPage = lazyPagina(() => import('./pages/NotFoundPage'))
+const PrivacyPage = lazyPagina(() => import('./pages/PrivacyPage'))
+const AdminRegistroActividadPage = lazyPagina(() => import('./pages/AdminRegistroActividadPage'))
+const StadiumsPage = lazyPagina(() => import('./pages/StadiumsPage'))
+const PlayerDetailPage = lazyPagina(() => import('./pages/PlayerDetailPage'))
+const AdminConfiguracionPuntosPage = lazyPagina(() => import('./pages/AdminConfiguracionPuntosPage'))
+const SeleccionGoleadoresPage = lazyPagina(() => import('./pages/SeleccionGoleadoresPage'))
+const QuinielaPage = lazyPagina(() => import('./pages/QuinielaPage'))
+const AdminQuinielasPage = lazyPagina(() => import('./pages/AdminQuinielasPage'))
+const VerifyEmailPage = lazyPagina(() => import('./pages/VerifyEmailPage'))
+const AdminImportarHistoricoPage = lazyPagina(() => import('./pages/AdminImportarHistoricoPage'))
+const PuntuacionesPage = lazyPagina(() => import('./pages/PuntuacionesPage'))
+const GuiaPage = lazyPagina(() => import('./pages/GuiaPage'))
+const EstadisticasLigaPage = lazyPagina(() => import('./pages/EstadisticasLigaPage'))
+const EstadisticasCartasPage = lazyPagina(() => import('./pages/EstadisticasCartasPage'))
+const LogrosPage = lazyPagina(() => import('./pages/LogrosPage'))
+const AdminCategoriasCartaPage = lazyPagina(() => import('./pages/AdminCategoriasCartaPage'))
+const AdminTiposCartaPage = lazyPagina(() => import('./pages/AdminTiposCartaPage'))
+const AdminConfiguracionCartasPage = lazyPagina(() => import('./pages/AdminConfiguracionCartasPage'))
+const AdminGestionCartasUsuariosPage = lazyPagina(() => import('./pages/AdminGestionCartasUsuariosPage'))
+const MisCartasPage = lazyPagina(() => import('./pages/MisCartasPage'))
+const CatalogoCartasPage = lazyPagina(() => import('./pages/CatalogoCartasPage'))
+const LaJornadaPage = lazyPagina(() => import('./pages/LaJornadaPage'))
 
 function RutaProtegida() {
   const { usuario, cargando } = useAuth()
@@ -87,7 +91,9 @@ function RutaProtegida() {
     <div className="min-h-screen bg-lienzo">
       <NavBar />
       <NotificacionModal />
-      <Outlet />
+      <Suspense fallback={<CargandoPagina />}>
+        <Outlet />
+      </Suspense>
     </div>
   )
 }
@@ -101,7 +107,9 @@ function RutaAdmin() {
     <div className="min-h-screen bg-lienzo">
       <NavBar />
       <AdminLayout>
-        <Outlet />
+        <Suspense fallback={<CargandoPagina />}>
+          <Outlet />
+        </Suspense>
       </AdminLayout>
     </div>
   )
@@ -118,6 +126,7 @@ function App() {
           <BrowserRouter>
             <AvisoSesionCaducada />
             <BotonVolverArriba />
+            <Suspense fallback={<CargandoPagina />}>
             <Routes>
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
@@ -194,6 +203,7 @@ function App() {
               </Route>
             <Route path="*" element={<NotFoundPage />} />
             </Routes>
+            </Suspense>
           </BrowserRouter>
         </AuthProvider>
       </ToastProvider>

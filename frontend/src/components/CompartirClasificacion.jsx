@@ -1,5 +1,4 @@
 import { useRef, useState } from 'react'
-import html2canvas from 'html2canvas'
 
 const MEDALLAS = ['🥇', '🥈', '🥉']
 
@@ -12,7 +11,7 @@ function CompartirClasificacion({ fila, ligaNombre, totalParticipantes }) {
   async function compartir() {
     setGenerando(true)
     try {
-      const canvas = await html2canvas(tarjetaRef.current, {
+      const canvas = await (await import('html2canvas')).default(tarjetaRef.current, {
         backgroundColor: '#0E1B2B',
         scale: 2,
       })

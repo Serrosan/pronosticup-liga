@@ -41,6 +41,10 @@ return [
         'web' => [
             'driver' => 'session',
             'provider' => 'users',
+            // "Mantener la sesión iniciada": 30 días (en minutos), renovados en cada
+            // visita por RenovarRecordarSesion. Sin la casilla, la sesión normal
+            // caduca tras SESSION_LIFETIME (120 min) sin actividad.
+            'remember' => 43200,
         ],
     ],
 

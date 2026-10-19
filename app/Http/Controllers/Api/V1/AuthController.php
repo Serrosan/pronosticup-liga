@@ -53,7 +53,10 @@ class AuthController extends Controller
             'password' => ['required'],
         ]);
 
-        if (! Auth::attempt($credentials)) {
+        // Casilla "Mantener la sesión iniciada": cookie de 30 días (config/auth.php).
+        $recordar = $request->boolean('recordar');
+
+        if (! Auth::attempt($credentials, $recordar)) {
             return response()->json(['message' => 'Credenciales incorrectas.'], 401);
         }
 

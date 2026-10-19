@@ -8,6 +8,7 @@ function LoginForm() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState(null)
   const [enviando, setEnviando] = useState(false)
+  const [recordar, setRecordar] = useState(true)
   const { login } = useAuth()
 
   async function handleSubmit(event) {
@@ -15,7 +16,7 @@ function LoginForm() {
     setError(null)
     setEnviando(true)
     try {
-      await login(email.trim(), password)
+      await login(email.trim(), password, recordar)
     } catch (err) {
       console.error(err)
       setError(err.response?.data?.message ?? 'Error desconocido, mira la consola.')
@@ -56,6 +57,19 @@ function LoginForm() {
           onChange={(e) => setPassword(e.target.value)}
         />
       </div>
+
+      <label className="flex items-start gap-2 font-body text-sm text-texto cursor-pointer select-none">
+        <input
+          type="checkbox"
+          checked={recordar}
+          onChange={(e) => setRecordar(e.target.checked)}
+          className="mt-0.5 h-4 w-4 shrink-0 accent-acento"
+        />
+        <span>
+          Mantener la sesión iniciada 30 días
+          <span className="block text-xs text-borde">Desmárcalo si el dispositivo no es tuyo.</span>
+        </span>
+      </label>
 
       <button
         type="submit"

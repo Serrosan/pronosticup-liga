@@ -14,9 +14,9 @@ export function AuthProvider({ children }) {
       .finally(() => setCargando(false))
   }, [])
 
-  async function login(email, password) {
+  async function login(email, password, recordar = false) {
     await client.get('/sanctum/csrf-cookie')
-    const respuesta = await client.post('/api/v1/login', { email, password })
+    const respuesta = await client.post('/api/v1/login', { email, password, recordar })
     setUsuario(respuesta.data.data)
   }
 

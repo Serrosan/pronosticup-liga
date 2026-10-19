@@ -67,12 +67,16 @@ class PartidoController extends Controller
             ? $this->motorFaltas->estadoRequisitoPronostico($liga->id, $request->user()->id, $jornada, $partidos->pluck('id'))
             : null;
 
+        $motivoCerrada = app(\App\Services\AperturaJornadas::class)->motivoCerrada($liga, $jornada);
+
         return response()->json([
             'data' => $datos,
             'meta' => [
                 'ultima_actualizacion' => $partidos->max('sincronizado_en')?->toIso8601String(),
                 'jornada_bloqueada' => $jornadaBloqueada,
                 'falta_activa' => $faltaActiva,
+                'jornada_abierta' => $motivoCerrada === null,
+                'apertura' => $motivoCerrada,
             ],
         ]);
     }

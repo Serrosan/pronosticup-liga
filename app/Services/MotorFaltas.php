@@ -204,7 +204,7 @@ class MotorFaltas
      * @param Collection $tiposConEsteIncluido Los resultado_1x2 (Local/Empate/
      *   Visitante) de esos mismos pronósticos, con el nuevo ya incluido.
      */
-    public function comprobarRequisitoPronostico(int $idLiga, int $idUsuario, int $jornada, int $totalPartidosJornada, int $totalPronosticosConEsteIncluido, Collection $tiposConEsteIncluido): ?string
+    public function comprobarRequisitoPronostico(int $idLiga, int $idUsuario, int $jornada, int $totalPartidosJornada, int $totalPronosticosConEsteIncluido, Collection $tiposConEsteIncluido, ?Collection $tiposAntes = null): ?string
     {
         $requisitos = $this->requisitosActivos($idLiga, $idUsuario, $jornada);
 
@@ -216,8 +216,19 @@ class MotorFaltas
         // así que con varias Faltas a la vez lo que falte de cada una se suma y
         // tiene que caber en los partidos que quedan por pronosticar.
         $partidosAunSinPredecir = $totalPartidosJornada - $totalPronosticosConEsteIncluido;
+        $faltanDespues = $this->deficit($requisitos, $tiposConEsteIncluido) - $partidosAunSinPredecir;
 
-        if ($this->deficit($requisitos, $tiposConEsteIncluido) > $partidosAunSinPredecir) {
+        // Si ya se incumplía antes de este cambio (la Falta llegó con la jornada
+        // rellena), se deja cualquier cambio que no empeore: así se corrige
+        // partido a partido en vez de quedarse atascado.
+        if ($faltanDespues > 0 && $tiposAntes !== null) {
+            $faltanAntes = $this->deficit($requisitos, $tiposAntes) - ($totalPartidosJornada - $tiposAntes->count());
+            if ($faltanDespues <= $faltanAntes) {
+                return null;
+            }
+        }
+
+        if ($faltanDespues > 0) {
             $lista = $requisitos->map(fn ($r) => "{$r['cantidad']} pronóstico(s) de \"{$r['tipo']}\"")->implode(' y ');
             $quien = $requisitos->count() > 1 ? 'Faltas activas' : 'una Falta activa';
 

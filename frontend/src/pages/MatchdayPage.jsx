@@ -164,12 +164,16 @@ function MatchdayPage() {
         ultimaActualizacion: respuesta.data.meta?.ultima_actualizacion,
         jornadaBloqueada: respuesta.data.meta?.jornada_bloqueada,
         faltaActiva: respuesta.data.meta?.falta_activa ?? null,
+        jornadaAbierta: respuesta.data.meta?.jornada_abierta ?? true,
+        apertura: respuesta.data.meta?.apertura ?? null,
       }
     },
     placeholderData: (datosAnteriores) => datosAnteriores,
   })
 
   const partidos = data?.partidos
+  // Ligas con cartas: la jornada se abre cuando termina la anterior.
+  const cerrada = data?.jornadaAbierta === false
 
   function ir(numero) {
     if (numero < 1 || numero > TOTAL_JORNADAS) return
@@ -188,7 +192,7 @@ function MatchdayPage() {
       </div>
       <PestanasJornada jornada={numeroJornada} activa="pronosticar" />
       <EstadoGoleadores jornada={numeroJornada} />
-      <CopiarDeOtraLiga jornada={numeroJornada} jornadaBloqueada={data?.jornadaBloqueada} />
+      <CopiarDeOtraLiga jornada={numeroJornada} jornadaBloqueada={data?.jornadaBloqueada || cerrada} />
 
       {grupos.length > 0 && (
         <p className="font-body text-sm font-semibold text-acento text-center whitespace-nowrap mb-1">
@@ -206,7 +210,14 @@ function MatchdayPage() {
 
       <AvisoFaltaActiva falta={data?.faltaActiva} />
 
-      {sinPronosticar.length > 0 && (
+      {cerrada && (
+        <div className="max-w-md mx-auto mb-6 bg-borde/10 border border-borde/30 rounded-lg px-4 py-3 text-center">
+          <p className="font-body text-sm text-texto font-semibold">🔒 Todavía no se puede pronosticar</p>
+          <p className="font-body text-xs text-borde mt-1">{data.apertura}</p>
+        </div>
+      )}
+
+      {!cerrada && sinPronosticar.length > 0 && (
         <div className="max-w-md mx-auto mb-6 bg-premio/10 border border-premio/30 rounded-lg px-4 py-3 text-center">
           <p className="font-body text-sm text-premio font-semibold">
             Te quedan {sinPronosticar.length} partido{sinPronosticar.length > 1 ? 's' : ''} por pronosticar
@@ -226,13 +237,13 @@ function MatchdayPage() {
           {partidosDelDia.length === 1 ? (
             <div className="flex justify-center">
               <div className="w-full max-w-md">
-                <MatchCard partido={{ ...partidosDelDia[0], jornada }} jornadaBloqueada={data?.jornadaBloqueada} />
+                <MatchCard partido={{ ...partidosDelDia[0], jornada }} jornadaBloqueada={data?.jornadaBloqueada || cerrada} />
               </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 max-w-4xl mx-auto">
               {partidosDelDia.map((partido) => (
-                <MatchCard key={partido.id} partido={{ ...partido, jornada }} jornadaBloqueada={data?.jornadaBloqueada} />
+                <MatchCard key={partido.id} partido={{ ...partido, jornada }} jornadaBloqueada={data?.jornadaBloqueada || cerrada} />
               ))}
             </div>
           )}

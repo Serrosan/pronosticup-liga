@@ -9,7 +9,9 @@ use App\Models\Liga;
 use App\Models\Pronostico;
 use App\Models\RecordatorioEnviado;
 use App\Notifications\CartasSinJugar;
+use App\Notifications\JornadaAbierta;
 use App\Notifications\RecordatorioPendiente;
+use App\Services\AperturaJornadas;
 use Illuminate\Console\Command;
 
 class AvisarPendientes extends Command
@@ -62,7 +64,47 @@ class AvisarPendientes extends Command
             }
         }
 
+        $avisosEnviados += $this->avisarJornadasAbiertas();
+
         $this->info("{$avisosEnviados} recordatorio(s) enviados.");
+    }
+
+    /**
+     * Ligas con cartas: en cuanto termina una jornada se abre la siguiente para
+     * pronosticar (AperturaJornadas). Se avisa una vez por liga y jornada.
+     */
+    private function avisarJornadasAbiertas(): int
+    {
+        $enviados = 0;
+
+        foreach (Liga::where('tipo', 'ConExtras')->with('usuarios')->get() as $liga) {
+            $jornada = CalendarioPartido::proximaJornadaPorJugar((int) $liga->id_temporada);
+
+            if (! $jornada || CalendarioPartido::jornadaBloqueada($liga->id_temporada, $jornada)
+                || app(AperturaJornadas::class)->motivoCerrada($liga, $jornada) !== null) {
+                continue;
+            }
+
+            foreach ($liga->usuarios as $usuario) {
+                try {
+                    $yaAvisado = $usuario->notifications()
+                        ->where('type', JornadaAbierta::class)
+                        ->where('data->jornada', $jornada)
+                        ->where('data->id_liga', $liga->id)
+                        ->exists();
+
+                    if (! $yaAvisado) {
+                        $usuario->notify(new JornadaAbierta($jornada, $liga->id, $liga->nombre));
+                        $enviados++;
+                    }
+                } catch (\Throwable $e) {
+                    $this->error("Fallo avisando de la jornada abierta a {$usuario->email} (liga {$liga->id}, J{$jornada}): {$e->getMessage()}");
+                    report($e);
+                }
+            }
+        }
+
+        return $enviados;
     }
 
     private function proximaJornadaPorEmpezar(int $idTemporada): ?array

@@ -35,6 +35,11 @@ class PronosticoController extends Controller
             return response()->json(['message' => 'Esta jornada ya no admite pronósticos: ya ha empezado al menos un partido.'], 422);
         }
 
+        // Ligas con cartas: la jornada se abre cuando termina la anterior (ver AperturaJornadas).
+        if ($motivo = app(\App\Services\AperturaJornadas::class)->motivoCerrada($liga, (int) $partido->jornada)) {
+            return response()->json(['message' => $motivo], 422);
+        }
+
         $resultado1x2 = $this->calcularResultado($validated['goles_local_predicho'], $validated['goles_visitante_predicho']);
 
         // Prevalidación de Faltas tipo "requisito de pronóstico" (Todo queda en
@@ -50,7 +55,18 @@ class PronosticoController extends Controller
             ->whereHas('partido', fn ($q) => $q->where('id_temporada', $liga->id_temporada)->where('jornada', $partido->jornada))
             ->pluck('resultado_1x2');
 
-        $tiposConEsteIncluido = $otrosPronosticosDeEstaJornada->push($resultado1x2);
+        // Cómo estaba antes de este cambio: si la Falta llegó con la jornada ya
+        // rellena, se deja corregir partido a partido (ver MotorFaltas).
+        $anterior = Pronostico::where('id_usuario', $request->user()->id)
+            ->where('id_liga', $liga->id)
+            ->where('id_partido', $partido->id)
+            ->value('resultado_1x2');
+        $tiposAntes = $otrosPronosticosDeEstaJornada->values();
+        if ($anterior) {
+            $tiposAntes->push($anterior);
+        }
+
+        $tiposConEsteIncluido = $otrosPronosticosDeEstaJornada->values()->push($resultado1x2);
 
         $problemaFalta = app(\App\Services\MotorFaltas::class)->comprobarRequisitoPronostico(
             $liga->id,
@@ -58,7 +74,8 @@ class PronosticoController extends Controller
             $partido->jornada,
             $totalPartidosJornada,
             $tiposConEsteIncluido->count(),
-            $tiposConEsteIncluido
+            $tiposConEsteIncluido,
+            $tiposAntes
         );
 
         if ($problemaFalta) {

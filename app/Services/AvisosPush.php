@@ -16,7 +16,7 @@ class AvisosPush
      * El tipo null es el de las notificaciones antiguas sin tipo (sincronización fallida, solo admins).
      */
     public const CATEGORIAS = [
-        'cierre' => ['⏰ Cierre de jornada', 'Si te faltan pronósticos, goleadores o cartas por jugar antes de que empiece la jornada', true, ['recordatorio_pendiente', 'cartas_sin_jugar'], false],
+        'cierre' => ['⏰ Cierre de jornada', 'Si te faltan pronósticos, goleadores o cartas por jugar antes de que empiece la jornada', true, ['recordatorio_pendiente', 'cartas_sin_jugar', 'jornada_abierta'], false],
         'faltas' => ['⚠️ Te juegan una Falta', 'En cuanto alguien te saca una carta de Falta', true, ['falta_recibida'], false],
         'jornada' => ['📊 Jornada cerrada', 'Tus puntos y tu posición, y cómo les ha ido a tus cartas', true, ['jornada_cerrada', 'cartas_resueltas'], false],
         'cartas' => ['🃏 Cartas nuevas', 'Repartos de cartas y cartas que te da el admin', true, ['cartas_repartidas', 'carta_manual'], false],
@@ -70,7 +70,7 @@ class AvisosPush
         $jornada = $datos['jornada'] ?? null;
 
         return match ($tipo) {
-            'recordatorio_pendiente' => $jornada ? "/jornadas/{$jornada}" : '/dashboard',
+            'recordatorio_pendiente', 'jornada_abierta' => $jornada ? "/jornadas/{$jornada}" : '/dashboard',
             'jornada_cerrada' => $jornada ? "/jornadas/{$jornada}/liga" : '/clasificacion',
             'cartas_sin_jugar', 'falta_recibida', 'cartas_resueltas', 'cartas_repartidas', 'carta_manual' => '/mis-cartas',
             'chat_respuesta', 'chat_mencion', 'chat_reaccion' => '/chat',
@@ -88,7 +88,7 @@ class AvisosPush
         $jornada = $datos['jornada'] ?? null;
 
         return match ($tipo) {
-            'recordatorio_pendiente' => $jornada ? "cierre-{$jornada}" : 'cierre',
+            'recordatorio_pendiente', 'jornada_abierta' => $jornada ? "cierre-{$jornada}" : 'cierre',
             'jornada_cerrada' => $jornada ? "jornada-{$jornada}" : 'jornada',
             'chat_respuesta', 'chat_mencion' => 'chat',
             'chat_reaccion' => 'reacciones',

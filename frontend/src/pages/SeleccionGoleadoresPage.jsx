@@ -184,7 +184,12 @@ function SeleccionGoleadoresPage() {
     queryKey: ['partidos', jornada],
     queryFn: async () => {
       const respuesta = await client.get(`/api/v1/jornadas/${jornada}/partidos`)
-      return { jornadaBloqueada: respuesta.data.meta?.jornada_bloqueada ?? false }
+      const meta = respuesta.data.meta ?? {}
+      return {
+        jornadaBloqueada: meta.jornada_bloqueada ?? false,
+        // Ligas con cartas: la jornada se abre cuando termina la anterior.
+        apertura: meta.jornada_abierta === false ? (meta.apertura ?? 'Esta jornada todavía no está abierta.') : null,
+      }
     },
   })
 
@@ -332,7 +337,8 @@ function SeleccionGoleadoresPage() {
   }
 
   const cargando = cargandoJugadores || cargandoActual || cargandoInfoJornada
-  const jornadaBloqueada = infoJornada?.jornadaBloqueada ?? false
+  const apertura = infoJornada?.apertura ?? null
+  const jornadaBloqueada = (infoJornada?.jornadaBloqueada ?? false) || !!apertura
   const hayPartidos = (ayuda?.partidos?.length ?? 0) > 0
   const pestanas = PESTANAS.filter((p) => p.id !== 'partidos' || hayPartidos)
   const pestanaActiva = pestanas.some((p) => p.id === pestana) ? pestana : pestanas[0]?.id
@@ -363,7 +369,14 @@ function SeleccionGoleadoresPage() {
         <p className="font-body text-texto p-4">Cargando...</p>
       ) : (
         <>
-          {jornadaBloqueada && (
+          {apertura && (
+            <div className="bg-borde/10 border border-borde/30 rounded-lg p-4 mb-4">
+              <p className="font-body text-sm text-texto font-semibold">🔒 Todavía no se pueden elegir goleadores</p>
+              <p className="font-body text-xs text-borde mt-1">{apertura}</p>
+            </div>
+          )}
+
+          {jornadaBloqueada && !apertura && (
             <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 mb-4">
               <p className="font-body text-sm text-red-500 font-semibold">
                 🔒 Esta jornada ya no admite cambios

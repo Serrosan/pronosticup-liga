@@ -39,6 +39,10 @@ class CopiarPronosticosController extends Controller
             return response()->json(['message' => 'Esta jornada ya no admite cambios en tu liga actual.'], 422);
         }
 
+        if ($motivo = app(\App\Services\AperturaJornadas::class)->motivoCerrada($ligaDestino, $jornada)) {
+            return response()->json(['message' => $motivo], 422);
+        }
+
         $idsPartidosOrigen = CalendarioPartido::where('id_temporada', $ligaOrigen->id_temporada)
             ->where('jornada', $jornada)
             ->pluck('id', 'id');

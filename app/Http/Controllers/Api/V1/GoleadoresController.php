@@ -85,6 +85,10 @@ class GoleadoresController extends Controller
             return response()->json(['message' => 'Esta jornada ya no admite cambios en tus goleadores elegidos.'], 422);
         }
 
+        if ($motivo = app(\App\Services\AperturaJornadas::class)->motivoCerrada($liga, $jornada)) {
+            return response()->json(['message' => $motivo], 422);
+        }
+
         $jugadoresAnteriores = GoleadorJornada::where('id_usuario', $request->user()->id)
             ->where('id_liga', $liga->id)
             ->where('jornada', $jornada - 1)

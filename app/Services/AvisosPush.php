@@ -22,6 +22,7 @@ class AvisosPush
         'cartas' => ['🃏 Cartas nuevas', 'Repartos de cartas y cartas que te da el admin', true, ['cartas_repartidas', 'carta_manual'], false],
         'chat' => ['💬 Te responden o te mencionan', 'Cuando alguien te responde o te menciona en el chat', true, ['chat_respuesta', 'chat_mencion'], false],
         'reacciones' => ['😄 Reacciones en el chat', 'Cuando alguien reacciona a un mensaje tuyo', false, ['chat_reaccion'], false],
+        'avisos' => ['📰 Avisos del admin', 'Mensajes que manda el administrador (cambios de horario, novedades…)', true, ['aviso_admin'], false],
         'admin' => ['🛠️ Avisos de administración', 'Jornada lista para cerrar, tareas que fallan y errores nuevos', true, ['admin_jornada_lista', 'admin_tarea_fallida', 'admin_error_nuevo', null], true],
     ];
 
@@ -73,6 +74,7 @@ class AvisosPush
             'jornada_cerrada' => $jornada ? "/jornadas/{$jornada}/liga" : '/clasificacion',
             'cartas_sin_jugar', 'falta_recibida', 'cartas_resueltas', 'cartas_repartidas', 'carta_manual' => '/mis-cartas',
             'chat_respuesta', 'chat_mencion', 'chat_reaccion' => '/chat',
+            'aviso_admin' => $datos['url'] ?? '/dashboard',
             'admin_jornada_lista' => '/admin/cierre-jornada',
             'admin_error_nuevo' => '/admin/sistema',
             'admin_tarea_fallida', null => '/admin/tareas',

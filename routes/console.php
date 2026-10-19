@@ -22,6 +22,9 @@ foreach (TareasAdmin::PROGRAMADAS as $tarea) {
 //  - runInBackground: no retrasa al resto de tareas mientras descarga de LaLiga.
 //  - withoutOverlapping(5): nunca dos a la vez; si un despliegue lo corta a
 //    medias, el bloqueo caduca solo a los 5 minutos.
+// Avisos del admin programados para más tarde (Admin → Enviar aviso).
+Schedule::command('avisos:enviar-programados')->everyMinute()->withoutOverlapping(5);
+
 Schedule::command('queue:work --stop-when-empty --max-time=50')
     ->everyMinute()
     ->withoutOverlapping(5)

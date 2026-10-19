@@ -100,6 +100,7 @@ Route::prefix('v1')->group(function () {
     Route::middleware('admin')->prefix('admin')->group(function () {
         Route::get('/avisos', [\App\Http\Controllers\Api\V1\Admin\AvisosAdminController::class, 'index']);
         Route::post('/avisos', [\App\Http\Controllers\Api\V1\Admin\AvisosAdminController::class, 'enviar'])->middleware('throttle:10,1');
+        Route::delete('/avisos/{aviso}', [\App\Http\Controllers\Api\V1\Admin\AvisosAdminController::class, 'cancelar']);
     Route::get('/avisos-scraper', [\App\Http\Controllers\Api\V1\Admin\AvisosScraperAdminController::class, 'index']);
         Route::get('/tareas', [\App\Http\Controllers\Api\V1\Admin\TareasAdminController::class, 'index']);
         Route::get('/tareas/jornadas/{jornada}/partidos', [\App\Http\Controllers\Api\V1\Admin\TareasAdminController::class, 'partidos'])->whereNumber('jornada');

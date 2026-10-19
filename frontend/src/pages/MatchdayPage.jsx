@@ -174,6 +174,7 @@ function MatchdayPage() {
   const partidos = data?.partidos
   // Ligas con cartas: la jornada se abre cuando termina la anterior.
   const cerrada = data?.jornadaAbierta === false
+  const motivoCerrada = cerrada ? `🔒 Se podrá pronosticar cuando termine la jornada ${numeroJornada - 1}.` : null
 
   function ir(numero) {
     if (numero < 1 || numero > TOTAL_JORNADAS) return
@@ -237,13 +238,13 @@ function MatchdayPage() {
           {partidosDelDia.length === 1 ? (
             <div className="flex justify-center">
               <div className="w-full max-w-md">
-                <MatchCard partido={{ ...partidosDelDia[0], jornada }} jornadaBloqueada={data?.jornadaBloqueada || cerrada} />
+                <MatchCard partido={{ ...partidosDelDia[0], jornada }} jornadaBloqueada={data?.jornadaBloqueada || cerrada} motivoBloqueo={motivoCerrada} />
               </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 max-w-4xl mx-auto">
               {partidosDelDia.map((partido) => (
-                <MatchCard key={partido.id} partido={{ ...partido, jornada }} jornadaBloqueada={data?.jornadaBloqueada || cerrada} />
+                <MatchCard key={partido.id} partido={{ ...partido, jornada }} jornadaBloqueada={data?.jornadaBloqueada || cerrada} motivoBloqueo={motivoCerrada} />
               ))}
             </div>
           )}

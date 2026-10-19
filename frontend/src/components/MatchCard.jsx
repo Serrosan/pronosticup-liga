@@ -81,7 +81,7 @@ function SelectorGoles({ valor, onCambiar }) {
   )
 }
 
-function MatchCard({ partido, jornadaBloqueada = false }) {
+function MatchCard({ partido, jornadaBloqueada = false, motivoBloqueo = null }) {
   const navigate = useNavigate()
   const [golesLocal, setGolesLocal] = useState(String(partido.mi_pronostico?.goles_local_predicho ?? 0))
   const [golesVisitante, setGolesVisitante] = useState(String(partido.mi_pronostico?.goles_visitante_predicho ?? 0))
@@ -193,9 +193,14 @@ function MatchCard({ partido, jornadaBloqueada = false }) {
         </div>
       )}
 
-      {partido.estado === 'Programado' && jornadaBloqueada && !partido.mi_pronostico && (
+      {partido.estado === 'Programado' && jornadaBloqueada && (
         <p className="mt-3 pt-3 border-t border-borde/40 text-center font-body text-xs text-borde">
-          Ya no admite pronósticos — otro partido de la jornada ya ha empezado.
+          {partido.mi_pronostico && (
+            <span className="block text-texto font-semibold mb-0.5">
+              Tu pronóstico: {partido.mi_pronostico.goles_local_predicho}-{partido.mi_pronostico.goles_visitante_predicho}
+            </span>
+          )}
+          {motivoBloqueo ?? (partido.mi_pronostico ? '' : 'Ya no admite pronósticos — otro partido de la jornada ya ha empezado.')}
         </p>
       )}
 

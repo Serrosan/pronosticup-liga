@@ -33,6 +33,10 @@ RUN apt-get update && apt-get install -y \
     && curl -sLS https://getcomposer.org/installer | php -- --install-dir=/usr/bin/ --filename=composer \
     && apt-get -y autoremove && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
+# Ajustes de seguridad de PHP (docker/php-seguridad.ini).
+COPY docker/php-seguridad.ini /etc/php/8.5/fpm/conf.d/99-seguridad.ini
+COPY docker/php-seguridad.ini /etc/php/8.5/cli/conf.d/99-seguridad.ini
+
 RUN userdel -r ubuntu 2>/dev/null || true \
     && groupadd --force -g 1000 sail \
     && useradd -ms /bin/bash --no-user-group -g 1000 -u 1000 sail

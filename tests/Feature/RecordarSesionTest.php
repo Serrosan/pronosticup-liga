@@ -20,13 +20,19 @@ class RecordarSesionTest extends TestCase
         return ['Origin' => 'http://localhost', 'Referer' => 'http://localhost', 'Accept' => 'application/json'];
     }
 
-    private function usuario(): User
+    private function usuario(?string $tokenRecordar = null): User
     {
-        return User::factory()->create([
+        $usuario = User::factory()->create([
             'password' => Hash::make('secreto-123'),
             'activado_en' => now(),
             'desactivada_en' => null,
         ]);
+
+        if ($tokenRecordar) {
+            $usuario->forceFill(['remember_token' => $tokenRecordar])->save();
+        }
+
+        return $usuario;
     }
 
     private function cookieRecordar(): string
@@ -72,7 +78,7 @@ class RecordarSesionTest extends TestCase
 
     public function test_cada_visita_renueva_los_30_dias(): void
     {
-        $usuario = $this->usuario();
+        $usuario = $this->usuario('token-de-prueba');
         $valor = $usuario->id.'|token-de-prueba|hash';
 
         $respuesta = $this->actingAs($usuario)
@@ -83,6 +89,19 @@ class RecordarSesionTest extends TestCase
 
         $respuesta->assertOk()->assertCookie($this->cookieRecordar(), $valor);
         $this->assertCaducaEnTreintaDias($respuesta);
+    }
+
+    public function test_una_cookie_vieja_no_se_renueva(): void
+    {
+        $usuario = $this->usuario('token-nuevo');
+
+        $this->actingAs($usuario)
+            ->withHeaders($this->cabeceras())
+            ->withCredentials()
+            ->withCookie($this->cookieRecordar(), $usuario->id.'|token-viejo|hash')
+            ->getJson('/api/v1/me')
+            ->assertOk()
+            ->assertCookieMissing($this->cookieRecordar());
     }
 
     public function test_quien_no_marco_la_casilla_no_recibe_cookie_al_navegar(): void
@@ -96,7 +115,7 @@ class RecordarSesionTest extends TestCase
 
     public function test_cerrar_sesion_borra_el_recordar(): void
     {
-        $usuario = $this->usuario();
+        $usuario = $this->usuario('token-de-prueba');
 
         $this->actingAs($usuario)
             ->withHeaders($this->cabeceras())
@@ -105,5 +124,28 @@ class RecordarSesionTest extends TestCase
             ->postJson('/api/v1/logout')
             ->assertOk()
             ->assertCookieExpired($this->cookieRecordar());
+    }
+
+    public function test_si_llega_duplicada_se_borra_la_copia_vieja_del_host(): void
+    {
+        // Como en producción: la cookie buena va con dominio y la vieja, sin él.
+        $this->app->make('cookie')->setDefaultPathAndDomain('/', 'localhost', false, 'lax');
+
+        $usuario = $this->usuario();
+        $nombre = $this->cookieRecordar();
+
+        $respuesta = $this->withHeaders($this->cabeceras() + ['Cookie' => "{$nombre}=vieja; {$nombre}=buena"])
+            ->postJson('/api/v1/login', [
+                'email' => $usuario->email,
+                'password' => 'secreto-123',
+                'recordar' => true,
+            ]);
+
+        $respuesta->assertOk();
+
+        $borradas = collect($respuesta->headers->getCookies())
+            ->filter(fn ($c) => $c->getName() === $nombre && $c->getDomain() === null && $c->isCleared());
+
+        $this->assertCount(1, $borradas, 'Debería borrar la copia vieja (solo host) del recuérdame.');
     }
 }

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useLayoutEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import client from '../api/client'
 import { useAuth } from '../context/AuthContext'
@@ -429,6 +429,9 @@ function ChatPage() {
   const [respondiendoA, setRespondiendoA] = useState(null)
   const [mencionEnCurso, setMencionEnCurso] = useState(null)
   const finRef = useRef(null)
+  const contenedorRef = useRef(null)
+  const contenidoRef = useRef(null)
+  const pegadoAlFondoRef = useRef(true)
   const inputImagenRef = useRef(null)
   const inputTextoRef = useRef(null)
   const timeoutEnvioRef = useRef(null)
@@ -501,15 +504,38 @@ function ChatPage() {
   })
 
   const { grabando, empezar, parar } = useGrabadorAudio((blob, extension) => {
+    pegadoAlFondoRef.current = true
     setSubiendo(true)
     enviarAudio.mutate({ blob, extension })
   })
 
+  // El chat se abre por el último mensaje y se queda "pegado" abajo mientras
+  // cargan fotos, stickers y fuentes (que cambian la altura después). Si subes
+  // a leer mensajes antiguos, no te arrastra abajo cuando llega uno nuevo.
+  function bajarAlFinal() {
+    const contenedor = contenedorRef.current
+    if (contenedor) contenedor.scrollTop = contenedor.scrollHeight
+  }
+
+  function alHacerScroll() {
+    const c = contenedorRef.current
+    if (!c) return
+    pegadoAlFondoRef.current = c.scrollHeight - c.scrollTop - c.clientHeight < 80
+  }
+
+  useLayoutEffect(() => {
+    if (!busquedaAbierta && pegadoAlFondoRef.current) bajarAlFinal()
+  }, [data, mensajePendiente, busquedaAbierta, subiendo])
+
   useEffect(() => {
-    if (!busquedaAbierta) {
-      finRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }
-  }, [data, mensajePendiente, busquedaAbierta])
+    const contenido = contenidoRef.current
+    if (!contenido || typeof ResizeObserver === 'undefined') return
+    const observador = new ResizeObserver(() => {
+      if (!busquedaAbierta && pegadoAlFondoRef.current) bajarAlFinal()
+    })
+    observador.observe(contenido)
+    return () => observador.disconnect()
+  }, [busquedaAbierta])
 
   useEffect(() => {
     if (!data?.mensajes?.length) return
@@ -553,6 +579,7 @@ function ChatPage() {
     setTexto('')
     setRespondiendoA(null)
     setMencionEnCurso(null)
+    pegadoAlFondoRef.current = true
     setMensajePendiente(textoAEnviar)
     setSegundosRestantes(SEGUNDOS_PARA_DESHACER)
 
@@ -583,6 +610,7 @@ function ChatPage() {
   }
 
   function confirmarEnvioImagen() {
+    pegadoAlFondoRef.current = true
     setSubiendo(true)
     enviarImagen.mutate(imagenPreview.archivo)
     setImagenPreview(null)
@@ -602,6 +630,7 @@ function ChatPage() {
   }
 
   function cerrarBusqueda() {
+    pegadoAlFondoRef.current = true
     setBusquedaAbierta(false)
     setTerminoBusqueda('')
     setIndiceResultado(0)
@@ -710,7 +739,8 @@ function ChatPage() {
         />
       )}
 
-      <div className="flex-1 overflow-y-auto bg-fondo border-x border-borde/30 p-4">
+      <div ref={contenedorRef} onScroll={alHacerScroll} className="flex-1 overflow-y-auto bg-fondo border-x border-borde/30 p-4">
+        <div ref={contenidoRef}>
         {!data ? (
           <p className="font-body text-sm text-borde text-center">Cargando...</p>
         ) : data.mensajes.length === 0 && !mensajePendiente ? (
@@ -753,6 +783,7 @@ function ChatPage() {
         )}
         {subiendo && <p className="font-body text-xs text-borde text-center">Subiendo...</p>}
         <div ref={finRef} />
+        </div>
       </div>
 
       {imagenPreview && (
@@ -795,7 +826,7 @@ function ChatPage() {
             </button>
             {mostrarStickers && (
               <SelectorStickers
-                onSeleccionar={(archivo) => enviarSticker.mutate(archivo)}
+                onSeleccionar={(archivo) => { pegadoAlFondoRef.current = true; enviarSticker.mutate(archivo) }}
                 onCerrar={() => setMostrarStickers(false)}
               />
             )}

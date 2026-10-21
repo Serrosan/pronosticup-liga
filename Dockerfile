@@ -13,11 +13,15 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=UTC
 WORKDIR /var/www/html
 
-RUN apt-get update && apt-get install -y \
+# Cambiar esta fecha obliga a reinstalar PHP (sin caché) en el siguiente despliegue.
+ARG PHP_ACTUALIZADO=2026-10-21
+RUN echo "PHP actualizado: ${PHP_ACTUALIZADO}" \
+    && echo 'Acquire::Retries "5";' > /etc/apt/apt.conf.d/80-reintentos \
+    && apt-get update && apt-get install -y \
     gnupg curl ca-certificates zip unzip git nginx supervisor pngquant \
     && mkdir -p /etc/apt/keyrings \
     && curl -sS 'https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xb8dc7e53946656efbce4c1dd71daeaab4ad4cab6' | gpg --dearmor | tee /etc/apt/keyrings/ppa_ondrej_php.gpg > /dev/null \
-    && echo "deb [signed-by=/etc/apt/keyrings/ppa_ondrej_php.gpg] https://ppa.launchpadcontent.net/ondrej/php/ubuntu noble main" > /etc/apt/sources.list.d/ppa_ondrej_php.list \
+    && echo "deb [signed-by=/etc/apt/keyrings/ppa_ondrej_php.gpg] https://ppa.setup-php.com/ondrej/php/ubuntu noble main" > /etc/apt/sources.list.d/ppa_ondrej_php.list \
     && apt-get update \
     && apt-get install -y \
         php8.5-fpm \
@@ -36,6 +40,9 @@ RUN apt-get update && apt-get install -y \
 # Ajustes de seguridad de PHP (docker/php-seguridad.ini).
 COPY docker/php-seguridad.ini /etc/php/8.5/fpm/conf.d/99-seguridad.ini
 COPY docker/php-seguridad.ini /etc/php/8.5/cli/conf.d/99-seguridad.ini
+# Se niega a construir con un PHP sin el parche de CVE-2026-109618/109619:
+# así Coolify nunca sustituye el contenedor bueno por uno vulnerable.
+RUN php -r 'if (version_compare(PHP_VERSION, "8.5.12", "<")) { fwrite(STDERR, "PHP ".PHP_VERSION." sin parchear\n"); exit(1); }'
 
 RUN userdel -r ubuntu 2>/dev/null || true \
     && groupadd --force -g 1000 sail \

@@ -294,11 +294,12 @@ class CierreJornadaService
         } elseif ($faltanPorJugar > 0) {
             $pasos[] = $this->paso('cerrar', 'Cerrar la jornada', 'bloqueado', "Faltan {$faltanPorJugar} partido(s) por jugar: no se puede cerrar hasta que estén los {$partidos['total']}.");
         } else {
-            $pasos[] = $this->paso('cerrar', 'Cerrar la jornada', 'listo', 'Calcula los puntos de los pronósticos y el bonus de pleno, resuelve las cartas de resultado y las faltas, y avisa a los jugadores.', 'cerrar');
+            $pasos[] = $this->paso('cerrar', 'Cerrar la jornada', 'listo', 'Calcula los puntos de los pronósticos y el bonus de pleno, y resuelve las cartas de resultado y las faltas.', 'cerrar');
         }
 
         // 2. Goleadores (y cartas que dependen de goles y tarjetas)
         $loQueHace = $conCartas && ! $jornadaSinCartas ? 'Da los puntos de goleadores y resuelve las cartas que dependen de goles y tarjetas.' : 'Da los puntos de goleadores.';
+        $loQueHace .= ' La primera vez, además, manda a cada jugador su resumen de puntos de la jornada.';
         if (! $cerrada) {
             $pasos[] = $this->paso('goleadores', 'Calcular goleadores', 'bloqueado', 'Primero hay que cerrar la jornada.');
         } elseif ($goleadoresCalculados) {

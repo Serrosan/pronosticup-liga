@@ -17,6 +17,7 @@ use App\Notifications\CartasResueltas;
 use App\Notifications\JornadaCerradaConPuntos;
 use App\Services\MotorEfectosCartas;
 use App\Services\ResumenJornadaService;
+use App\Services\ResumenPuntosJornadaService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Services\MotorFaltas;
@@ -96,7 +97,6 @@ class JornadaController extends Controller
             return $puntosPorUsuario;
         });
 
-        $this->notificarCierre($liga, $jornada, $puntosPorUsuario);
         $this->generarResumenJornada($liga, $jornada, $puntosPorUsuario);
         $this->notificarCartasResueltas($liga, $jornada);
 
@@ -228,6 +228,8 @@ class JornadaController extends Controller
 
             return [$creados, $cartasResueltas];
         });
+
+        $this->notificarPuntosSiToca($liga, $jornada);
 
         return response()->json([
             'message' => "Recalculado. {$creados} usuario(s) recibieron puntos de goleadores, y {$cartasResueltas} carta(s) de evento se resolvieron con los eventos disponibles ahora mismo.",
@@ -373,27 +375,43 @@ class JornadaController extends Controller
         return 0;
     }
 
-    private function notificarCierre($liga, int $jornada, array $puntosPorUsuario): void
+    /**
+     * El correo y el aviso con los puntos de la jornada salen UNA sola vez, aquí,
+     * cuando ya están todos: pronósticos, bonus, cartas y goleadores. Si se repite
+     * el cálculo de goleadores no se vuelve a avisar (puntos_notificados_en). Un
+     * fallo al avisar nunca estropea el cálculo, que ya está hecho.
+     */
+    private function notificarPuntosSiToca($liga, int $jornada): void
     {
-        $clasificacion = EventoPuntos::where('id_liga', $liga->id)
-            ->selectRaw('id_usuario, SUM(puntos) as total')
-            ->groupBy('id_usuario')
-            ->orderByDesc('total')
-            ->get();
+        $marcado = CierreJornada::where('id_liga', $liga->id)
+            ->where('jornada', $jornada)
+            ->whereNull('puntos_notificados_en')
+            ->update(['puntos_notificados_en' => now()]);
 
-        foreach ($liga->usuarios as $usuario) {
-            if (! isset($puntosPorUsuario[$usuario->id])) {
-                continue;
+        if (! $marcado) {
+            return;
+        }
+
+        try {
+            $servicio = app(ResumenPuntosJornadaService::class);
+            $contexto = $servicio->contexto($liga, $jornada);
+
+            foreach ($servicio->usuariosConActividad($contexto) as $usuario) {
+                try {
+                    $resumen = $servicio->paraUsuario($contexto, $usuario);
+                    $usuario->notify(new JornadaCerradaConPuntos(
+                        $jornada,
+                        $resumen['total'],
+                        $resumen['posicion'],
+                        $liga->nombre,
+                        $resumen,
+                    ));
+                } catch (\Throwable $e) {
+                    report($e);
+                }
             }
-
-            $posicion = $clasificacion->search(fn ($fila) => $fila->id_usuario === $usuario->id);
-
-            $usuario->notify(new JornadaCerradaConPuntos(
-                $jornada,
-                $puntosPorUsuario[$usuario->id],
-                $posicion === false ? null : $posicion + 1,
-                $liga->nombre,
-            ));
+        } catch (\Throwable $e) {
+            report($e);
         }
     }
 

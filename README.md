@@ -1,58 +1,52 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# PronostiCup Liga
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+App de pronósticos de LaLiga para jugar entre amigos: pronósticos de cada partido,
+goleadores, quinielas, clasificación por liga y, en las ligas con extras, un juego de
+**cartas** (Jugadas y Faltas) que cambia los puntos de cada jornada.
 
-## About Laravel
+En producción en **https://www.pronosticup.es** con dos ligas reales:
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+| Liga | Tipo | Cartas |
+|---|---|---|
+| BasiLiga (id 5) | `ConExtras` | Sí, desde la jornada 8 |
+| Liga Familia | Normal | No |
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+Repositorio **privado** (y así debe seguir).
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## Documentación
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+| Documento | Para qué |
+|---|---|
+| [Chuletas](docs/chuletas.md) | **Empieza aquí.** Comandos y consultas rápidas para comprobar cosas, en local, en el servidor y en la base de datos |
+| [Operación del admin](docs/03-operacion-admin.md) | El cierre de jornada paso a paso y el resto de tareas del panel de administración |
+| [Reglas del juego](docs/02-reglas-del-juego.md) | Cómo se puntúa, cuándo se abre una jornada, cartas y faltas: las reglas tal como están programadas |
+| [Arquitectura](docs/01-arquitectura.md) | Cómo está montada la app: piezas, servicios clave, tareas programadas, avisos |
+| [Producción](docs/04-produccion.md) | Servidor, Coolify, despliegues, volúmenes, copias, seguridad y qué hacer ante un aviso de seguridad |
+| [Desarrollo](docs/05-desarrollo.md) | Entorno local, tests, cómo se aplican los cambios y cómo actualizar dependencias |
+| [Decisiones](docs/decisiones.md) | Por qué las cosas son como son. Antes de "arreglar" algo raro, mirar aquí |
+| [Pendientes](docs/pendientes.md) | Ideas y tareas apuntadas para más adelante |
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+---
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+## Stack en una línea
 
-## Agentic Development
+Laravel 13 (PHP 8.5) como API REST + React 19 / Vite 8 / TanStack Query / Tailwind 4 como
+SPA, autenticación con Sanctum (cookies de sesión), MySQL, desplegado con Docker en un VPS
+de Contabo gestionado con Coolify.
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+Datos externos: **football-data.org** (calendario, resultados, horarios) y **LaLiga.com**
+(alineaciones, estadísticas y eventos de cada partido, con un scraper propio).
+
+## Arrancar en local (resumen)
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+cd ~/proyectos/pronosticup-liga
+./vendor/bin/sail up -d                      # backend (Laravel + MySQL)
+(cd frontend && docker compose up -d)        # frontend (Vite)
+./vendor/bin/sail artisan test --compact     # tests
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
-
-## Contributing
-
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Frontend en http://localhost:5173 · API en http://localhost. Detalles en
+[Desarrollo](docs/05-desarrollo.md).

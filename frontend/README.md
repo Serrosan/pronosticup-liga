@@ -1,16 +1,14 @@
-# React + Vite
+# Frontend de PronostiCup Liga
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+SPA en React 19 + Vite 8 + TanStack Query 5 + Tailwind 4 + React Router 7.
 
-Currently, two official plugins are available:
+Toda la documentación del proyecto está en la raíz: [README](../README.md) y la carpeta
+[`docs/`](../docs). Lo específico del frontend está en
+[Arquitectura → Frontend](../docs/01-arquitectura.md#frontend) y
+[Desarrollo](../docs/05-desarrollo.md).
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+```bash
+cd ~/proyectos/pronosticup-liga/frontend
+docker compose up -d                                      # servidor de desarrollo (http://localhost:5173)
+docker compose exec -T node npx vite build --outDir /tmp/build-prueba --emptyOutDir   # comprobar que compila
+```

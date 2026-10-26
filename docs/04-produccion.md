@@ -124,7 +124,7 @@ Lo que hay puesto y por qué:
 | Medida | Dónde | Para qué |
 |---|---|---|
 | PHP ≥ 8.5.12 obligatorio al construir | `Dockerfile` | CVE-2026-109618/109619 (ejecución remota de código en PHP) |
-| `session.upload_progress.enabled = 0`, `session.use_strict_mode = 1`, `expose_php = Off` | `docker/php-seguridad.ini` | Medida recomendada para esos fallos; no anunciar la versión |
+| `session.upload_progress.enabled = 0`, `session.use_strict_mode = 1`, `expose_php = Off` | `docker/php-seguridad.ini` | Medida recomendada para esos fallos (cubre también **CVE-2026-115560**, sin parche aún): **no quitar** aunque PHP esté al día; no anunciar la versión |
 | Envíos con archivos (multipart) **solo** con cabecera `X-XSRF-TOKEN` (403 si no) | `docker/nginx.conf` | Frena ataques automáticos; la app siempre la manda |
 | nginx **solo ejecuta `index.php`**; cualquier otro `.php`, 404 | `docker/nginx.conf` | Que nadie pueda ejecutar un fichero colado en `storage` |
 | `APP_DEBUG=false` | Coolify | No enseñar errores internos |

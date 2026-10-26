@@ -121,8 +121,9 @@ function SeccionGoleadores({ goleadores }) {
 
 // Misma tarjeta por jornada que ya usa UserPointsDetailPage — consistente con
 // el resto de la app, en vez de un patrón propio de esta pantalla.
-function BloqueJornada({ bloque }) {
-  const [abierto, setAbierto] = useState(bloque.bloqueada === false || bloque.partidos.some((p) => p.estado_partido !== 'Jugado'))
+function BloqueJornada({ bloque, abiertoAlEntrar }) {
+  // Al entrar, solo la jornada más reciente viene abierta; el resto, plegadas.
+  const [abierto, setAbierto] = useState(abiertoAlEntrar)
 
   // "Sin cerrar" se dice UNA vez aquí arriba, no en cada partido.
   const sinCerrar = bloque.partidos.some(
@@ -225,7 +226,8 @@ function MyPredictionsPage() {
   if (isLoading) return <div className="max-w-2xl mx-auto px-4 py-8"><SkeletonLista /></div>
   if (error) return <p className="font-body text-red-500 p-4">{error.response?.data?.message ?? 'Error al cargar.'}</p>
 
-  const jornadas = [...data.jornadas].reverse()
+  // De la más reciente a la más antigua, venga como venga del servidor.
+  const jornadas = [...data.jornadas].sort((a, b) => b.jornada - a.jornada)
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
@@ -258,7 +260,7 @@ function MyPredictionsPage() {
           <EstadoVacio icono="⚽" titulo="Nada por aquí" texto="Aún no has hecho ningún pronóstico." />
         </div>
       ) : (
-        jornadas.map((bloque) => <BloqueJornada key={bloque.jornada} bloque={bloque} />)
+        jornadas.map((bloque, i) => <BloqueJornada key={bloque.jornada} bloque={bloque} abiertoAlEntrar={i === 0} />)
       )}
     </div>
   )

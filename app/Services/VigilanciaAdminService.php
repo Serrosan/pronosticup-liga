@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\Notification;
  *   - una jornada ya se puede cerrar en una liga
  *   - una tarea del panel ha terminado con fallo
  *   - ha aparecido un error nuevo en los registros
+ *   - un partido lleva horas empezado y sigue sin terminar (partidosAtascados)
  *
  * Los avisos van a los superadmin, que son quienes tienen esas pantallas.
  *
@@ -37,6 +38,9 @@ class VigilanciaAdminService
     private const MINUTOS_ESPERA_DATOS = 240;
 
     private const MINUTOS_FALLO_RECIENTE = 30;
+
+    /** Un partido que empezó hace más de esto y no está "Jugado" se considera atascado. */
+    private const MINUTOS_PARTIDO_ATASCADO = 180;
     private const MAXIMO_ERRORES_POR_PASADA = 3;
 
     public function __construct(private VisorErroresService $visor) {}
@@ -120,6 +124,43 @@ class VigilanciaAdminService
                 Notification::send($admins, new AvisoAdmin('admin_jornada_lista', "✅ Jornada {$jornada} lista para cerrar", $mensaje, true));
                 $enviados += $admins->count();
             }
+        }
+
+        return $enviados;
+    }
+
+    /**
+     * Partidos que empezaron hace más de MINUTOS_PARTIDO_ATASCADO y siguen sin
+     * estar "Jugado": casi siempre es football-data, que no ha actualizado el
+     * resultado. Un aviso por partido. Los aplazados/suspendidos no cuentan.
+     */
+    public function partidosAtascados(): int
+    {
+        $partidos = CalendarioPartido::with(['equipoLocal', 'equipoVisitante'])
+            ->whereNotIn('estado', ['Jugado', 'Aplazado', 'Suspendido', 'Cancelado'])
+            ->whereNotNull('horario_estimado')
+            ->whereBetween('horario_estimado', [now()->subDays(self::DIAS_JORNADA_RECIENTE), now()->subMinutes(self::MINUTOS_PARTIDO_ATASCADO)])
+            ->orderBy('horario_estimado')
+            ->get();
+
+        $enviados = 0;
+
+        foreach ($partidos as $partido) {
+            if (! $this->esNuevo("atascado:{$partido->id}")) {
+                continue;
+            }
+
+            $local = $partido->equipoLocal->nombre_corto ?? $partido->equipoLocal->nombre ?? '?';
+            $visitante = $partido->equipoVisitante->nombre_corto ?? $partido->equipoVisitante->nombre ?? '?';
+            $horas = intdiv((int) $partido->horario_estimado->diffInMinutes(now(), true), 60);
+
+            $mensaje = "El {$local} - {$visitante} (jornada {$partido->jornada}) empezó hace {$horas} h y sigue como «{$partido->estado}». "
+                .'Lo normal es que football-data aún no lo haya actualizado: se recogerá solo cuando lo haga. '
+                .'Si no llega a tiempo para cerrar la jornada, márcalo a mano en Admin → Calendario.';
+
+            $admins = $this->superadmins();
+            Notification::send($admins, new AvisoAdmin('admin_partido_atascado', '⏱️ Un partido no se ha actualizado', $mensaje));
+            $enviados += $admins->count();
         }
 
         return $enviados;

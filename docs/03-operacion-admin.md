@@ -18,6 +18,8 @@ botón de cada uno. Se va **de arriba abajo**: el orden importa.
 
 ### Antes de empezar
 
+- Si te ha llegado a la campana **«⏱️ Un partido no se ha actualizado»** (partido atascado: football-data no ha
+  publicado el resultado), no cierres hasta que llegue, o márcalo a mano en Admin → Calendario.
 - **Espera unos minutos** desde el pitido final del último partido. El scraper descarga
   solo alineaciones, goles y tarjetas de cada partido **10 minutos después** de que pase
   a "Jugado".

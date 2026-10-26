@@ -241,6 +241,7 @@ Ver [Producción → Desplegar](04-produccion.md#desplegar).
 | "Se guarda pero no cambia nada" | El campo no está en `$fillable` | Añadirlo al modelo (Eloquent lo descarta en silencio) |
 | Se guarda pero no se ve en la app | El campo no está en el Resource | Añadirlo al `…Resource` |
 | Coolify no despliega tras el push | No llegó el aviso de GitHub | **Deploy a mano** |
+| Los resultados no se actualizan (sin errores) | football-data no ha actualizado esos partidos (siguen `TIMED`) | Avisa la campana («⏱️ Un partido no se ha actualizado»). Esperar; si no llega antes del cierre, Admin → Calendario a mano |
 | Build de Docker con `503 Service Unavailable` | Repositorio de PHP saturado | Reintentar más tarde o usar el espejo (ya configurado) |
 | `curl: Invoke-WebRequest…` | Estás en PowerShell | Usar la terminal de Ubuntu o `curl.exe` |
 | `docker exec … No such container` | Pusiste el nombre de la imagen | Usar la 1ª columna de `docker ps` o el `C=$(…)` de arriba |

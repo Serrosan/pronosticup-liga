@@ -13,12 +13,12 @@ se apunta en [Decisiones](decisiones.md).
   - Node local 22.23.4.
   
   Ver [Desarrollo → Actualizar dependencias](05-desarrollo.md#actualizar-dependencias).
-- [ ] **`cookies8.txt`** en el repo: revisarlo y quitarlo (ver abajo).
 - [ ] **Errores de la API**: cualquier excepción sale como 500 genérico. Un token CSRF
   caducado debería ser 419 y no 500. No es de seguridad, solo queda feo.
 
 ## Cuando apetezca
 
+- [ ] **Rediseño de Mis pronósticos** (la sección entera; el orden de jornadas ya está arreglado).
 - [ ] **Logros**: rediseño completo (25 logros, secretos, premios con carta, distintivo
   final). Diseño a medias; falta decidir si los 25 incluyen los secretos y qué candidatos
   entran.

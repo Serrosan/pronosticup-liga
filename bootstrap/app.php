@@ -61,6 +61,24 @@ return Application::configure(basePath: dirname(__DIR__))
                 return null;
             }
 
+            // Errores "con código" (abort(403, '...'), token caducado, archivo demasiado
+            // grande, mantenimiento…): se devuelven con SU código y su mensaje, no como 500.
+            if ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface) {
+                $MENSAJES_HTTP = [
+                    403 => 'No tienes permiso para hacer esto.',
+                    413 => 'El archivo es demasiado grande.',
+                    419 => 'La página ha caducado. Recarga e inténtalo de nuevo.',
+                    503 => 'La app está en mantenimiento. Vuelve en un rato.',
+                ];
+                $codigo = $e->getStatusCode();
+                // Mensaje propio (abort(403, 'Solo el admin…')) si lo hay; si no, o si es el texto
+                // por defecto de Laravel en inglés, el nuestro en español.
+                $propio = ! in_array($e->getMessage(), ['', 'This action is unauthorized.', 'CSRF token mismatch.'], true);
+                $mensaje = $propio && $codigo !== 419 ? $e->getMessage() : ($MENSAJES_HTTP[$codigo] ?? 'No se ha podido completar la petición.');
+
+                return response()->json(['message' => $mensaje], $codigo, $e->getHeaders());
+            }
+
             if (config('app.debug')) {
                 return null;
             }

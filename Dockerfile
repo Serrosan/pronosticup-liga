@@ -62,6 +62,7 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction \
     && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
 COPY docker/nginx.conf /etc/nginx/sites-available/default
+COPY docker/cabeceras-seguridad.conf /etc/nginx/snippets/cabeceras-seguridad.conf
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY docker/start-production.sh /usr/local/bin/start-production
 RUN chmod +x /usr/local/bin/start-production

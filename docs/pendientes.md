@@ -18,6 +18,10 @@ se apunta en [Decisiones](decisiones.md).
 
 ## Cuando apetezca
 
+- [ ] **Acceso SSH con clave** y sin contraseña para root (fail2ban lleva cientos de bloqueos): hay que preparar
+  también la clave para `plink`/HeidiSQL antes de quitar la contraseña.
+- [ ] **Panel de Coolify por HTTPS** con un dominio propio y cerrar al exterior los puertos 8000, 6001 y 6002
+  (Docker los abre aunque ufw no los permita). Puede que esto arregle también la terminal de Coolify.
 - [ ] **Rediseño de Mis pronósticos** (la sección entera; el orden de jornadas ya está arreglado).
 - [ ] **Logros**: rediseño completo (25 logros, secretos, premios con carta, distintivo
   final). Diseño a medias; falta decidir si los 25 incluyen los secretos y qué candidatos

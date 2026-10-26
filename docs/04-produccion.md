@@ -127,6 +127,7 @@ Lo que hay puesto y por qué:
 | `session.upload_progress.enabled = 0`, `session.use_strict_mode = 1`, `expose_php = Off` | `docker/php-seguridad.ini` | Medida recomendada para esos fallos (cubre también **CVE-2026-115560**, sin parche aún): **no quitar** aunque PHP esté al día; no anunciar la versión |
 | Envíos con archivos (multipart) **solo** con cabecera `X-XSRF-TOKEN` (403 si no) | `docker/nginx.conf` | Frena ataques automáticos; la app siempre la manda |
 | nginx **solo ejecuta `index.php`**; cualquier otro `.php`, 404 | `docker/nginx.conf` | Que nadie pueda ejecutar un fichero colado en `storage` |
+| Cabeceras de seguridad (HSTS, X-Frame-Options, nosniff, Referrer-Policy, Permissions-Policy) y `server_tokens off` | `docker/cabeceras-seguridad.conf` + `docker/nginx.conf` | Que el navegador fuerce HTTPS, nadie meta la app en un iframe y no se anuncie la versión de nginx |
 | `APP_DEBUG=false` | Coolify | No enseñar errores internos |
 | Login limitado a 5 intentos/min | `routes/api.php` | Fuerza bruta |
 | Sesión de 2 h; recuérdame 30 días solo con la casilla | Laravel | Equilibrio comodidad/seguridad |

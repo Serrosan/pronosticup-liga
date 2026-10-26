@@ -33,6 +33,7 @@ Route::prefix('v1')->group(function () {
     Route::post('/chat/subir-imagen', [\App\Http\Controllers\Api\V1\ChatAdjuntoController::class, 'subirImagen']);
     Route::post('/chat/subir-audio', [\App\Http\Controllers\Api\V1\ChatAdjuntoController::class, 'subirAudio']);
     Route::post('/profile/password', [\App\Http\Controllers\Api\V1\ProfileController::class, 'updatePassword']);
+    Route::post('/profile/cerrar-otras-sesiones', [\App\Http\Controllers\Api\V1\ProfileController::class, 'cerrarOtrasSesiones'])->middleware('throttle:5,1');
     Route::post('/profile/avatar', [\App\Http\Controllers\Api\V1\ProfileController::class, 'uploadAvatar']);
     Route::get('/clasificacion-liga', [\App\Http\Controllers\Api\V1\LaLigaStandingsController::class, 'index']);
     Route::get('/chat', [\App\Http\Controllers\Api\V1\ChatController::class, 'index']);

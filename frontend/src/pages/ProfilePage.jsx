@@ -6,6 +6,16 @@ import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import TicketHeader from '../components/TicketHeader'
 import AvisosMovil from '../components/AvisosMovil'
+import { suscripcionActual } from '../utils/push'
+
+// La dirección de avisos de ESTE dispositivo (si los tiene activados), para no quitársela.
+async function endpointDeEsteDispositivo() {
+  try {
+    return (await suscripcionActual())?.endpoint ?? null
+  } catch {
+    return null
+  }
+}
 
 function ProfilePage() {
   const { usuario, refrescar, logout, actualizarUsuario } = useAuth()
@@ -19,6 +29,11 @@ function ProfilePage() {
   const [mostrarDesactivar, setMostrarDesactivar] = useState(false)
   const [passwordDesactivar, setPasswordDesactivar] = useState('')
   const [errorDesactivar, setErrorDesactivar] = useState(null)
+  const [mostrarCerrarOtras, setMostrarCerrarOtras] = useState(false)
+  const [passwordCerrarOtras, setPasswordCerrarOtras] = useState('')
+  const [errorCerrarOtras, setErrorCerrarOtras] = useState(null)
+  // Cambia para que la tarjeta de avisos vuelva a contar los dispositivos.
+  const [claveAvisos, setClaveAvisos] = useState(0)
 
   const { data: ligas } = useQuery({
     queryKey: ['mis-ligas'],
@@ -48,13 +63,15 @@ function ProfilePage() {
   })
 
   const cambiarPassword = useMutation({
-    mutationFn: () => client.post('/api/v1/profile/password', {
+    mutationFn: async () => client.post('/api/v1/profile/password', {
       current_password: passwordActual,
       password: passwordNueva,
       password_confirmation: passwordConfirmar,
+      endpoint: await endpointDeEsteDispositivo(),
     }),
-    onSuccess: () => {
-      setMensajePassword({ tipo: 'exito', texto: 'Contraseña actualizada correctamente.' })
+    onSuccess: (respuesta) => {
+      setMensajePassword({ tipo: 'exito', texto: respuesta.data.message ?? 'Contraseña actualizada correctamente.' })
+      setClaveAvisos((k) => k + 1)
       setPasswordActual('')
       setPasswordNueva('')
       setPasswordConfirmar('')
@@ -63,6 +80,25 @@ function ProfilePage() {
       setMensajePassword({ tipo: 'error', texto: err.response?.data?.message ?? 'Error al cambiar la contraseña.' })
     },
   })
+
+  const cerrarOtras = useMutation({
+    mutationFn: async () => client.post('/api/v1/profile/cerrar-otras-sesiones', {
+      password: passwordCerrarOtras,
+      endpoint: await endpointDeEsteDispositivo(),
+    }),
+    onSuccess: (respuesta) => {
+      toast.exito(respuesta.data.message)
+      cancelarCerrarOtras()
+      setClaveAvisos((k) => k + 1)
+    },
+    onError: (err) => setErrorCerrarOtras(err.response?.data?.message ?? 'No se pudo cerrar la sesión en los demás dispositivos.'),
+  })
+
+  function cancelarCerrarOtras() {
+    setMostrarCerrarOtras(false)
+    setPasswordCerrarOtras('')
+    setErrorCerrarOtras(null)
+  }
 
   const desactivarCuenta = useMutation({
     mutationFn: () => client.post('/api/v1/cuenta/desactivar', { password: passwordDesactivar }),
@@ -144,7 +180,7 @@ function ProfilePage() {
       </div>
 
       {/* Avisos en el móvil (push) */}
-      <AvisosMovil />
+      <AvisosMovil key={claveAvisos} />
 
       {/* Preferencias de email */}
       <div className="bg-fondo border border-borde/30 rounded-lg overflow-hidden">
@@ -232,6 +268,23 @@ function ProfilePage() {
         </form>
       </div>
 
+      {/* Sesiones en otros dispositivos */}
+      <div className="bg-fondo border border-borde/30 rounded-lg overflow-hidden">
+        <TicketHeader titulo="Tus dispositivos" />
+        <div className="p-4 flex flex-col gap-3">
+          <p className="font-body text-sm text-borde">
+            ¿Perdiste el móvil o dejaste la sesión abierta en otro ordenador? Esto te saca de todos los demás
+            dispositivos y les quita los avisos. En este te quedas dentro. Cambiar la contraseña también lo hace.
+          </p>
+          <button
+            onClick={() => setMostrarCerrarOtras(true)}
+            className="self-start font-body text-sm font-semibold text-texto border border-borde/40 rounded px-4 py-2 hover:bg-borde/10"
+          >
+            🔒 Cerrar sesión en los demás dispositivos
+          </button>
+        </div>
+      </div>
+
       {/* Zona peligrosa */}
       <div className="bg-fondo border border-red-500/30 rounded-lg overflow-hidden">
         <div className="bg-red-500/10 px-4 py-3">
@@ -250,6 +303,47 @@ function ProfilePage() {
           </button>
         </div>
       </div>
+
+      {mostrarCerrarOtras && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <form
+            onSubmit={(e) => { e.preventDefault(); cerrarOtras.mutate() }}
+            className="bg-fondo border-2 border-borde/40 rounded-lg p-6 max-w-sm w-full"
+          >
+            <h2 className="font-display text-lg text-texto mb-2 text-center">¿Cerrar sesión en los demás dispositivos?</h2>
+            <p className="font-body text-sm text-borde mb-4 text-center">
+              Tendrán que volver a entrar con tu contraseña y dejarán de recibir avisos. Introduce tu contraseña para confirmar.
+            </p>
+            {errorCerrarOtras && (
+              <p className="font-body text-xs text-red-500 bg-red-500/10 rounded px-3 py-2 mb-3">⚠️ {errorCerrarOtras}</p>
+            )}
+            <input
+              type="password"
+              placeholder="Tu contraseña"
+              autoComplete="current-password"
+              value={passwordCerrarOtras}
+              onChange={(e) => setPasswordCerrarOtras(e.target.value)}
+              className="w-full font-body bg-borde/10 text-texto rounded border border-borde/40 px-3 py-2 mb-4 focus:outline-none focus:border-acento"
+            />
+            <div className="flex gap-3 justify-center">
+              <button
+                type="button"
+                onClick={cancelarCerrarOtras}
+                className="font-body text-sm text-borde hover:text-texto px-4 py-2"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={cerrarOtras.isPending || !passwordCerrarOtras}
+                className="font-body text-sm font-semibold bg-acento text-fondo rounded px-5 py-2 hover:brightness-110 disabled:opacity-50"
+              >
+                {cerrarOtras.isPending ? 'Cerrando...' : 'Sí, cerrarlas'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {mostrarDesactivar && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">

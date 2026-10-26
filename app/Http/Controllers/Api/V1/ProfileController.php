@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
 use App\Services\ImagenService;
+use App\Services\SesionesUsuarioService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -23,20 +24,49 @@ class ProfileController extends Controller
         return new UserResource($request->user()->fresh());
     }
 
-    public function updatePassword(Request $request)
+    /**
+     * Cambiar la contraseña cierra además la sesión en los demás dispositivos:
+     * si alguien entró con la contraseña vieja, se queda fuera (también su
+     * "Mantener la sesión iniciada" y sus avisos al móvil).
+     */
+    public function updatePassword(Request $request, SesionesUsuarioService $sesiones)
     {
         $validated = $request->validate([
             'current_password' => ['required'],
             'password' => ['required', 'confirmed', Password::defaults()],
+            'endpoint' => ['nullable', 'string', 'max:2000'],
         ]);
 
-        if (! Hash::check($validated['current_password'], $request->user()->password)) {
+        $usuario = $request->user();
+
+        if (! Hash::check($validated['current_password'], $usuario->password)) {
             return response()->json(['message' => 'La contraseña actual no es correcta.'], 422);
         }
 
-        $request->user()->update(['password' => Hash::make($validated['password'])]);
+        $usuario->update(['password' => Hash::make($validated['password'])]);
+        $sesiones->recordarContrasenaNueva($request, $usuario);
+        $resultado = $sesiones->cerrarLasDemas($request, $usuario, $validated['endpoint'] ?? null);
 
-        return response()->json(['message' => 'Contraseña actualizada correctamente.']);
+        return response()->json(['message' => 'Contraseña actualizada. '.$sesiones->resumen($resultado)]);
+    }
+
+    /** POST /profile/cerrar-otras-sesiones — pide la contraseña para confirmar. */
+    public function cerrarOtrasSesiones(Request $request, SesionesUsuarioService $sesiones)
+    {
+        $validated = $request->validate([
+            'password' => ['required', 'string'],
+            'endpoint' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $usuario = $request->user();
+
+        if (! Hash::check($validated['password'], $usuario->password)) {
+            return response()->json(['message' => 'La contraseña no es correcta.'], 422);
+        }
+
+        $resultado = $sesiones->cerrarLasDemas($request, $usuario, $validated['endpoint'] ?? null);
+
+        return response()->json(['message' => $sesiones->resumen($resultado), 'data' => $resultado]);
     }
 
     public function uploadAvatar(Request $request)

@@ -119,6 +119,13 @@ class SincronizarPartidoLaligaJob implements ShouldQueue
             throw new \RuntimeException('Importación fallida para '.$partido->equipoLocal->nombre.' vs '.$partido->equipoVisitante->nombre.': '.implode('; ', $resultado['avisos']));
         }
 
+        // Red de seguridad: si el enlace elegido era de OTRO partido, el importador habrá
+        // guardado ese otro (con sus propios datos, no se estropea nada) y este seguiría
+        // vacío. Nunca darlo por bueno: fallar con un error claro.
+        if ((int) ($resultado['id_partido'] ?? 0) !== $this->idPartido) {
+            throw new \RuntimeException("El enlace de LaLiga elegido era de otro partido (id {$resultado['id_partido']}), no de {$partido->equipoLocal->nombre} vs {$partido->equipoVisitante->nombre}: este no se ha importado.");
+        }
+
         // Los avisos normales (jugador sin emparejar, colisión...) no son un
         // fallo del job, pero sí queremos poder revisarlos luego — mismo
         // archivo y formato que usa el flujo manual de jornada completa.
@@ -188,12 +195,33 @@ class SincronizarPartidoLaligaJob implements ShouldQueue
         $palabrasLocal = $palabrasSignificativas($nombreLocal);
         $palabrasVisitante = $palabrasSignificativas($nombreVisitante);
 
-        foreach ($links as $link) {
-            $slug = $normalizar($link);
-            $tieneLocal = collect($palabrasLocal)->contains(fn ($p) => str_contains($slug, $p));
-            $tieneVisitante = collect($palabrasVisitante)->contains(fn ($p) => str_contains($slug, $p));
-            if ($tieneLocal && $tieneVisitante) {
-                return $link;
+        // Las palabras que comparten los dos equipos ("real", "club", "fútbol"…) no sirven
+        // para distinguir: con ellas, "Real Club Celta" vs "Real Betis" casaba con el
+        // enlace del Barça - Real Madrid. Primero se busca solo con las que distinguen y
+        // gana el enlace con más coincidencias; si así no sale ninguno, se usan todas.
+        $comunes = array_intersect($palabrasLocal, $palabrasVisitante);
+        $pasadas = [
+            [array_values(array_diff($palabrasLocal, $comunes)) ?: $palabrasLocal, array_values(array_diff($palabrasVisitante, $comunes)) ?: $palabrasVisitante],
+            [$palabrasLocal, $palabrasVisitante],
+        ];
+
+        foreach ($pasadas as [$buscarLocal, $buscarVisitante]) {
+            $mejor = null;
+            $mejorPuntos = 0;
+
+            foreach ($links as $link) {
+                $slug = $normalizar($link);
+                $local = collect($buscarLocal)->sum(fn ($p) => substr_count($slug, $p));
+                $visitante = collect($buscarVisitante)->sum(fn ($p) => substr_count($slug, $p));
+
+                if ($local > 0 && $visitante > 0 && $local + $visitante > $mejorPuntos) {
+                    $mejor = $link;
+                    $mejorPuntos = $local + $visitante;
+                }
+            }
+
+            if ($mejor) {
+                return $mejor;
             }
         }
 

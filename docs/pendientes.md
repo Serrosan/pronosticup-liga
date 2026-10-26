@@ -33,8 +33,7 @@ se apunta en [Decisiones](decisiones.md).
   terminal del servidor o los puertos 6001/6002 en `ufw`.
 - [ ] **Vigilante externo** de que la tarea de cada minuto sigue viva (tipo
   healthchecks.io). Posible, no urgente.
-- [ ] **www / sin www**: unificar en uno. No urgente; si se hace, quedarse con el más usado
-  (www).
+<!-- www / sin www: hecho el 26/10 (pronosticup.es redirige a www desde Coolify; APP_URL con www). -->
 - [ ] **PHPUnit 13**: salto de versión grande, aparte.
 - [ ] **Wrapped** de fin de temporada: imagen para compartir de verdad, no con
   html2canvas.

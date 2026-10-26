@@ -24,7 +24,7 @@ Servidor, despliegues, copias y seguridad.
 | Dominio | `www.pronosticup.es` (las cookies van con dominio `.pronosticup.es`) |
 | Protección | Firewall `ufw` + Fail2ban |
 | Correo | Brevo (SMTP), con DKIM |
-| Acceso | SSH (contraseña; cambiarlo está aparcado a propósito) y panel de Coolify |
+| Acceso | SSH (puerto 22) y panel de Coolify en **https://coolify.pronosticup.es** (por el proxy, con certificado) |
 
 En el propio servidor **no hay PHP instalado**: todo va dentro de los contenedores.
 
@@ -128,6 +128,7 @@ Lo que hay puesto y por qué:
 | Envíos con archivos (multipart) **solo** con cabecera `X-XSRF-TOKEN` (403 si no) | `docker/nginx.conf` | Frena ataques automáticos; la app siempre la manda |
 | nginx **solo ejecuta `index.php`**; cualquier otro `.php`, 404 | `docker/nginx.conf` | Que nadie pueda ejecutar un fichero colado en `storage` |
 | Cabeceras de seguridad (HSTS, X-Frame-Options, nosniff, Referrer-Policy, Permissions-Policy) y `server_tokens off` | `docker/cabeceras-seguridad.conf` + `docker/nginx.conf` | Que el navegador fuerce HTTPS, nadie meta la app en un iframe y no se anuncie la versión de nginx |
+| Puertos 8000, 6001, 6002 y 8080 cerrados hacia internet (regla `DOCKER-USER` en `/etc/ufw/after.rules`, bloque `BEGIN PRONOSTICUP`) | Servidor | Docker se salta ufw; el panel se usa solo por su dominio con HTTPS |
 | `APP_DEBUG=false` | Coolify | No enseñar errores internos |
 | Login limitado a 5 intentos/min | `routes/api.php` | Fuerza bruta |
 | Sesión de 2 h; recuérdame 30 días solo con la casilla | Laravel | Equilibrio comodidad/seguridad |
@@ -137,6 +138,24 @@ Lo que hay puesto y por qué:
 
 **Sin scripts que entren por SSH a producción** desde el PC: para traer datos se usa la
 descarga del admin.
+
+## Cortafuegos
+
+- `ufw` permite desde internet solo **22, 80 y 443**.
+- **Docker publica sus puertos saltándose ufw.** Por eso los del panel de Coolify (8000, 6001, 6002) y el 8080 del proxy
+  se cierran en la cadena `DOCKER-USER`, en el bloque `BEGIN PRONOSTICUP` de `/etc/ufw/after.rules`
+  (se mantiene tras reinicios). Solo afecta a lo que entra por `eth0`: el tráfico interno entre contenedores no se toca.
+- El panel, sus logs en directo y su terminal van por `https://coolify.pronosticup.es` (rutas `/app` y `/terminal/ws`
+  del proxy), así que no necesitan esos puertos. El webhook de GitHub debe apuntar también al dominio.
+
+Comprobar desde fuera:
+
+```bash
+IP=45.85.146.254; for p in 22 80 443 8000 6001 6002 8080; do (timeout 3 bash -c "echo > /dev/tcp/$IP/$p" 2>/dev/null && echo "$p ABIERTO") || echo "$p cerrado"; done
+```
+
+Quitar la regla (marcha atrás), en el servidor: borrar el bloque `BEGIN PRONOSTICUP … END PRONOSTICUP` de
+`/etc/ufw/after.rules` (hay copias en `/root/after.rules.copia-*`) y `iptables -F DOCKER-USER && ufw reload`.
 
 ## Actualizar PHP
 

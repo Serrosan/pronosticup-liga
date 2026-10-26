@@ -188,12 +188,13 @@ function NavBar() {
       <header className="bg-fondo border-b border-borde/30 sticky top-0 z-30">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          <div className="flex items-center gap-2 shrink-0">
+          {/* El logo lleva al inicio ("/" ya decide: portada de la liga u onboarding). */}
+          <Link to="/" aria-label="PronostiCup Liga: ir al inicio" title="Ir al inicio" className="flex items-center gap-2 shrink-0 rounded hover:opacity-90 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-acento">
             <span className="font-display text-lg text-texto tracking-wide">PronostiCup</span>
             <span className="font-body font-bold text-[10px] bg-acento text-fondo rounded px-1.5 py-0.5 tracking-widest">
               LIGA
             </span>
-          </div>
+          </Link>
           <nav className="hidden md:flex items-center gap-1">
             {ENLACES.map((enlace) => (
               <Link

@@ -202,6 +202,15 @@ class CierreJornadaService
         $conEventos = EventoPartido::whereIn('id_partido', $ids)->distinct()->pluck('id_partido')->flip();
         $conAlineacion = AlineacionJugador::whereIn('id_partido', $ids)->distinct()->pluck('id_partido')->flip();
 
+        // Goles según los eventos, por partido y equipo. En un gol en propia puerta
+        // id_equipo ya es el equipo al que le sube (el importador lo invierte).
+        $golesEventos = EventoPartido::whereIn('id_partido', $ids)
+            ->whereIn('tipo_evento', ['gol', 'gol_en_propia'])
+            ->selectRaw('id_partido, id_equipo, COUNT(*) as goles')
+            ->groupBy('id_partido', 'id_equipo')
+            ->get()
+            ->groupBy('id_partido');
+
         $etiqueta = fn ($p) => ($p->equipoLocal->nombre_corto ?? $p->equipoLocal->nombre ?? '?').' - '.($p->equipoVisitante->nombre_corto ?? $p->equipoVisitante->nombre ?? '?');
 
         $sinJugar = $partidos->where('estado', '!=', 'Jugado')->map(fn ($p) => [
@@ -221,6 +230,26 @@ class CierreJornadaService
                     : (! isset($conEventos[$p->id]) ? 'eventos' : 'alineación'),
             ])->values();
 
+        // Partidos importados cuyos goles no cuadran con el marcador: un goleador sin
+        // emparejar (su gol no se guardó) o datos de otro partido. Los goleadores se
+        // calculan con los eventos, así que mejor verlo antes de calcularlos.
+        $golesNoCuadran = $partidos->where('estado', 'Jugado')
+            ->filter(fn ($p) => isset($conEventos[$p->id]))
+            ->map(function ($p) use ($golesEventos, $etiqueta) {
+                $filas = $golesEventos->get($p->id, collect());
+                $local = (int) $filas->where('id_equipo', $p->id_equipo_local)->sum('goles');
+                $visitante = (int) $filas->where('id_equipo', $p->id_equipo_visitante)->sum('goles');
+
+                return [
+                    'id' => $p->id,
+                    'partido' => $etiqueta($p),
+                    'marcador' => ((int) $p->goles_casa).'-'.((int) $p->goles_fuera),
+                    'eventos' => "{$local}-{$visitante}",
+                ];
+            })
+            ->filter(fn ($fila) => $fila['marcador'] !== $fila['eventos'])
+            ->values();
+
         $idsLista = $ids->map(fn ($id) => (int) $id)->all();
         $cambiosPendientes = CambioPlantilla::where('estado', 'pendiente')
             ->where('tipo', 'jugador')
@@ -234,13 +263,14 @@ class CierreJornadaService
             'jugados' => $partidos->where('estado', 'Jugado')->count(),
             'sin_jugar' => $sinJugar,
             'sin_datos' => $sinDatos,
+            'goles_no_cuadran' => $golesNoCuadran,
             'cambios_plantilla_pendientes' => $cambiosPendientes,
         ];
     }
 
     private function bloqueVacio(): array
     {
-        return ['ids' => collect(), 'total' => 0, 'jugados' => 0, 'sin_jugar' => collect(), 'sin_datos' => collect(), 'cambios_plantilla_pendientes' => 0];
+        return ['ids' => collect(), 'total' => 0, 'jugados' => 0, 'sin_jugar' => collect(), 'sin_datos' => collect(), 'goles_no_cuadran' => collect(), 'cambios_plantilla_pendientes' => 0];
     }
 
     private function estadoDeLiga(Liga $liga, int $jornada, array $partidos, User $usuario): array

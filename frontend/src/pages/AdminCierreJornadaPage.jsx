@@ -244,6 +244,33 @@ function BloquePartidos({ partidos, jornada, onReimportar, reimportando }) {
         )}
       </div>
 
+      {partidos.goles_no_cuadran?.length > 0 && (
+        <div className="px-4 py-3 border-b border-borde/10">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <p className="font-body text-sm text-premio font-semibold">
+              ! Los goles de {partidos.goles_no_cuadran.length} partido(s) no cuadran con el marcador
+            </p>
+            {!faltanDatos && (
+              <button className={BOTON_SECUNDARIO} disabled={reimportando} onClick={onReimportar}>
+                Reimportar la jornada
+              </button>
+            )}
+          </div>
+          <ul className="mt-2 flex flex-col gap-1">
+            {partidos.goles_no_cuadran.map((p) => (
+              <li key={p.id} className="font-body text-xs text-borde">
+                <Link to={`/partidos/${p.id}`} className="text-texto hover:text-acento hover:underline">{p.partido}</Link>
+                {' '}· marcador {p.marcador} · goles en los eventos {p.eventos}
+              </li>
+            ))}
+          </ul>
+          <p className="font-body text-[11px] text-borde mt-2">
+            Suele ser un goleador sin emparejar (su gol no se guardó) o datos de otro partido. Los goleadores se
+            calculan con los eventos: revísalo y reimporta antes de calcularlos.
+          </p>
+        </div>
+      )}
+
       <div className="px-4 py-3">
         {partidos.cambios_plantilla_pendientes > 0 ? (
           <p className="font-body text-sm text-premio font-semibold">

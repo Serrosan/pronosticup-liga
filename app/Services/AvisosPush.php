@@ -19,6 +19,8 @@ class AvisosPush
         'cierre' => ['⏰ Cierre de jornada', 'Si te faltan pronósticos, goleadores o cartas por jugar antes de que empiece la jornada', true, ['recordatorio_pendiente', 'cartas_sin_jugar', 'jornada_abierta'], false],
         'faltas' => ['⚠️ Te juegan una Falta', 'En cuanto alguien te saca una carta de Falta', true, ['falta_recibida'], false],
         'jornada' => ['📊 Jornada cerrada', 'Tus puntos y tu posición, y cómo les ha ido a tus cartas', true, ['jornada_cerrada', 'cartas_resueltas'], false],
+        // Solo móvil (no pasa por la campana): lo manda AvisarFinDePartidoJob. Apagado de partida.
+        'partidos' => ['⚽ Resultado de cada partido', 'Al acabar cada partido: el resultado y lo que pronosticaste', false, ['partido_terminado'], false],
         'cartas' => ['🃏 Cartas nuevas', 'Repartos de cartas y cartas que te da el admin', true, ['cartas_repartidas', 'carta_manual'], false],
         'chat' => ['💬 Te responden o te mencionan', 'Cuando alguien te responde o te menciona en el chat', true, ['chat_respuesta', 'chat_mencion'], false],
         'reacciones' => ['😄 Reacciones en el chat', 'Cuando alguien reacciona a un mensaje tuyo', false, ['chat_reaccion'], false],

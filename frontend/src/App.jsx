@@ -8,6 +8,7 @@ import MarcaEntorno from './components/MarcaEntorno'
 import BandaVerComo from './components/BandaVerComo'
 import ErrorBoundary from './components/ErrorBoundary'
 import AvisoSinConexion from './components/AvisoSinConexion'
+import AvisoVersionNueva from './components/AvisoVersionNueva'
 import AvisoSesionCaducada from './components/AvisoSesionCaducada'
 import { ToastProvider } from './context/ToastContext'
 import BotonVolverArriba from './components/BotonVolverArriba'
@@ -123,6 +124,7 @@ function App() {
       <ToastProvider>
         <AuthProvider>
           <AvisoSinConexion />
+          <AvisoVersionNueva />
           <BrowserRouter>
             <AvisoSesionCaducada />
             <BotonVolverArriba />

@@ -71,6 +71,7 @@ class SincronizarPartidosJob implements ShouldQueue
 
                 if ($acabaDeTerminar) {
                     \App\Jobs\Partidos\SincronizarPartidoLaligaJob::dispatch($partido->id)->delay(now()->addMinutes(10));
+                    \App\Jobs\Partidos\AvisarFinDePartidoJob::dispatch($partido->id);
                 }
             }
         }

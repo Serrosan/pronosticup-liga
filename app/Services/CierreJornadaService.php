@@ -369,7 +369,39 @@ class CierreJornadaService
             'cartas_resueltas' => $cartasResueltas,
             'pasos' => $pasos,
             'completa' => collect($pasos)->every(fn ($paso) => in_array($paso['estado'], ['hecho', 'no_aplica'], true)),
+            'un_paso' => $this->cierreEnUnPaso($partidos, $pasos),
         ];
+    }
+
+    /**
+     * "Cerrar todo" de una liga: los pasos que quedan, en orden, y si se pueden
+     * hacer seguidos. Solo cuando está todo en verde: partidos jugados, con sus
+     * datos de LaLiga, goles que cuadran y nadie sin emparejar. Si algo no está
+     * limpio, se hace paso a paso como siempre (y se ve el aviso de cada uno).
+     *
+     * @return array{posible:bool, motivo:?string, pendientes:array<int,array{clave:string,titulo:string}>}
+     */
+    public function cierreEnUnPaso(array $partidos, array $pasos): array
+    {
+        $porClave = collect($pasos)->keyBy('clave');
+        $pendientes = collect($pasos)
+            ->reject(fn ($paso) => in_array($paso['estado'], ['hecho', 'no_aplica'], true))
+            ->reject(fn ($paso) => $paso['clave'] === 'cerrar' && $paso['estado'] === 'aviso') // cerrada con aviso: ya está cerrada
+            ->map(fn ($paso) => ['clave' => $paso['clave'], 'titulo' => $paso['titulo']])
+            ->values()->all();
+
+        $motivo = match (true) {
+            $pendientes === [] => 'No queda nada por hacer en esta liga.',
+            $partidos['total'] === 0 => 'Esta jornada no tiene partidos cargados.',
+            $partidos['jugados'] < $partidos['total'] => 'Faltan '.($partidos['total'] - $partidos['jugados']).' partido(s) por jugar.',
+            count($partidos['sin_datos']) > 0 => 'Faltan datos de LaLiga en '.count($partidos['sin_datos']).' partido(s).',
+            count($partidos['goles_no_cuadran'] ?? []) > 0 => 'Los goles de '.count($partidos['goles_no_cuadran']).' partido(s) no cuadran con el marcador.',
+            $partidos['cambios_plantilla_pendientes'] > 0 => 'Hay '.$partidos['cambios_plantilla_pendientes'].' jugador(es) sin emparejar.',
+            ($porClave['cerrar']['estado'] ?? null) === 'aviso' => 'El cierre tiene un aviso: revísalo y sigue paso a paso.',
+            default => null,
+        };
+
+        return ['posible' => $motivo === null, 'motivo' => $motivo, 'pendientes' => $pendientes];
     }
 
     /** @param string $estado hecho | listo | aviso | bloqueado | no_aplica */

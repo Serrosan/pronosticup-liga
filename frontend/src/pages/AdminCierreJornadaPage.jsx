@@ -157,6 +157,35 @@ function TarjetaLiga({ liga, jornada, onLanzar, ocupado, auditoria, onAuditar, a
         )}
       </div>
 
+      {!liga.completa && liga.un_paso && (
+        <div className="px-4 py-3 border-b border-borde/10 bg-acento/5">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div className="min-w-0">
+              <p className="font-body text-sm font-semibold text-texto">⚡ Cerrar todo de una vez</p>
+              <p className="font-body text-xs text-borde mt-0.5">
+                {liga.un_paso.posible
+                  ? `Hace seguidos: ${liga.un_paso.pendientes.map((p) => p.titulo.toLowerCase()).join(' → ')}.`
+                  : `🔒 ${liga.un_paso.motivo} Ve paso a paso.`}
+              </p>
+            </div>
+            {liga.soy_admin && (
+              <button
+                className={BOTON_PRINCIPAL}
+                disabled={ocupado || !liga.un_paso.posible}
+                onClick={() => {
+                  const lista = liga.un_paso.pendientes.map((p) => p.titulo.toLowerCase()).join(', ')
+                  if (window.confirm(`¿Cerrar todo en ${liga.nombre}, jornada ${jornada}? Se hará: ${lista}. Se avisa a los jugadores y no se puede deshacer.`)) {
+                    onLanzar(liga, 'todo')
+                  }
+                }}
+              >
+                ⚡ Cerrar todo
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {liga.pasos.map((paso, i) => (
         <Paso key={paso.clave} numero={i + 1} paso={paso} liga={liga} jornada={jornada} onLanzar={onLanzar} ocupado={ocupado} />
       ))}

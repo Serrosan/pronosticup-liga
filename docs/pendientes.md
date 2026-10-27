@@ -5,30 +5,31 @@ se apunta en [Decisiones](decisiones.md).
 
 ## Pronto
 
-- [ ] **Actualizaciones de dependencias** (preparadas el 22/10):
-  - PHP de Sail local a 8.5.12;
-  - Laravel 13.38 y paquetes menores;
-  - Vite 8.3.5, que trae arreglos de seguridad del servidor de desarrollo;
-  - React 19.3;
-  - Node local 22.23.4.
-  
-  Ver [Desarrollo → Actualizar dependencias](05-desarrollo.md#actualizar-dependencias).
-- [ ] **Errores de la API**: cualquier excepción sale como 500 genérico. Un token CSRF
-  caducado debería ser 419 y no 500. No es de seguridad, solo queda feo.
+- [ ] **Partido estrella** (automático): un derbi de la lista (editable en el admin) o, si no
+  hay, el partido entre los dos mejor clasificados de LaLiga. Se fija al abrir la jornada,
+  dobla los puntos base del pronóstico y lleva ⭐.
+- [ ] **Presentación**: una página para enseñar la app a quien no la conoce.
+- [ ] **Pantalla de celebración** al cerrar la jornada. Pensada primero para el móvil y
+  respetando "reducir movimiento"; tiene que quedar realmente bien.
 
 ## Cuando apetezca
 
-- [ ] **Acceso SSH con clave** y sin contraseña para root (fail2ban lleva cientos de bloqueos): hay que preparar
-  también la clave para `plink`/HeidiSQL antes de quitar la contraseña.
 <!-- Panel de Coolify: hecho el 26/10 (dominio con HTTPS y puertos cerrados, ver 04-produccion.md#cortafuegos). -->
 - [ ] **Rediseño de Mis pronósticos** (la sección entera; el orden de jornadas ya está arreglado).
 - [ ] **Logros**: rediseño completo (25 logros, secretos, premios con carta, distintivo
   final). Diseño a medias; falta decidir si los 25 incluyen los secretos y qué candidatos
   entran.
 - [ ] **Silbato**: pasarlo a audio o quitarlo, porque cualquier Falta ya permite mensaje.
-- [ ] **Cerrar sesión en todos los dispositivos**, y que cambiar la contraseña cierre las
-  demás sesiones.
-- [ ] **Aviso opcional por partido** con el resultado y lo que pusiste.
+- [ ] **Copa eliminatoria**: una ronda por jornada con los puntos normales, cruces según la
+  clasificación; en Liga Familia, con pases directos si son impares.
+- [ ] **Salón de la fama** para cuando haya varias temporadas. Mirar antes qué récords ya
+  salen en las estadísticas de la liga.
+- [ ] **Forja de cartas** (a proponer al grupo): 3 comunes → 1 poco común, 3 poco comunes →
+  1 rara, 4 raras → 1 legendaria; misma categoría, solo cartas en la mano, resultado al
+  azar, una por jornada. Falta decidir si la Expulsión la bloquea.
+- [ ] **Imágenes para compartir** con una librería moderna y vista previa al pegar un
+  enlace (Open Graph desde el servidor). Gordo.
+- [ ] **Accesos directos** del icono de la app (manifest `shortcuts`).
 - [ ] **Terminal de Coolify** ("Terminal access was rejected"): mirar el ajuste de acceso a
   terminal del servidor o los puertos 6001/6002 en `ufw`.
 - [ ] **Vigilante externo** de que la tarea de cada minuto sigue viva (tipo

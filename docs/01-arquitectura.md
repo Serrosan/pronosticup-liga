@@ -107,6 +107,13 @@ React 19 + Vite 8 + TanStack Query 5 + Tailwind 4 + React Router 7, en `frontend
   Mono), no desde Google.
 - **PWA**: instalable (`site.webmanifest`, `public/sw.js`). El service worker solo se
   registra en producción y se usa para los avisos push, no como caché.
+- **Versión nueva**: cada build lleva su marca (`vite.config.js`: `VITE_VERSION_APP` dentro
+  del código y `dist/version.json`). `AvisoVersionNueva` la compara con la publicada al
+  volver a la app y cada 15 min. Si la app abierta es vieja, sale una franja con
+  "Actualizar". Solo en producción.
+- **Errores**: la API devuelve los errores con código (403, 413, 419, 503) con su mensaje en
+  español. Con un 419 (token caducado), `client.js` pide uno nuevo y repite la petición
+  **una** vez.
 - **Accesibilidad**: el color **nunca** es la única señal. Siempre texto, icono, borde o
   forma.
 
@@ -128,7 +135,7 @@ Tareas con su última ejecución.
 | Tarea | Cuándo |
 |---|---|
 | Sincronizar partidos (football-data) | Cada 2 min |
-| Avisar pendientes (`liga:avisar-pendientes`: recordatorios de cierre y "jornada abierta") | Cada 30 min |
+| Avisar pendientes (`liga:avisar-pendientes`: recordatorios de pronósticos y de goleadores 24/6/2 h antes, cartas sin jugar y "jornada abierta") | Cada 30 min |
 | Actualizar horarios próximos | 08:00 |
 | `avisos:enviar-programados` (avisos del admin) | Cada minuto |
 | `queue:work --stop-when-empty --max-time=50` | Cada minuto |
@@ -145,7 +152,12 @@ Sistema → Tareas.
   `database` y reenvía **cada aviso de la campana** al móvil (`PushService`), según las
   preferencias del usuario (`users.preferencias_push`). Categorías: cierre, faltas,
   jornada, cartas, chat, reacciones (desactivada por defecto), avisos y admin (solo
-  superadmin). Necesita Android, o iPhone/iPad con iOS/iPadOS **16.4 o superior** y la app
+  superadmin).
+- **Resultado de cada partido** (categoría `partidos`, **apagada** por defecto): solo móvil,
+  no pasa por la campana. Cuando `SincronizarPartidosJob` ve un partido pasar a "Jugado",
+  lanza `AvisarFinDePartidoJob`, que manda el resultado y lo que pronosticó cada uno (una
+  línea por liga si son distintos). Se envía una vez por partido (marca en caché).
+  El tipo de acierto es orientativo: los puntos se calculan al cerrar. Necesita Android, o iPhone/iPad con iOS/iPadOS **16.4 o superior** y la app
   instalada en la pantalla de inicio.
 - **Correo** (Brevo): puntos de la jornada (si `recibir_email_puntos`), verificación,
   contraseña. El correo de puntos sale **una vez**, al calcular goleadores
@@ -161,6 +173,9 @@ Sistema → Tareas.
   Ese middleware solo renueva cookies válidas y borra una copia antigua duplicada si
   aparece.
 - Login limitado a 5 intentos por minuto.
+- **Cerrar sesión en los demás dispositivos** (Perfil → Tus dispositivos, pide contraseña;
+  cambiar la contraseña hace lo mismo). `SesionesUsuarioService` borra sus sesiones,
+  cambia el `remember_token` y quita los avisos al móvil de los otros dispositivos.
 - "Ver como" (`VerComoUsuario`): el superadmin manda `X-Ver-Como`; solo peticiones de
   lectura.
 

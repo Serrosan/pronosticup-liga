@@ -26,6 +26,9 @@ botón de cada uno. Se va **de arriba abajo**: el orden importa.
 - La propia pantalla avisa si a algún partido le faltan datos de LaLiga (eventos o
   alineación). Si pasa, lánzalo a mano en **Sistema → Tareas** (reimportar ese partido o
   la jornada).
+- También avisa si **los goles de los eventos no cuadran con el marcador** (normales y en
+  propia puerta). Suele ser un goleador sin emparejar, cuyo gol no se guardó, o datos de
+  otro partido. Arréglalo y reimporta **antes** de calcular goleadores.
 
 ### Los pasos
 
@@ -37,6 +40,17 @@ botón de cada uno. Se va **de arriba abajo**: el orden importa.
 | — | **Auditar** | Recalcula los puntos en seco y los compara con lo guardado, sin cambiar nada | Úsalo si algo te huele raro |
 
 Al terminar, la liga sale como **completa**.
+
+### Cerrar todo de una vez
+
+Encima de los pasos de cada liga está **⚡ Cerrar todo**: hace seguidos los pasos que
+faltan (cerrar → goleadores → repartir), con las **mismas** acciones que los botones
+sueltos. Solo se activa con todo en verde: todos los partidos jugados y con sus datos,
+goles que cuadran, nadie sin emparejar y sin aviso en el cierre. Si no, dice por qué y se
+va paso a paso.
+
+Si un paso falla, se para ahí y el mensaje dice qué se hizo antes. Lo que falte se
+termina con su botón suelto.
 
 ### Comprobación final, como jugador
 
@@ -84,6 +98,7 @@ según sus preferencias.
 | Una carta "no hizo nada" | **Rastro de cartas**: repartida, jugada, resuelta y por qué puntuó o no |
 | Se cambió la configuración de puntos | Recalcular puntos de la jornada, **liga por liga** |
 | Cambiaron los eventos de un partido (gol corregido…) | Repetir **Calcular goleadores** |
+| «Los goles no cuadran con el marcador» | Abrir el partido, mirar Avisos del scraper y Cambios de plantilla, **reimportar** la jornada y, si ya estaba calculado, repetir **Calcular goleadores** |
 | Hay que ver exactamente lo que ve un jugador | **Ver como** (solo lectura) |
 | Hay que mirar datos a mano | [Chuletas → Base de datos](chuletas.md#base-de-datos-heidisql) |
 

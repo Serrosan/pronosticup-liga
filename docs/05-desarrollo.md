@@ -71,7 +71,7 @@ El flujo que usamos:
    los existentes:
    - **todo o nada**: si algo no cuadra, no cambia ningún fichero;
    - **idempotente**: lanzarlo dos veces no rompe nada.
-3. **Bloque de aplicación**: comprueba el md5, descomprime con `python3 -m zipfile -e`,
+3. **Bloque de aplicación**: comprueba el md5, descomprime con Python (`zipfile`; en WSL no hay `unzip`),
    aplica, pasa los tests y el build.
 4. **Probar en local**, luego `git add` de los ficheros concretos, commit y push.
 5. **Comprobar el despliegue** en Coolify, con Deploy a mano si no salta.

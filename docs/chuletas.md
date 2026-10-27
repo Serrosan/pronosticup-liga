@@ -127,6 +127,12 @@ curl -s -o /dev/null -w "%{http_code}\n" https://www.pronosticup.es/storage/x.ph
 
 # Cabeceras: que no se anuncie la versión de PHP (no debe salir X-Powered-By)
 curl -sI https://www.pronosticup.es/ | grep -i -E "x-powered-by|server"
+
+# Versión desplegada (fecha del build)
+curl -s https://www.pronosticup.es/version.json; echo
+
+# Sin www redirige a www (debe salir location: https://www.pronosticup.es/)
+curl -sI https://pronosticup.es/ | grep -i location
 ```
 
 ---
@@ -247,4 +253,9 @@ Ver [Producción → Desplegar](04-produccion.md#desplegar).
 | `docker exec … No such container` | Pusiste el nombre de la imagen | Usar la 1ª columna de `docker ps` o el `C=$(…)` de arriba |
 | Un jugador dice que "siempre tiene que volver a entrar" | Cookie de recuérdame vieja duplicada | Se limpia sola al volver a iniciar sesión con la casilla marcada |
 | Algo raro con una carta | — | Admin → **Rastro de cartas** (por qué puntuó o no) |
+| No llega el aviso de fin de partido | Categoría apagada o sin avisos en ese dispositivo | Perfil → Avisos en el móvil: activar "⚽ Resultado de cada partido". Sale una sola vez por partido |
+| La franja "Hay una versión nueva" vuelve tras actualizar | Caché que sirve la página vieja | Comprobar `version.json` (chuleta de arriba) y recargar a fondo; mirar la consola (F12) |
+| «Los goles no cuadran» en Cierre de jornada | Goleador sin emparejar o datos de otro partido | Ver [Operación → Cuando algo no cuadra](03-operacion-admin.md#cuando-algo-no-cuadra) |
+| `Command 'unzip' not found` | WSL sin `unzip` | `python3 -c "import zipfile,sys; zipfile.ZipFile(sys.argv[1]).extractall('.')" fichero.zip` |
+| `Command 'npm' not found` | El frontend se compila en Docker | `docker run --rm -v "$PWD/frontend":/app -w /app node:22-alpine sh -c "npm ci && npm run build"` (mejor sobre una copia) |
 | Puntos que no cuadran | — | Admin → Cierre de jornada → **Auditar** (recalcula en seco y compara) |

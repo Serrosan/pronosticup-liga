@@ -21,7 +21,7 @@ Servidor, despliegues, copias y seguridad.
 |---|---|
 | Proveedor | Contabo, Cloud VPS 4 (4 vCPU, 8 GB, 100 GB), mes a mes |
 | Panel | **Coolify** (conectado a GitHub mediante su GitHub App) |
-| Dominio | `www.pronosticup.es` (las cookies van con dominio `.pronosticup.es`) |
+| Dominio | `www.pronosticup.es`; `pronosticup.es` redirige a www desde Coolify (las cookies van con dominio `.pronosticup.es`) |
 | Protección | Firewall `ufw` + Fail2ban |
 | Correo | Brevo (SMTP), con DKIM |
 | Acceso | SSH (puerto 22) y panel de Coolify en **https://coolify.pronosticup.es** (por el proxy, con certificado) |
@@ -69,6 +69,10 @@ Todo lo demás del contenedor se rehace limpio en cada despliegue.
 2. Coolify despliega solo… **casi siempre**. Si en **Deployments** el último no es el de
    tu commit, pulsa **Deploy**.
 3. Espera a **Finished** y comprueba lo que hayas cambiado.
+   `https://www.pronosticup.es/version.json` debe enseñar la fecha del build nuevo.
+
+Quien tenga la app abierta verá la franja **"Hay una versión nueva · Actualizar"** al volver
+a ella. No se le fuerza nada.
 
 Mientras se construye, la versión anterior sigue sirviendo. Si la construcción falla, **no
 pasa nada**: el contenedor que ya estaba sigue en marcha. Mira el log del despliegue en
@@ -131,6 +135,8 @@ Lo que hay puesto y por qué:
 | Puertos 8000, 6001, 6002 y 8080 cerrados hacia internet (regla `DOCKER-USER` en `/etc/ufw/after.rules`, bloque `BEGIN PRONOSTICUP`) | Servidor | Docker se salta ufw; el panel se usa solo por su dominio con HTTPS |
 | `APP_DEBUG=false` | Coolify | No enseñar errores internos |
 | Login limitado a 5 intentos/min | `routes/api.php` | Fuerza bruta |
+| Cerrar sesión en los demás dispositivos (5/min, con contraseña) | Perfil | Móvil perdido o sesión olvidada |
+| Errores de la API sin detalles internos (los 500, genéricos) | `bootstrap/app.php` | No enseñar trazas |
 | Sesión de 2 h; recuérdame 30 días solo con la casilla | Laravel | Equilibrio comodidad/seguridad |
 | Repo privado, `.env` fuera del repo, clave VAPID solo en Coolify/KeePass | — | Secretos |
 | Copia para local anonimizada (correos falsos, contraseña `password`) | Admin | No sacar datos reales del servidor |

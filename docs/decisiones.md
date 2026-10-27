@@ -5,6 +5,14 @@ Las más recientes, arriba.
 
 | Fecha | Decisión | Por qué |
 |---|---|---|
+| 2026-10-27 | **"Cerrar todo"** por liga en Cierre de jornada, solo con todo en verde; los botones sueltos siguen | Ahorrar clics sin saltarse ningún aviso: si algo no está limpio, se va paso a paso |
+| 2026-10-27 | Aviso del **resultado de cada partido** solo al móvil y **apagado** de partida | Unos 10 avisos por jornada llenarían la campana; quien lo quiera, lo activa |
+| 2026-10-27 | **Versión nueva**: `/version.json` público (solo la fecha del build) y franja con "Actualizar"; nunca se fuerza la recarga | Práctica habitual, no enseña nada aprovechable; quien está a mitad de un pronóstico termina antes |
+| 2026-10-26 | Web unificada en **www** (`pronosticup.es` redirige desde Coolify; `APP_URL` con www) | Una sola dirección para cookies, avisos y enlaces |
+| 2026-10-26 | Errores de la API con **su código y su mensaje** (403, 413, 419, 503); los 500 siguen sin detalles; un 419 se reintenta solo una vez | Antes un `abort(403)` llegaba como 500 genérico |
+| 2026-10-26 | **Cerrar sesión en los demás dispositivos** (pide contraseña) y cambiar la contraseña hace lo mismo; quita también sus avisos al móvil | Para un móvil perdido o una sesión olvidada |
+| 2026-10-26 | SSH **sigue con contraseña**, no con clave | Si se formatea el PC o se pierde la clave, no quedarse fuera. Lo protegen fail2ban y la contraseña fuerte |
+| 2026-10-26 | El scraper **comprueba que el enlace elegido es del partido correcto** antes de importar | Caso Celta–Betis: "real" emparejó con el enlace del Clásico |
 | 2026-10-21 | El correo de puntos sale al **calcular goleadores**, una sola vez, con el desglose completo | Al cerrar aún faltan goleadores y cartas de eventos |
 | 2026-10-21 | PHP desde el **espejo `ppa.setup-php.com`** y construcción bloqueada si PHP < 8.5.12 | El día del parche, Launchpad daba 503; el espejo usa las mismas firmas |
 | 2026-10-21 | Filtro de multipart en nginx, solo `index.php` ejecutable y `upload_progress` desactivado | Medidas provisionales del fallo de PHP. Se quedan como protección extra |

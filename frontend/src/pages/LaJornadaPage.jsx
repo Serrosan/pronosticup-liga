@@ -9,6 +9,7 @@ import SkeletonLista from '../components/SkeletonLista'
 import EstadoVacio from '../components/EstadoVacio'
 import useTitulo from '../hooks/useTitulo'
 import { TIPOS, fondoSuave, estaResuelto, tipoDePronostico } from '../utils/tiposAcierto'
+import ReproductorAudio from '../components/ReproductorAudio'
 
 // "La jornada en tu liga": qué ha puesto cada uno. Regla única, la misma en
 // las tres pestañas: se ve lo que ya no se puede cambiar. Lo decide el
@@ -319,6 +320,7 @@ function PestanaCartas({ datos }) {
               <FraseCarta carta={carta} />
             </p>
             {carta.mensaje && <p className="font-body text-xs text-borde italic mt-1">«{carta.mensaje}»</p>}
+            {carta.audio_url && <div className="mt-1.5 max-w-xs"><ReproductorAudio src={carta.audio_url} /></div>}
             {carta.rareza && <p className="font-body text-[10px] uppercase tracking-widest text-borde mt-1">{RAREZA[carta.rareza] ?? carta.rareza}</p>}
           </div>
           <div className="shrink-0 pt-0.5">

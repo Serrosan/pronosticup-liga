@@ -13,6 +13,7 @@ class FaltaJugadaContraTi extends Notification
         public string $nombreAtacante,
         public string $nombreCarta,
         public int $jornadaEfecto,
+        public bool $conAudio = false,
     ) {}
 
     public function via($notifiable): array
@@ -25,7 +26,8 @@ class FaltaJugadaContraTi extends Notification
         return [
             'tipo' => 'falta_recibida',
             'titulo' => '⚠️ Te han jugado una Falta',
-            'mensaje' => "{$this->nombreAtacante} te ha jugado \"{$this->nombreCarta}\" — afecta a la Jornada {$this->jornadaEfecto}.",
+            'mensaje' => "{$this->nombreAtacante} te ha jugado \"{$this->nombreCarta}\" — afecta a la Jornada {$this->jornadaEfecto}."
+                .($this->conAudio ? ' 🎙️ Y te ha dejado un audio.' : ''),
             'importante' => true,
         ];
     }

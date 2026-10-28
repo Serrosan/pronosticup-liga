@@ -88,6 +88,7 @@ class MisCartasController extends Controller
                 'atacante' => $c->tipoCarta->codigo_efecto === 'FAL-COM-INVISIBLE' ? 'Alguien...' : ($c->usuario->nombre_visible ?? $c->usuario->name),
                 'jornada_efecto' => $c->jornada_efecto,
                 'mensaje_falta' => $c->mensaje_falta,
+                'audio_url' => $this->urlAudio($c),
             ]);
 
         return response()->json([
@@ -256,6 +257,8 @@ class MisCartasController extends Controller
             'id_usuario_objetivo' => ['required', 'exists:users,id', 'different:'.$request->user()->id],
             // Silbato y Amigo Invisible son solo el mensaje: sin él no harían nada.
             'mensaje' => [in_array($cartaUsuario->tipoCarta->codigo_efecto, ['FAL-COM-SILBATO', 'FAL-COM-INVISIBLE'], true) ? 'required' : 'nullable', 'string', 'max:200'],
+            // Audio de burla opcional (unos 15 s; 2 MB de margen de sobra).
+            'audio' => ['nullable', 'file', 'mimes:webm,weba,ogg,oga,mp3,wav,m4a,mp4,aac', 'max:2048'],
         ], ['mensaje.required' => 'Esta carta es un mensaje: escribe qué quieres decirle.']);
 
         $esMiembro = $liga->usuarios()->where('users.id', $validated['id_usuario_objetivo'])->exists();
@@ -286,17 +289,34 @@ class MisCartasController extends Controller
             return response()->json(['message' => 'Ese jugador tenía un Escudo activo esta semana — tu Falta se ha perdido, el Escudo la ha bloqueado.'], 422);
         }
 
+        // El audio se guarda solo ahora, cuando la Falta ya va a jugarse de verdad.
+        // Si falla al guardarlo, la Falta se juega igual, sin audio.
+        $rutaAudio = null;
+        if ($request->hasFile('audio')) {
+            try {
+                $archivo = $request->file('audio');
+                $extension = strtolower((string) $archivo->getClientOriginalExtension());
+                if (! in_array($extension, ['webm', 'weba', 'ogg', 'oga', 'mp3', 'wav', 'm4a', 'mp4', 'aac'], true)) {
+                    $extension = $archivo->guessExtension() ?: 'webm';
+                }
+                $rutaAudio = $archivo->storeAs('faltas', \Illuminate\Support\Str::random(40).'.'.$extension, 'public') ?: null;
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+
         $cartaUsuario->update([
             'estado' => 'jugada',
             'id_usuario_objetivo' => $validated['id_usuario_objetivo'],
             'jornada_efecto' => $jornadaEfecto,
             'mensaje_falta' => $validated['mensaje'] ?? null,
+            'audio_falta' => $rutaAudio,
             'jugada_en' => now(),
         ]);
 
         $victima = User::find($validated['id_usuario_objetivo']);
         $nombreAtacante = $request->user()->nombre_visible ?? $request->user()->name;
-        $victima?->notify(new FaltaJugadaContraTi($nombreAtacante, $cartaUsuario->tipoCarta->nombre, $jornadaEfecto));
+        $victima?->notify(new FaltaJugadaContraTi($nombreAtacante, $cartaUsuario->tipoCarta->nombre, $jornadaEfecto, conAudio: $rutaAudio !== null));
 
         return response()->json(['message' => "Falta jugada. Afectará a la jornada {$jornadaEfecto}."]);
     }
@@ -478,6 +498,7 @@ class MisCartasController extends Controller
                 'es_uno_mismo' => $c->usuarioObjetivo->id === $idUsuarioActual,
             ] : null,
             'mensaje_falta' => $c->mensaje_falta,
+            'audio_url' => $this->urlAudio($c),
             // Por qué una carta resuelta como "no cumplida" no hizo nada — solo para Jugadas,
             // y solo cuando de verdad no tuvo efecto (no cuando el motivo ya lo cuenta el nota_carta).
             'motivo_sin_efecto' => $c->estado === 'resuelta_no_cumplida'
@@ -535,6 +556,12 @@ class MisCartasController extends Controller
             ->sortBy('horario_estimado')
             ->first()
             ?->horario_estimado;
+    }
+
+    /** Dirección pública del audio de una Falta, si lo tiene. */
+    private function urlAudio(CartaUsuario $c): ?string
+    {
+        return $c->audio_falta ? \Illuminate\Support\Facades\Storage::disk('public')->url($c->audio_falta) : null;
     }
 
     /**

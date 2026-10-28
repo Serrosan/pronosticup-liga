@@ -12,7 +12,7 @@ class CartaUsuario extends Model
     protected $fillable = [
         'id_usuario', 'id_liga', 'id_tipo_carta', 'jornada_obtenida', 'obtenida_en', 'revelada_en',
         'origen', 'estado', 'id_partido', 'id_usuario_objetivo', 'jornada_efecto', 'mensaje_falta',
-        'jugada_en', 'puntos_generados',
+        'jugada_en', 'puntos_generados', 'audio_falta',
     ];
 
     protected function casts(): array

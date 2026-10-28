@@ -283,6 +283,9 @@ class LaJornadaService
                 'mensaje' => $esFalta && ! $paraSiMismo && ($tipo?->codigo_efecto !== 'FAL-COM-SILBATO' || $mia || $carta->id_usuario_objetivo === $yo->id)
                     ? $carta->mensaje_falta
                     : null,
+                'audio_url' => $esFalta && ! $paraSiMismo && $carta->audio_falta
+                    ? \Illuminate\Support\Facades\Storage::disk('public')->url($carta->audio_falta)
+                    : null,
                 'estado' => match ($carta->estado) {
                     'resuelta_cumplida' => 'cumplida',
                     'resuelta_no_cumplida' => 'sin_efecto',

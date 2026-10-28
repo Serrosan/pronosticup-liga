@@ -10,6 +10,8 @@ import SelectTema from '../components/SelectTema'
 import SkeletonLista from '../components/SkeletonLista'
 import useTitulo from '../hooks/useTitulo'
 import { useToast } from '../context/ToastContext'
+import ReproductorAudio from '../components/ReproductorAudio'
+import GrabadorAudioFalta from '../components/GrabadorAudioFalta'
 
 const CLAVE_GUIA_VISTA = 'pronosticup_guia_cartas_vista'
 const CLAVE_ORDEN_MANO = 'pronosticup_orden_mano_cartas'
@@ -115,6 +117,7 @@ function SelectorPartido({ partidos, jornada, rareza, onJugar, onCancelar, jugan
 function SelectorRival({ miembros, motivosBloqueo, rareza, onJugar, onCancelar, jugando }) {
   const [idRival, setIdRival] = useState('')
   const [mensaje, setMensaje] = useState('')
+  const [audio, setAudio] = useState(null)
   const motivo = idRival ? motivosBloqueo[idRival] : null
   const color = COLOR_RAREZA_PANEL[rareza] ?? COLOR_RAREZA_PANEL.Comun
 
@@ -143,9 +146,10 @@ function SelectorRival({ miembros, motivosBloqueo, rareza, onJugar, onCancelar, 
         rows={2}
         className="w-full font-body text-xs bg-fondo text-texto rounded border border-borde/40 px-2 py-1.5 mt-2.5"
       />
+      <GrabadorAudioFalta audio={audio} onCambiar={setAudio} />
       <div className="flex gap-2 mt-2.5">
         <button
-          onClick={() => onJugar(idRival, mensaje)}
+          onClick={() => onJugar(idRival, mensaje, audio)}
           disabled={!idRival || !!motivo || jugando}
           className="font-body text-xs font-semibold text-fondo rounded-full px-3.5 py-1.5 hover:brightness-110 disabled:opacity-50 flex-1 transition"
           style={{ backgroundColor: color }}
@@ -203,6 +207,7 @@ function CartaJugada({ jugada }) {
             )}
           </p>
         ) : jugada.objetivo ? (
+          <>
           <p className="font-body text-xs text-texto mt-0.5">
             {jugada.objetivo.es_uno_mismo ? (
               <span className="font-semibold">Te proteges a ti mismo</span>
@@ -213,6 +218,8 @@ function CartaJugada({ jugada }) {
             <span className="text-borde">Efecto en la jornada {jugada.jornada_efecto}</span>
             {jugada.mensaje_falta && <><br /><span className="italic text-borde">"{jugada.mensaje_falta}"</span></>}
           </p>
+          {jugada.audio_url && <div className="mt-1.5"><ReproductorAudio src={jugada.audio_url} /></div>}
+          </>
         ) : (
           <p className="font-body text-xs text-borde mt-0.5">Jugada para la jornada {jugada.jornada_efecto}</p>
         )}
@@ -257,6 +264,7 @@ function CartaHistorial({ item }) {
           <p className="font-body text-xs text-borde mt-0.5">Jornada {item.jornada_efecto}</p>
         )}
         {item.mensaje_falta && <p className="font-body text-xs italic text-borde mt-0.5">"{item.mensaje_falta}"</p>}
+        {item.audio_url && <div className="mt-1.5"><ReproductorAudio src={item.audio_url} /></div>}
         {!cumplida && !esFalta && item.motivo_sin_efecto && (
           <p className="font-body text-xs text-borde mt-0.5">{item.motivo_sin_efecto}</p>
         )}
@@ -277,6 +285,7 @@ function FaltaRecibida({ falta }) {
         <p className="font-body text-xs text-texto mt-0.5">{falta.tipo_carta.descripcion}</p>
         <p className="font-body text-xs text-borde mt-0.5">Afecta a la jornada {falta.jornada_efecto}</p>
         {falta.mensaje_falta && <p className="font-body text-xs italic text-borde mt-1">"{falta.mensaje_falta}"</p>}
+        {falta.audio_url && <div className="mt-1.5"><ReproductorAudio src={falta.audio_url} /></div>}
       </div>
     </div>
   )
@@ -485,8 +494,17 @@ function MisCartasPage() {
   })
 
   const jugarFalta = useMutation({
-    mutationFn: ({ idCarta, idUsuarioObjetivo, mensaje }) =>
-      client.post(`/api/v1/mis-cartas/${idCarta}/jugar-falta`, idUsuarioObjetivo ? { id_usuario_objetivo: idUsuarioObjetivo, mensaje: mensaje || undefined } : {}),
+    mutationFn: ({ idCarta, idUsuarioObjetivo, mensaje, audio }) => {
+      const url = `/api/v1/mis-cartas/${idCarta}/jugar-falta`
+      if (!idUsuarioObjetivo) return client.post(url, {})
+      if (!audio) return client.post(url, { id_usuario_objetivo: idUsuarioObjetivo, mensaje: mensaje || undefined })
+      // Con audio va como formulario con archivo
+      const datos = new FormData()
+      datos.append('id_usuario_objetivo', idUsuarioObjetivo)
+      if (mensaje) datos.append('mensaje', mensaje)
+      datos.append('audio', audio.blob, `falta.${audio.extension}`)
+      return client.post(url, datos)
+    },
     onSuccess: (respuesta) => {
       toast.exito(respuesta.data.message)
       setPanel(null)
@@ -731,7 +749,7 @@ function MisCartasPage() {
                             miembros={miembros.filter((m) => m.id !== usuario?.id)}
                             motivosBloqueo={rivalesBloqueados?.motivos ?? {}}
                             rareza={carta.tipo_carta.rareza}
-                            onJugar={(idRival, mensaje) => jugarFalta.mutate({ idCarta: carta.id, idUsuarioObjetivo: idRival, mensaje })}
+                            onJugar={(idRival, mensaje, audio) => jugarFalta.mutate({ idCarta: carta.id, idUsuarioObjetivo: idRival, mensaje, audio })}
                             onCancelar={cerrar}
                             jugando={jugarFalta.isPending}
                           />

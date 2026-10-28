@@ -1,36 +1,46 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { marcaMasReciente } from '../data/actualizaciones'
+import { useQuery } from '@tanstack/react-query'
+import client from '../api/client'
 
-// Enlace a /actualizaciones junto a la campana, con un puntito si hay algo que no
-// has visto. "Visto" se guarda en este navegador (si no se puede, no pasa nada:
-// el puntito simplemente sale).
+// Enlace a /actualizaciones junto a la campana, con "NUEVO" si se ha publicado o
+// cambiado algo desde la última vez que entraste. "Visto" se guarda en este
+// navegador; si no se puede guardar, simplemente no sale el aviso.
 const CLAVE = 'actualizaciones_vistas'
 
-export function marcarActualizacionesVistas() {
+export const CONSULTA_ACTUALIZACIONES = {
+  queryKey: ['actualizaciones'],
+  queryFn: async () => (await client.get('/api/v1/actualizaciones')).data,
+  staleTime: 5 * 60_000,
+}
+
+export function marcarActualizacionesVistas(marca) {
   try {
-    localStorage.setItem(CLAVE, marcaMasReciente())
+    if (marca) localStorage.setItem(CLAVE, marca)
   } catch {
-    // navegador sin almacenamiento: da igual
+    // sin almacenamiento: da igual
   }
 }
 
-function hayNovedades() {
+function vista() {
   try {
-    return localStorage.getItem(CLAVE) !== marcaMasReciente()
+    return localStorage.getItem(CLAVE)
   } catch {
-    return false
+    return undefined
   }
 }
 
 export default function BotonActualizaciones({ onNavegar }) {
   const location = useLocation()
-  const [nuevo, setNuevo] = useState(hayNovedades)
+  const { data } = useQuery(CONSULTA_ACTUALIZACIONES)
+  const [ultimaVista, setUltimaVista] = useState(vista)
 
   // Al volver de la sección (o cambiar de pantalla) se vuelve a mirar.
   useEffect(() => {
-    setNuevo(hayNovedades())
+    setUltimaVista(vista())
   }, [location.pathname])
+
+  const nuevo = Boolean(data?.marca) && ultimaVista !== undefined && ultimaVista !== data.marca
 
   return (
     <Link

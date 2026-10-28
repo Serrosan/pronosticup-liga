@@ -58,6 +58,7 @@ const AdminResourceDetailPage = lazyPagina(() => import('./pages/AdminResourceDe
 const AdminVerComoPage = lazyPagina(() => import('./pages/AdminVerComoPage'))
 const AdminCopiaLocalPage = lazyPagina(() => import('./pages/AdminCopiaLocalPage'))
 const AdminAvisosPage = lazyPagina(() => import('./pages/AdminAvisosPage'))
+const AdminActualizacionesPage = lazyPagina(() => import('./pages/AdminActualizacionesPage'))
 const AdminComparadorPlantillasPage = lazyPagina(() => import('./pages/AdminComparadorPlantillasPage'))
 const AdminEntrenadoresPage = lazyPagina(() => import('./pages/AdminEntrenadoresPage'))
 const NotFoundPage = lazyPagina(() => import('./pages/NotFoundPage'))
@@ -203,6 +204,7 @@ function App() {
                 <Route path="/admin/ver-como" element={<AdminVerComoPage />} />
                 <Route path="/admin/copia-local" element={<AdminCopiaLocalPage />} />
                 <Route path="/admin/avisos" element={<AdminAvisosPage />} />
+                <Route path="/admin/actualizaciones" element={<AdminActualizacionesPage />} />
                 <Route path="/admin/comparador-plantillas" element={<AdminComparadorPlantillasPage />} />
               </Route>
             <Route path="*" element={<NotFoundPage />} />

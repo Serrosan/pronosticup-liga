@@ -87,6 +87,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/logros-secretos', [\App\Http\Controllers\Api\V1\LogrosSecretosController::class, 'index']);
     Route::post('/liga-activa/personalizar', [\App\Http\Controllers\Api\V1\LigaPersonalizacionController::class, 'actualizar']);
     Route::post('/jornadas/{jornada}/repartir-cartas', [\App\Http\Controllers\Api\V1\CartaRepartoController::class, 'repartirJornada']);
+    Route::get('/actualizaciones', [\App\Http\Controllers\Api\V1\ActualizacionesController::class, 'index']);
     Route::get('/mis-cartas', [\App\Http\Controllers\Api\V1\MisCartasController::class, 'index']);
     Route::post('/codigos/canjear', [\App\Http\Controllers\Api\V1\CanjeCodigoController::class, 'canjear']);
     Route::get('/mis-cartas/proxima-jornada-jugable', [\App\Http\Controllers\Api\V1\MisCartasController::class, 'proximaJornadaJugable']);
@@ -100,6 +101,10 @@ Route::prefix('v1')->group(function () {
 
     Route::middleware('admin')->prefix('admin')->group(function () {
         Route::get('/avisos', [\App\Http\Controllers\Api\V1\Admin\AvisosAdminController::class, 'index']);
+        Route::get('/actualizaciones', [\App\Http\Controllers\Api\V1\Admin\ActualizacionesAdminController::class, 'index']);
+        Route::post('/actualizaciones', [\App\Http\Controllers\Api\V1\Admin\ActualizacionesAdminController::class, 'store']);
+        Route::put('/actualizaciones/{actualizacion}', [\App\Http\Controllers\Api\V1\Admin\ActualizacionesAdminController::class, 'update']);
+        Route::delete('/actualizaciones/{actualizacion}', [\App\Http\Controllers\Api\V1\Admin\ActualizacionesAdminController::class, 'destroy']);
         Route::post('/avisos', [\App\Http\Controllers\Api\V1\Admin\AvisosAdminController::class, 'enviar'])->middleware('throttle:10,1');
         Route::delete('/avisos/{aviso}', [\App\Http\Controllers\Api\V1\Admin\AvisosAdminController::class, 'cancelar']);
     Route::get('/avisos-scraper', [\App\Http\Controllers\Api\V1\Admin\AvisosScraperAdminController::class, 'index']);

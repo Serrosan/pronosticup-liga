@@ -15,6 +15,7 @@ const GRUPOS = [
       { to: '/admin/ver-como', label: 'Ver como un usuario' },
       { to: '/admin/ligas', label: 'Ligas' },
       { to: '/admin/novedades', label: 'Novedades' },
+      { to: '/admin/actualizaciones', label: '📜 Actualizaciones' },
       { to: '/admin/registro-actividad', label: 'Actividad' },
       { to: '/admin/importar-historico', label: 'Importar histórico' },
     ],

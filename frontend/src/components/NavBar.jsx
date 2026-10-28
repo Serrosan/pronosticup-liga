@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import UserMenu from './UserMenu'
 import CampanaNotificaciones from './CampanaNotificaciones'
+import BotonActualizaciones from './BotonActualizaciones'
 import AperturaCarta from './AperturaCarta'
 
 // El código de este easter egg (creado una vez en el admin/tinker con este mismo
@@ -221,13 +222,17 @@ function NavBar() {
             )}
           </nav>
           <div className="hidden md:flex items-center gap-4 shrink-0">
+            <BotonActualizaciones />
             <CampanaNotificaciones />
             <div className="w-px h-6 bg-borde/20" />
             <UserMenu />
           </div>
-          <button onClick={() => setMenuAbierto(!menuAbierto)} className="md:hidden font-body text-texto p-2" aria-label="Abrir menú">
-            {menuAbierto ? '✕' : '☰'}
-          </button>
+          <div className="md:hidden flex items-center gap-1">
+            <BotonActualizaciones onNavegar={() => setMenuAbierto(false)} />
+            <button onClick={() => setMenuAbierto(!menuAbierto)} className="font-body text-texto p-2" aria-label="Abrir menú">
+              {menuAbierto ? '✕' : '☰'}
+            </button>
+          </div>
         </div>
         {menuAbierto && (
           <nav className="md:hidden flex flex-col gap-1 pb-4">

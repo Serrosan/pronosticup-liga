@@ -73,6 +73,7 @@ const VerifyEmailPage = lazyPagina(() => import('./pages/VerifyEmailPage'))
 const AdminImportarHistoricoPage = lazyPagina(() => import('./pages/AdminImportarHistoricoPage'))
 const PuntuacionesPage = lazyPagina(() => import('./pages/PuntuacionesPage'))
 const GuiaPage = lazyPagina(() => import('./pages/GuiaPage'))
+const ActualizacionesPage = lazyPagina(() => import('./pages/ActualizacionesPage'))
 const EstadisticasLigaPage = lazyPagina(() => import('./pages/EstadisticasLigaPage'))
 const EstadisticasCartasPage = lazyPagina(() => import('./pages/EstadisticasCartasPage'))
 const LogrosPage = lazyPagina(() => import('./pages/LogrosPage'))
@@ -162,6 +163,7 @@ function App() {
                 <Route path="/estadios" element={<StadiumsPage />} />
                 <Route path="/perfil" element={<ProfilePage />} />
                 <Route path="/guia" element={<GuiaPage />} />
+                <Route path="/actualizaciones" element={<ActualizacionesPage />} />
                 <Route path="/privacidad" element={<PrivacyPage />} />
                 <Route path="/equipos/:idEquipo" element={<TeamMatchesPage />} />
               </Route>

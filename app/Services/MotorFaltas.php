@@ -257,11 +257,30 @@ class MotorFaltas
             ->whereIn('id_partido', $idsPartidosJornada)
             ->pluck('resultado_1x2');
 
+        // Todas las Faltas de requisito, también las "tapadas" por otra más exigente del
+        // mismo tipo (no se suman: manda la más exigente), con quién la jugó.
+        $detalle = CartaUsuario::where('id_liga', $idLiga)
+            ->where('id_usuario_objetivo', $idUsuario)
+            ->where('jornada_efecto', $jornada)
+            ->where('estado', 'jugada')
+            ->whereHas('tipoCarta', fn ($q) => $q->whereIn('codigo_efecto', array_keys(self::REQUISITOS_PRONOSTICO)))
+            ->with(['tipoCarta', 'usuario'])
+            ->get()
+            ->map(fn ($c) => self::REQUISITOS_PRONOSTICO[$c->tipoCarta->codigo_efecto] + [
+                'carta' => $c->tipoCarta->nombre,
+                'atacante' => $c->usuario?->nombre_visible ?? $c->usuario?->name ?? 'Alguien',
+            ])
+            ->groupBy('tipo')
+            ->map(fn ($mismoTipo) => $mismoTipo->sortByDesc('cantidad')->values()
+                ->map(fn ($f, $i) => ['cantidad' => $f['cantidad'], 'carta' => $f['carta'], 'atacante' => $f['atacante'], 'manda' => $i === 0])
+                ->all());
+
         $partidosSinPronosticar = $idsPartidosJornada->count() - $misPronosticos->count();
         $estados = $requisitos->map(fn ($r) => [
             'tipo' => $r['tipo'],
             'cantidad' => $r['cantidad'],
             'cumplidos' => $misPronosticos->filter(fn ($tipo) => $tipo === $r['tipo'])->count(),
+            'faltas' => $detalle->get($r['tipo'], []),
         ]);
 
         // Se enseña primero la que aún no está cumplida; con varias, todas van en 'requisitos'.
@@ -271,6 +290,8 @@ class MotorFaltas
             'partidos_sin_pronosticar' => $partidosSinPronosticar,
             // Sigue siendo posible cumplirlo (todas a la vez) con lo que queda por pronosticar.
             'cumplible' => $this->deficit($requisitos, $misPronosticos) <= $partidosSinPronosticar,
+            // Cuántos pronósticos "de esos tipos" faltan, sumando todas las condiciones.
+            'faltan' => $this->deficit($requisitos, $misPronosticos),
             'requisitos' => $estados->values()->all(),
         ];
     }

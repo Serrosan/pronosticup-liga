@@ -115,36 +115,70 @@ function CopiarDeOtraLiga({ jornada, jornadaBloqueada }) {
   )
 }
 
-const ETIQUETA_TIPO_FALTA = { Local: 'victoria local', Visitante: 'victoria visitante', Empate: 'empate' }
+const ETIQUETA_TIPO_FALTA = { Local: 'Victorias locales', Visitante: 'Victorias visitantes', Empate: 'Empates' }
+const ICONO_TIPO_FALTA = { Local: '🏠', Visitante: '✈️', Empate: '🟰' }
 
-// Progreso real de una Falta tipo "requisito" activa contra el usuario — para que se
-// entere mientras va pronosticando, no solo al guardar el partido que ya lo rompería.
+// Todas las Faltas de tipo "requisito" activas contra ti, a la vez: cada condición
+// con su progreso, cuánto margen te queda y qué Falta queda "tapada" por otra más
+// exigente del mismo tipo (no se suman: manda la más exigente).
 function AvisoFaltaActiva({ falta }) {
   if (!falta) return null
 
-  const etiqueta = ETIQUETA_TIPO_FALTA[falta.tipo] ?? falta.tipo
-  const cumplido = falta.cumplidos >= falta.cantidad
+  const requisitos = falta.requisitos?.length
+    ? falta.requisitos
+    : [{ tipo: falta.tipo, cantidad: falta.cantidad, cumplidos: falta.cumplidos, faltas: [] }]
+  const pendientes = requisitos.filter((r) => r.cumplidos < r.cantidad)
+  const faltan = falta.faltan ?? pendientes.reduce((suma, r) => suma + (r.cantidad - r.cumplidos), 0)
+  const sinPronosticar = falta.partidos_sin_pronosticar ?? 0
+  const numeroFaltas = requisitos.reduce((suma, r) => suma + Math.max(1, r.faltas?.length ?? 0), 0)
+  const tapadas = requisitos.flatMap((r) => (r.faltas ?? []).filter((f) => !f.manda).map((f) => ({ ...f, tipo: r.tipo, cubre: r.cantidad })))
+  const todoCumplido = pendientes.length === 0
 
-  if (cumplido) {
-    return (
-      <div className="max-w-md mx-auto mb-6 bg-acento/10 border border-acento/30 rounded-lg px-4 py-3 text-center">
-        <p className="font-body text-sm text-acento font-semibold">
-          ✓ Ya has cumplido la Falta activa contra ti — llevas {falta.cumplidos} de {falta.cantidad} pronósticos de {etiqueta}.
-        </p>
-      </div>
-    )
-  }
+  const estilo = todoCumplido
+    ? { caja: 'bg-acento/10 border-acento/30', titulo: 'text-acento' }
+    : falta.cumplible
+      ? { caja: 'bg-premio/10 border-premio/40', titulo: 'text-premio' }
+      : { caja: 'bg-red-500/10 border-red-500/30', titulo: 'text-red-500' }
 
   return (
-    <div className="max-w-md mx-auto mb-6 bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3 text-center">
-      <p className="font-body text-sm text-red-500 font-semibold">
-        ⚠️ Falta activa contra ti: necesitas al menos {falta.cantidad} pronóstico{falta.cantidad > 1 ? 's' : ''} de {etiqueta} esta jornada — llevas {falta.cumplidos}/{falta.cantidad}.
+    <div className={`max-w-md mx-auto mb-6 border rounded-lg px-4 py-3 ${estilo.caja}`}>
+      <p className={`font-body text-sm font-semibold ${estilo.titulo}`}>
+        {todoCumplido
+          ? `✓ Cumples ${numeroFaltas > 1 ? `las ${numeroFaltas} Faltas` : 'la Falta'} que tienes encima esta jornada`
+          : `⚠️ Tienes ${numeroFaltas > 1 ? `${numeroFaltas} Faltas` : 'una Falta'} encima esta jornada. Para cumplir${numeroFaltas > 1 ? 'las todas' : 'la'} necesitas:`}
       </p>
-      {!falta.cumplible && (
-        <p className="font-body text-xs text-red-400 mt-1">
-          Ya no te queda margen: el próximo pronóstico que no sea de {etiqueta} lo haría imposible de cumplir.
+
+      <ul className="mt-2 flex flex-col gap-1.5">
+        {requisitos.map((r) => {
+          const hecho = r.cumplidos >= r.cantidad
+          const resto = r.cantidad - r.cumplidos
+          const quienes = (r.faltas ?? []).filter((f) => f.manda).map((f) => `${f.atacante} (${f.carta})`).join(', ')
+          return (
+            <li key={r.tipo} className="font-body text-sm text-texto">
+              <span aria-hidden="true">{ICONO_TIPO_FALTA[r.tipo] ?? '•'} </span>
+              <span className="font-semibold">{ETIQUETA_TIPO_FALTA[r.tipo] ?? r.tipo}: {Math.min(r.cumplidos, r.cantidad)} de {r.cantidad}</span>
+              {hecho ? <span className="text-acento font-semibold"> ✓ cumplido</span> : <span className="text-borde"> (te falta{resto > 1 ? 'n' : ''} {resto})</span>}
+              {quienes && <span className="block font-body text-[11px] text-borde pl-5">De: {quienes}</span>}
+            </li>
+          )
+        })}
+      </ul>
+
+      {!todoCumplido && (
+        <p className={`font-body text-xs mt-2 ${falta.cumplible ? 'text-texto' : 'text-red-500 font-semibold'}`}>
+          {!falta.cumplible
+            ? 'Ya no da tiempo a cumplirlas todas con los partidos que te quedan.'
+            : faltan >= sinPronosticar
+              ? `Sin margen: los ${sinPronosticar} partido${sinPronosticar > 1 ? 's' : ''} que te quedan tienen que ser de esos resultados.`
+              : `Te quedan ${sinPronosticar} partidos por pronosticar y necesitas ${faltan} con esos resultados: todavía llegas.`}
         </p>
       )}
+
+      {tapadas.map((f, i) => (
+        <p key={i} className="font-body text-[11px] text-borde mt-1.5">
+          ℹ️ La de {f.atacante} ({f.cantidad} {(ETIQUETA_TIPO_FALTA[f.tipo] ?? f.tipo).toLowerCase()}) no se suma: ya la cubre la de {f.cubre}. Manda la más exigente.
+        </p>
+      ))}
     </div>
   )
 }

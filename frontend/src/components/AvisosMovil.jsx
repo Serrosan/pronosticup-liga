@@ -3,7 +3,7 @@ import client from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import TicketHeader from './TicketHeader'
-import { admiteAvisos, esAppInstalada, esIOS, suscribir, suscripcionActual } from '../utils/push'
+import { admiteAvisos, esAppInstalada, esIOS, explicarErrorAvisos, suscribir, suscripcionActual } from '../utils/push'
 import { alCambiarInstalable, instalar, puedeInstalar } from '../utils/instalarApp'
 
 /**
@@ -71,6 +71,33 @@ function SugerenciaInstalar() {
   )
 }
 
+// Por qué no se han podido activar: motivo, qué hacer y el detalle técnico para pegarlo.
+function ErrorActivar({ error, onCerrar }) {
+  const toast = useToast()
+
+  async function copiar() {
+    try {
+      await navigator.clipboard.writeText(error.detalle)
+      toast.exito('Detalle copiado.')
+    } catch {
+      toast.error('No se pudo copiar: mantén pulsado el texto para copiarlo.')
+    }
+  }
+
+  return (
+    <div role="alert" className="border border-red-500/40 bg-red-500/10 rounded-lg p-3 flex flex-col gap-2">
+      <p className="font-body text-sm text-red-500 font-semibold">⚠️ No se pudieron activar los avisos en este dispositivo.</p>
+      <p className="font-body text-sm text-texto"><strong>Motivo:</strong> {error.motivo}</p>
+      <p className="font-body text-sm text-texto"><strong>Qué hacer:</strong> {error.queHacer}</p>
+      <p className="font-body text-[11px] text-borde break-all select-all">Detalle técnico: {error.detalle}</p>
+      <div className="flex gap-3">
+        <button type="button" onClick={copiar} className="font-body text-xs text-acento hover:underline">📋 Copiar detalle</button>
+        <button type="button" onClick={onCerrar} className="font-body text-xs text-borde hover:text-texto">Cerrar</button>
+      </div>
+    </div>
+  )
+}
+
 function AvisosMovil() {
   const { usuario } = useAuth()
   const toast = useToast()
@@ -79,6 +106,7 @@ function AvisosMovil() {
   const [ocupado, setOcupado] = useState(false)
   const [dispositivos, setDispositivos] = useState(0)
   const [preferencias, setPreferencias] = useState([])
+  const [errorActivar, setErrorActivar] = useState(null)
   const ios = esIOS()
   const instalada = esAppInstalada()
 
@@ -121,6 +149,7 @@ function AvisosMovil() {
 
   async function activar() {
     setOcupado(true)
+    setErrorActivar(null)
     try {
       const { permiso, suscripcion } = await suscribir(config.clave_publica)
       if (permiso === 'denied') {
@@ -131,12 +160,19 @@ function AvisosMovil() {
         toast.error('No se activaron: no diste permiso.')
         return
       }
-      const { data } = await client.post('/api/v1/push/suscripciones', suscripcion.toJSON())
+      let data
+      try {
+        ({ data } = await client.post('/api/v1/push/suscripciones', suscripcion.toJSON()))
+      } catch (errorServidor) {
+        errorServidor.fase = 'servidor'
+        throw errorServidor
+      }
       setDispositivos(data.data.dispositivos)
       setEstado('encendido')
       toast.exito('Avisos activados en este dispositivo.')
-    } catch {
-      toast.error('No se pudieron activar los avisos en este dispositivo.')
+    } catch (error) {
+      setErrorActivar(explicarErrorAvisos(error, { ios }))
+      toast.error('No se pudieron activar los avisos: mira el motivo en la tarjeta.')
     } finally {
       setOcupado(false)
     }
@@ -230,6 +266,8 @@ function AvisosMovil() {
                 {ocupado ? '...' : encendido ? '✓ Activados' : 'Activar'}
               </button>
             </div>
+
+            {errorActivar && !encendido && <ErrorActivar error={errorActivar} onCerrar={() => setErrorActivar(null)} />}
 
             {encendido && (
               <button

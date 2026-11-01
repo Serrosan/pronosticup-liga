@@ -317,7 +317,7 @@ class ResolucionCartasTest extends TestCase
             'estado' => 'Programado', 'horario_estimado' => now()->addDays(2)->addHours(2),
         ]);
 
-        // Todo Queda en Casa Común: exige 2 victorias locales, efecto en la jornada 6
+        // Todo Queda en Casa Común: exige 3 victorias locales (primer balance), efecto en la jornada 6
         $this->carta($this->tipo($this->faltas, 'Todo Queda en Casa', 'FAL-COM-CASA'), [
             'id_usuario' => User::factory()->create()->id, 'id_usuario_objetivo' => $this->usuario->id,
             'jornada_efecto' => 6, 'estado' => 'jugada',
@@ -332,10 +332,10 @@ class ResolucionCartasTest extends TestCase
         $estado = app(MotorFaltas::class)->estadoRequisitoPronostico($this->liga->id, $this->usuario->id, 6, $idsPartidos);
 
         $this->assertSame('Local', $estado['tipo']);
-        $this->assertSame(2, $estado['cantidad']);
+        $this->assertSame(3, $estado['cantidad']);
         $this->assertSame(1, $estado['cumplidos']);
         $this->assertSame(2, $estado['partidos_sin_pronosticar']);
-        $this->assertTrue($estado['cumplible']); // 1 ya cumplido + 2 sin pronosticar >= 2 exigidos
+        $this->assertTrue($estado['cumplible']); // 1 ya cumplido + 2 sin pronosticar >= 3 exigidos
     }
 
     public function test_una_falta_contra_un_escudo_pierde_las_dos_cartas(): void

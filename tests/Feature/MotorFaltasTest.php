@@ -166,11 +166,11 @@ class MotorFaltasTest extends TestCase
 
         $motor = app(\App\Services\MotorFaltas::class);
 
-        // 10 partidos, llevas 8 pronosticados (0 Local) → quedan 2 sin tocar,
-        // 0+2 = 2, justo el mínimo → debe permitirlo.
-        $tipos = collect(array_fill(0, 8, 'Visitante'));
+        // Todo queda en casa común pide 3 (primer balance). 10 partidos, llevas 7
+        // pronosticados (0 Local) → quedan 3 sin tocar, 0+3 = 3, justo el mínimo → debe permitirlo.
+        $tipos = collect(array_fill(0, 7, 'Visitante'));
 
-        $resultado = $motor->comprobarRequisitoPronostico($liga->id, $victima->id, 6, 10, 8, $tipos);
+        $resultado = $motor->comprobarRequisitoPronostico($liga->id, $victima->id, 6, 10, 7, $tipos);
 
         $this->assertNull($resultado);
     }

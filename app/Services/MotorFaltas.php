@@ -18,13 +18,15 @@ class MotorFaltas
      * entre TODOS los de la jornada afectada.
      */
     private const REQUISITOS_PRONOSTICO = [
-        'FAL-COM-CASA' => ['tipo' => 'Local', 'cantidad' => 2],
-        'FAL-PCOM-CASA' => ['tipo' => 'Local', 'cantidad' => 3],
-        'FAL-LEG-CASA' => ['tipo' => 'Local', 'cantidad' => 5],
-        'FAL-COM-VISITA' => ['tipo' => 'Visitante', 'cantidad' => 2],
-        'FAL-PCOM-VISITA' => ['tipo' => 'Visitante', 'cantidad' => 3],
-        'FAL-RAR-VISITA' => ['tipo' => 'Visitante', 'cantidad' => 4],
-        'FAL-LEG-VISITA' => ['tipo' => 'Visitante', 'cantidad' => 5],
+        // Primer balance (noviembre 2026): un escalón más en cada rareza y Casa Rara nueva.
+        'FAL-COM-CASA' => ['tipo' => 'Local', 'cantidad' => 3],
+        'FAL-PCOM-CASA' => ['tipo' => 'Local', 'cantidad' => 4],
+        'FAL-RAR-CASA' => ['tipo' => 'Local', 'cantidad' => 5],
+        'FAL-LEG-CASA' => ['tipo' => 'Local', 'cantidad' => 6],
+        'FAL-COM-VISITA' => ['tipo' => 'Visitante', 'cantidad' => 3],
+        'FAL-PCOM-VISITA' => ['tipo' => 'Visitante', 'cantidad' => 4],
+        'FAL-RAR-VISITA' => ['tipo' => 'Visitante', 'cantidad' => 5],
+        'FAL-LEG-VISITA' => ['tipo' => 'Visitante', 'cantidad' => 6],
         // Resultado Gafas: faltaban aquí y por eso no se aplicaban (jornada 9).
         'FAL-COM-EMPATE' => ['tipo' => 'Empate', 'cantidad' => 1],
         'FAL-PCOM-EMPATE' => ['tipo' => 'Empate', 'cantidad' => 2],

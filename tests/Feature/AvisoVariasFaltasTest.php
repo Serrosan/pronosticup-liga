@@ -65,14 +65,14 @@ class AvisoVariasFaltasTest extends TestCase
         $porTipo = collect($estado['requisitos'])->keyBy('tipo');
 
         $this->assertSame(['cantidad' => 3, 'cumplidos' => 2], ['cantidad' => $porTipo['Empate']['cantidad'], 'cumplidos' => $porTipo['Empate']['cumplidos']]);
-        $this->assertSame(3, $porTipo['Visitante']['cantidad'], 'Manda la más exigente');
-        $this->assertSame(4, $estado['faltan'], '1 empate + 3 visitantes');
+        $this->assertSame(4, $porTipo['Visitante']['cantidad'], 'Manda la más exigente');
+        $this->assertSame(5, $estado['faltan'], '1 empate + 4 visitantes');
         $this->assertSame(6, $estado['partidos_sin_pronosticar']);
         $this->assertTrue($estado['cumplible']);
 
         $visitantes = $porTipo['Visitante']['faltas'];
         $this->assertCount(2, $visitantes);
-        $this->assertSame([3, true, 'Ana'], [$visitantes[0]['cantidad'], $visitantes[0]['manda'], $visitantes[0]['atacante']]);
-        $this->assertSame([2, false, 'Luis'], [$visitantes[1]['cantidad'], $visitantes[1]['manda'], $visitantes[1]['atacante']]);
+        $this->assertSame([4, true, 'Ana'], [$visitantes[0]['cantidad'], $visitantes[0]['manda'], $visitantes[0]['atacante']]);
+        $this->assertSame([3, false, 'Luis'], [$visitantes[1]['cantidad'], $visitantes[1]['manda'], $visitantes[1]['atacante']]);
     }
 }

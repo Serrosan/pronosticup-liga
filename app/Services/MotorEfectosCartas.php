@@ -44,8 +44,9 @@ class MotorEfectosCartas
             'JUG-PCOM-CHUTE' => new BonusFijoPartido(2),
             'JUG-RAR-CHUTE' => new BonusFijoPartido(3),
             'JUG-LEG-CHUTE' => new BonusFijoPartido(5),
-            'JUG-COM-OJOHALCON' => new BonusSiExacto(2),
-            'JUG-PCOM-OJOHALCON' => new BonusSiExacto(4),
+            // Primer balance (noviembre 2026): Ojo de Halcón +3 / +5 (antes +2 / +4).
+            'JUG-COM-OJOHALCON' => new BonusSiExacto(3),
+            'JUG-PCOM-OJOHALCON' => new BonusSiExacto(5),
             'JUG-PCOM-DOBLETE' => new Doblete(),
             'JUG-RAR-PLENOGARANTIZADO' => new PlenoGarantizado(),
         ];
@@ -184,7 +185,7 @@ class MotorEfectosCartas
     private function bonosMultiPartido(): array
     {
         return [
-            'JUG-LEG-CRACK' => new BonusSiDosExactos(4),
+            'JUG-LEG-CRACK' => new BonusSiDosExactos(6), // primer balance: antes +4
         ];
     }
 

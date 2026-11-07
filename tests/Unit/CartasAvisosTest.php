@@ -15,20 +15,22 @@ class CartasAvisosTest extends TestCase
 
     public function test_cartas_sin_jugar_guarda_jornada_y_liga_para_no_repetirse(): void
     {
-        $datos = $this->datos(new CartasSinJugar(jornada: 7, idLiga: 3, cantidad: 2, nombreLiga: 'BasiLiga'));
+        $datos = $this->datos(new CartasSinJugar(jornada: 7, idLiga: 3, nombreLiga: 'BasiLiga', jugadasPosibles: 2, jugadasEnMano: 4, faltaPosible: true));
 
         $this->assertSame(7, $datos['jornada']);
         $this->assertSame(3, $datos['id_liga']);
-        $this->assertStringContainsString('2 cartas de Jugadas', $datos['mensaje']);
+        $this->assertStringContainsString('Te quedan 2 Jugadas por jugar (tienes 4 en la mano)', $datos['mensaje']);
+        $this->assertStringContainsString('Y tu Falta de esta semana: afectará a la jornada 8', $datos['mensaje']);
         $this->assertStringContainsString('BasiLiga', $datos['mensaje']);
     }
 
     public function test_cartas_sin_jugar_habla_en_singular_con_una_carta(): void
     {
-        $datos = $this->datos(new CartasSinJugar(jornada: 7, idLiga: 3, cantidad: 1, nombreLiga: 'BasiLiga'));
+        $datos = $this->datos(new CartasSinJugar(jornada: 7, idLiga: 3, nombreLiga: 'BasiLiga', jugadasPosibles: 1, jugadasEnMano: 1, faltaPosible: false));
 
-        $this->assertStringContainsString('1 carta de Jugadas', $datos['mensaje']);
-        $this->assertStringNotContainsString('1 cartas', $datos['mensaje']);
+        $this->assertStringContainsString('Te queda 1 Jugada por jugar (tienes 1 en la mano)', $datos['mensaje']);
+        $this->assertStringNotContainsString('1 Jugadas', $datos['mensaje']);
+        $this->assertStringNotContainsString('Falta', $datos['mensaje']);
     }
 
     public function test_cartas_resueltas_concuerda_en_singular_y_plural(): void
@@ -49,7 +51,7 @@ class CartasAvisosTest extends TestCase
 
     public function test_los_avisos_van_solo_por_la_campana(): void
     {
-        $this->assertSame(['database'], (new CartasSinJugar(1, 1, 1, 'L'))->via(new \stdClass));
+        $this->assertSame(['database'], (new CartasSinJugar(1, 1, 'L', 1, 1, false))->via(new \stdClass));
         $this->assertSame(['database'], (new CartasResueltas(1, 1, 1, 1))->via(new \stdClass));
     }
 }

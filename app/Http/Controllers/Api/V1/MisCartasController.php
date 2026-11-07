@@ -19,7 +19,7 @@ class MisCartasController extends Controller
     // Al menos de momento: tope de cuántas Jugadas se pueden jugar para una
     // misma jornada — mismo espíritu que el límite de 1 Falta/jornada, pero
     // con un número distinto porque son mecánicas distintas.
-    private const LIMITE_JUGADAS_POR_JORNADA = 2;
+    public const LIMITE_JUGADAS_POR_JORNADA = 2;
 
     public function __construct(
         private MotorEfectosCartas $motor,

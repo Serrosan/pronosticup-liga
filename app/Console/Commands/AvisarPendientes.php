@@ -181,25 +181,43 @@ class AvisarPendientes extends Command
     }
 
     /**
-     * Avisa por la campana a quien tenga cartas de Jugadas en la mano justo antes de que
-     * empiece la jornada (después ya no se pueden jugar). No usa RecordatorioEnviado: se
-     * comprueba en las propias notificaciones si ya se avisó por esta jornada y esta liga.
+     * Avisa por la campana de las cartas que todavía PUEDES jugar antes de que empiece la
+     * jornada, con los mismos límites que al jugarlas: 2 Jugadas por jornada (y no si te
+     * han expulsado) y 1 Falta, que afecta a la jornada siguiente. Una vez por jornada y
+     * liga: se comprueba en las propias notificaciones si ya se avisó.
      */
     private function avisarCartasSinJugar(Liga $liga, int $jornada): int
     {
-        $sinJugarPorUsuario = CartaUsuario::where('id_liga', $liga->id)
+        $motor = app(\App\Services\MotorFaltas::class);
+        $enMano = fn (string $categoria) => CartaUsuario::where('id_liga', $liga->id)
             ->where('estado', 'en_mano')
-            ->whereHas('tipoCarta.categoria', fn ($q) => $q->where('nombre', 'Jugadas'))
-            ->selectRaw('id_usuario, COUNT(*) as total')
-            ->groupBy('id_usuario')
-            ->pluck('total', 'id_usuario');
+            ->whereHas('tipoCarta.categoria', fn ($q) => $q->where('nombre', $categoria))
+            ->selectRaw('id_usuario, COUNT(*) as total')->groupBy('id_usuario')->pluck('total', 'id_usuario');
+        $jugadas = fn (string $categoria, int $jornadaEfecto) => CartaUsuario::where('id_liga', $liga->id)
+            ->where('estado', 'jugada')->where('jornada_efecto', $jornadaEfecto)
+            ->whereHas('tipoCarta.categoria', fn ($q) => $q->where('nombre', $categoria))
+            ->selectRaw('id_usuario, COUNT(*) as total')->groupBy('id_usuario')->pluck('total', 'id_usuario');
+
+        $jugadasEnMano = $enMano('Jugadas');
+        $faltasEnMano = $enMano('Faltas');
+        $jugadasYa = $jugadas('Jugadas', $jornada);
+        $faltasYa = $jugadas('Faltas', $jornada + 1); // las Faltas de ahora afectan a la siguiente
 
         $enviados = 0;
 
         foreach ($liga->usuarios as $usuario) {
-            $cantidad = (int) ($sinJugarPorUsuario[$usuario->id] ?? 0);
+            $manoJugadas = (int) ($jugadasEnMano[$usuario->id] ?? 0);
+            $huecos = max(0, \App\Http\Controllers\Api\V1\MisCartasController::LIMITE_JUGADAS_POR_JORNADA - (int) ($jugadasYa[$usuario->id] ?? 0));
+            $jugadasPosibles = min($huecos, $manoJugadas);
+            $faltaPosible = (int) ($faltasEnMano[$usuario->id] ?? 0) > 0 && (int) ($faltasYa[$usuario->id] ?? 0) === 0;
 
-            if ($cantidad === 0) {
+            if ($jugadasPosibles > 0 && $motor->estaExpulsadoDe($liga->id, $usuario->id, $jornada, 'Jugadas')) {
+                $jugadasPosibles = 0;
+            }
+            if ($faltaPosible && $motor->estaExpulsadoDe($liga->id, $usuario->id, $jornada, 'Faltas')) {
+                $faltaPosible = false;
+            }
+            if ($jugadasPosibles === 0 && ! $faltaPosible) {
                 continue;
             }
 
@@ -214,7 +232,7 @@ class AvisarPendientes extends Command
                     continue;
                 }
 
-                $usuario->notify(new CartasSinJugar($jornada, $liga->id, $cantidad, $liga->nombre));
+                $usuario->notify(new CartasSinJugar($jornada, $liga->id, $liga->nombre, $jugadasPosibles, $manoJugadas, $faltaPosible));
                 $enviados++;
             } catch (\Throwable $e) {
                 $this->error("Fallo avisando de cartas sin jugar a {$usuario->email} (liga {$liga->id}, J{$jornada}): {$e->getMessage()}");

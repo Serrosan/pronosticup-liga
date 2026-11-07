@@ -112,6 +112,14 @@ function NavBar() {
   const location = useLocation()
   const [menuAbierto, setMenuAbierto] = useState(false)
 
+  // Con el menú del móvil abierto, la página de detrás no se mueve: el dedo desliza el menú.
+  useEffect(() => {
+    if (!menuAbierto) return undefined
+    const anterior = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = anterior }
+  }, [menuAbierto])
+
   function claseEnlace(match) {
     const activo = location.pathname === match || location.pathname.startsWith(match + '/')
     return `font-body text-sm px-3 py-2 rounded transition whitespace-nowrap ${
@@ -235,7 +243,7 @@ function NavBar() {
           </div>
         </div>
         {menuAbierto && (
-          <nav className="md:hidden flex flex-col gap-1 pb-4">
+          <nav className="md:hidden flex flex-col gap-1 pb-4 max-h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain">
             {ENLACES.map((enlace) => (
               <Link
                 key={enlace.to}

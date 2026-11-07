@@ -473,6 +473,25 @@ function MisCartasPage() {
     enabled: data?.activo === true,
   })
 
+  // El historial va aquí, con las demás consultas y antes de cualquier "return":
+  // React necesita que los hooks se llamen siempre en el mismo orden.
+  const {
+    data: paginasHistorial,
+    fetchNextPage: cargarMasHistorial,
+    hasNextPage: hayMasHistorial,
+    isFetchingNextPage: cargandoMasHistorial,
+    isPending: cargandoHistorial,
+    error: errorHistorial,
+    refetch: reintentarHistorial,
+  } = useInfiniteQuery({
+    queryKey: ['mis-cartas-historial'],
+    queryFn: async ({ pageParam = 1 }) => (await client.get('/api/v1/mis-cartas/historial', { params: { pagina: pageParam } })).data,
+    getNextPageParam: (ultimaPagina) => (ultimaPagina?.meta?.hay_mas ? ultimaPagina.meta.pagina + 1 : undefined),
+    initialPageParam: 1,
+    enabled: pestana === 'historial' && data?.activo === true,
+    staleTime: 0,
+  })
+
   const descartar = useMutation({
     mutationFn: (id) => client.post(`/api/v1/mis-cartas/${id}/descartar`),
     onSuccess: () => {
@@ -547,20 +566,7 @@ function MisCartasPage() {
     )
   }
 
-  const {
-    data: paginasHistorial,
-    fetchNextPage: cargarMasHistorial,
-    hasNextPage: hayMasHistorial,
-    isFetchingNextPage: cargandoMasHistorial,
-  } = useInfiniteQuery({
-    queryKey: ['mis-cartas-historial'],
-    queryFn: async ({ pageParam = 1 }) => (await client.get('/api/v1/mis-cartas/historial', { params: { pagina: pageParam } })).data,
-    getNextPageParam: (ultimaPagina) => (ultimaPagina.meta.hay_mas ? ultimaPagina.meta.pagina + 1 : undefined),
-    initialPageParam: 1,
-    enabled: pestana === 'historial',
-  })
-
-  const historial = paginasHistorial?.pages.flatMap((p) => p.data) ?? []
+  const historial = paginasHistorial?.pages.flatMap((p) => p?.data ?? []) ?? []
   const sobreTope = data.cartas.length > data.tope_mano_cartas
   const partidosDisponibles = jornadaJugable?.partidos ?? []
   const cargandoJornada = !jornadaJugable
@@ -820,7 +826,17 @@ function MisCartasPage() {
           )}
 
           {pestana === 'historial' && (
-            historial.length === 0 ? (
+            errorHistorial ? (
+              <div className="text-center py-8">
+                <p className="font-body text-sm text-red-500">⚠️ No se ha podido cargar el historial.</p>
+                <p className="font-body text-[11px] text-borde mt-1 break-all">
+                  {errorHistorial.response ? `HTTP ${errorHistorial.response.status} · ${errorHistorial.response.data?.message ?? ''}` : errorHistorial.message}
+                </p>
+                <button onClick={() => reintentarHistorial()} className="font-body text-xs text-acento hover:underline mt-2">Reintentar</button>
+              </div>
+            ) : cargandoHistorial && historial.length === 0 ? (
+              <p className="font-body text-sm text-borde text-center py-8">Cargando el historial…</p>
+            ) : historial.length === 0 ? (
               <p className="font-body text-sm text-borde text-center py-8">Aquí verás qué pasó con cada carta que juegues, cuando se cierre su jornada.</p>
             ) : (
               <div className="flex flex-col gap-2">

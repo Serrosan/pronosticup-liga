@@ -92,6 +92,7 @@ Route::prefix('v1')->group(function () {
     Route::post('/codigos/canjear', [\App\Http\Controllers\Api\V1\CanjeCodigoController::class, 'canjear']);
     Route::get('/mis-cartas/proxima-jornada-jugable', [\App\Http\Controllers\Api\V1\MisCartasController::class, 'proximaJornadaJugable']);
     Route::get('/mis-cartas/rivales-bloqueados', [\App\Http\Controllers\Api\V1\MisCartasController::class, 'rivalesBloqueados']);
+    Route::get('/mis-cartas/historial', [\App\Http\Controllers\Api\V1\MisCartasController::class, 'historial']);
     Route::post('/mis-cartas/abrir-siguiente', [\App\Http\Controllers\Api\V1\MisCartasController::class, 'abrirSiguiente']);
     Route::get('/catalogo-cartas', [\App\Http\Controllers\Api\V1\CatalogoCartasController::class, 'index']);
     Route::post('/mis-cartas/{cartaUsuario}/descartar', [\App\Http\Controllers\Api\V1\MisCartasController::class, 'descartar']);

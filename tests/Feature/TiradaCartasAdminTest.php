@@ -42,14 +42,14 @@ class TiradaCartasAdminTest extends TestCase
         $this->silbato = TipoCarta::create(['id_categoria' => $faltas->id, 'rareza' => 'Comun', 'nombre' => 'Silbato', 'descripcion' => 'x', 'codigo_efecto' => 'FAL-COM-SILBATO', 'activa' => true]);
     }
 
-    private function post(string $url, array $datos)
+    private function enviarComoAdmin(string $url, array $datos)
     {
         return $this->actingAs($this->admin)->postJson($url, $datos);
     }
 
     public function test_dar_una_tirada_a_un_jugador_crea_un_sobre_y_le_avisa(): void
     {
-        $this->post('/api/v1/admin/cartas-usuario/tirada', ['id_liga' => $this->liga->id, 'id_usuario' => $this->jugador->id, 'rareza' => 'Comun'])
+        $this->enviarComoAdmin('/api/v1/admin/cartas-usuario/tirada', ['id_liga' => $this->liga->id, 'id_usuario' => $this->jugador->id, 'rareza' => 'Comun'])
             ->assertOk();
 
         $carta = CartaUsuario::where('id_usuario', $this->jugador->id)->first();
@@ -60,7 +60,7 @@ class TiradaCartasAdminTest extends TestCase
 
     public function test_la_tirada_respeta_la_categoria_elegida(): void
     {
-        $this->post('/api/v1/admin/cartas-usuario/tirada', ['id_liga' => $this->liga->id, 'id_usuario' => $this->jugador->id, 'id_categoria' => $this->chute->id_categoria])
+        $this->enviarComoAdmin('/api/v1/admin/cartas-usuario/tirada', ['id_liga' => $this->liga->id, 'id_usuario' => $this->jugador->id, 'id_categoria' => $this->chute->id_categoria])
             ->assertOk();
 
         $this->assertSame($this->chute->id, CartaUsuario::where('id_usuario', $this->jugador->id)->value('id_tipo_carta'));
@@ -68,7 +68,7 @@ class TiradaCartasAdminTest extends TestCase
 
     public function test_no_se_da_tirada_a_quien_no_es_de_la_liga(): void
     {
-        $this->post('/api/v1/admin/cartas-usuario/tirada', ['id_liga' => $this->liga->id, 'id_usuario' => User::factory()->create()->id])
+        $this->enviarComoAdmin('/api/v1/admin/cartas-usuario/tirada', ['id_liga' => $this->liga->id, 'id_usuario' => User::factory()->create()->id])
             ->assertStatus(422);
     }
 
@@ -82,7 +82,7 @@ class TiradaCartasAdminTest extends TestCase
         $this->actingAs($this->admin)->getJson("/api/v1/admin/tipos-carta/{$this->silbato->id}/retirada")
             ->assertOk()->assertJsonPath('data.en_mano', 2);
 
-        $this->post("/api/v1/admin/tipos-carta/{$this->silbato->id}/retirar", ['compensar' => true])->assertOk();
+        $this->enviarComoAdmin("/api/v1/admin/tipos-carta/{$this->silbato->id}/retirar", ['compensar' => true])->assertOk();
 
         $this->assertFalse((bool) $this->silbato->fresh()->activa);
         $this->assertSame(2, CartaUsuario::where('id_tipo_carta', $this->silbato->id)->where('estado', 'retirada_por_catalogo')->count());
@@ -97,7 +97,7 @@ class TiradaCartasAdminTest extends TestCase
         CartaUsuario::create(['id_usuario' => $this->jugador->id, 'id_liga' => $this->liga->id, 'id_tipo_carta' => $this->silbato->id,
             'jornada_obtenida' => 10, 'obtenida_en' => now(), 'revelada_en' => now(), 'origen' => 'manual', 'estado' => 'en_mano']);
 
-        $this->post("/api/v1/admin/tipos-carta/{$this->silbato->id}/retirar", ['compensar' => false])->assertOk();
+        $this->enviarComoAdmin("/api/v1/admin/tipos-carta/{$this->silbato->id}/retirar", ['compensar' => false])->assertOk();
 
         $this->assertSame(0, CartaUsuario::where('id_usuario', $this->jugador->id)->where('estado', 'en_mano')->count());
         Notification::assertNothingSent();

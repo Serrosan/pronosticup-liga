@@ -39,8 +39,16 @@ class VigilanciaAdminService
 
     private const MINUTOS_FALLO_RECIENTE = 30;
 
-    /** Un partido que empezó hace más de esto y no está "Jugado" se considera atascado. */
-    private const MINUTOS_PARTIDO_ATASCADO = 180;
+    /**
+     * Un partido que empezó hace más de esto y no está "Jugado" se considera atascado.
+     * Eran 3 h, pero football-data tarda a menudo más que eso en dar un partido por
+     * terminado (pasaba cada fin de semana) y avisaba de partidos que luego se
+     * actualizaban solos. Con 6 h solo salta si de verdad hay algo raro.
+     */
+    private const MINUTOS_PARTIDO_ATASCADO = 360;
+
+    /** Si la última sincronización de un partido atascado es más vieja que esto, la que falla es la sincronización. */
+    private const MINUTOS_SINCRONIZACION_PARADA = 30;
     private const MAXIMO_ERRORES_POR_PASADA = 3;
 
     public function __construct(private VisorErroresService $visor) {}
@@ -154,9 +162,16 @@ class VigilanciaAdminService
             $visitante = $partido->equipoVisitante->nombre_corto ?? $partido->equipoVisitante->nombre ?? '?';
             $horas = intdiv((int) $partido->horario_estimado->diffInMinutes(now(), true), 60);
 
-            $mensaje = "El {$local} - {$visitante} (jornada {$partido->jornada}) empezó hace {$horas} h y sigue como «{$partido->estado}». "
-                .'Lo normal es que football-data aún no lo haya actualizado: se recogerá solo cuando lo haga. '
-                .'Si no llega a tiempo para cerrar la jornada, márcalo a mano en Admin → Calendario.';
+            $sincronizado = $partido->sincronizado_en ? Carbon::parse($partido->sincronizado_en) : null;
+            $sincronizacionParada = ! $sincronizado || $sincronizado->lt(now()->subMinutes(self::MINUTOS_SINCRONIZACION_PARADA));
+
+            $mensaje = "El {$local} - {$visitante} (jornada {$partido->jornada}) empezó hace {$horas} h y sigue como «{$partido->estado}». ";
+            $mensaje .= $sincronizacionParada
+                ? ($sincronizado
+                    ? "No se sincroniza desde el {$sincronizado->format('d/m H:i')}: parece que falla la sincronización con football-data (mira Sistema → Errores con «mostrar avisos» y Admin → Tareas). "
+                    : 'No se ha sincronizado nunca con football-data: revisa que tenga el id de la API (Admin → Calendario). ')
+                : "football-data lo revisó a las {$sincronizado->format('H:i')} y aún no lo da por terminado: se recogerá solo cuando lo haga. ";
+            $mensaje .= 'Si no llega a tiempo para cerrar la jornada, márcalo a mano en Admin → Calendario.';
 
             $admins = $this->superadmins();
             Notification::send($admins, new AvisoAdmin('admin_partido_atascado', '⏱️ Un partido no se ha actualizado', $mensaje));

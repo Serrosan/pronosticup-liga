@@ -51,6 +51,7 @@ const GRUPOS = [
       { to: '/admin/configuracion-cartas', label: 'Configuración por liga' },
       { to: '/admin/gestion-cartas-usuarios', label: 'Cartas de usuarios' },
       { to: '/admin/rastro-cartas', label: 'Rastro de cartas' },
+      { to: '/admin/estadisticas-cartas', label: '📊 Estadísticas' },
       { to: '/admin/codigos-canje', label: 'Crear códigos' },
       { to: '/admin/canjes-codigo', label: 'Historial de canjes' },
     ],

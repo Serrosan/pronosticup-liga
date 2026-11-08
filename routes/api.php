@@ -102,6 +102,7 @@ Route::prefix('v1')->group(function () {
 
     Route::middleware('admin')->prefix('admin')->group(function () {
         Route::get('/avisos', [\App\Http\Controllers\Api\V1\Admin\AvisosAdminController::class, 'index']);
+        Route::get('/estadisticas-cartas', [\App\Http\Controllers\Api\V1\Admin\EstadisticasCartasAdminController::class, 'index']);
         Route::post('/cartas-usuario/tirada', [\App\Http\Controllers\Api\V1\Admin\TiradaCartasAdminController::class, 'tirada']);
         Route::get('/tipos-carta/{tipoCarta}/retirada', [\App\Http\Controllers\Api\V1\Admin\TiradaCartasAdminController::class, 'previaRetirada'])->whereNumber('tipoCarta');
         Route::post('/tipos-carta/{tipoCarta}/retirar', [\App\Http\Controllers\Api\V1\Admin\TiradaCartasAdminController::class, 'retirar'])->whereNumber('tipoCarta');

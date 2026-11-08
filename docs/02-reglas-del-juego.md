@@ -77,6 +77,10 @@ retroactivas**.
 - **Reparto semanal** tras cerrar y calcular goleadores: una Jugada y una Falta por jugador
   más el bonus para el Top 3 de la jornada.
 - Límites por jornada: **2 Jugadas** y **1 Falta**, Escudo incluido.
+- El aviso de **cartas sin jugar** solo salta si de verdad puedes jugarlas (respeta esos
+  límites y la Expulsión) y separa Jugadas y Faltas (`CartasSinJugar`).
+- El admin puede **dar una tirada** a un jugador y **retirar una carta** del catálogo
+  compensando a sus dueños con un sobre (`TiradaCartasService`).
 
 ### Jugadas: el motor por "formas"
 
@@ -95,6 +99,19 @@ los puntos; añadir una carta de una forma que ya existe es una línea en su reg
 El historial nunca se falsea: con Pleno Garantizado el evento conserva el tipo real y la
 carta va en `nota_carta`.
 
+### Primer balance (noviembre 2026)
+
+Migración `2026_11_02_120000_balance_cartas_1`: textos del catálogo; los números viven en
+`MotorEfectosCartas` y `MotorFaltas`. Se aplicó a **todas** las cartas, también a las que ya
+estaban en mano.
+
+| Carta | Antes | Ahora |
+|---|---|---|
+| Ojo de Halcón (exacto del partido elegido) | +2 / +4 | **+3** (Común) / **+5** (Poco común) |
+| Crack (2 exactos cualesquiera) | +4 | **+6** |
+| Todo queda en casa / Visita obligada | 2 / 3 / (4) / 5 | **3 / 4 / 5 / 6** (Común → Legendaria) |
+| Todo queda en casa Rara | — | **Nueva** (`FAL-RAR-CASA`, 5 victorias locales) |
+
 ## Faltas
 
 `MotorFaltas`. Se juegan contra un rival y afectan a la **jornada siguiente a la que está
@@ -103,13 +120,12 @@ pasa a contar para la 11.
 
 | Falta | Efecto |
 |---|---|
-| **Todo queda en casa / Visita obligada** | El rival debe incluir N victorias locales / visitantes (2–5 según rareza) |
+| **Todo queda en casa / Visita obligada** | El rival debe incluir N victorias locales / visitantes: 3 Común, 4 Poco común, 5 Rara, 6 Legendaria |
 | **Resultado Gafas** | El rival debe incluir N empates (1 / 2 / 3 / 4 según rareza) |
 | **Fallo clamoroso** | El rival no puede elegir como goleador a ninguno del **Top 3 de goleadores reales de la temporada** (empatados en el 3.º incluidos) |
 | **Expulsión** | Bloquea jugar cartas: Legendaria → Jugadas y Faltas; Rara → solo Faltas |
 | **Sin comodines** | Bloquea solo Amuletos y Pleno Garantizado |
-| **Silbato** | Mensaje de burla, sin efecto en puntos. El mensaje es obligatorio y privado |
-| **Amigo invisible** | Como Silbato, pero anónimo ("Alguien…") |
+| ~~Silbato~~ / ~~Amigo invisible~~ | **Retiradas** en noviembre de 2026. Las que había en mano se compensaron con una tirada normal |
 | **Escudo** | Te lo juegas a ti: bloquea la primera Falta que te llegue. **Se pierden las dos cartas** |
 
 Reglas comunes:
@@ -120,6 +136,10 @@ Reglas comunes:
 - **Varias Faltas del mismo tipo contra la misma persona no se suman**: manda la más
   exigente, y el atacante no recibe información de lo que han jugado otros.
 - No se puede repetir rival dos semanas seguidas.
+- Cualquier Falta puede llevar un **mensaje** o un **audio** de burla (máx. 15 s); se ve
+  donde ya se veía el mensaje.
+- Al pronosticar con varias Faltas encima, el aviso enseña **todas las condiciones a la
+  vez** y explica cuál queda tapada por otra más exigente.
 - Máximo de Faltas recibidas por jornada: la mitad de la liga, redondeando hacia abajo.
 - El jugador ve sus Faltas activas en **Mis cartas → Amenazas** y una franja con su
   progreso ("llevas 1/2 de victoria local") al pronosticar.

@@ -57,6 +57,7 @@ middleware `admin`, es decir, solo superadmin.
 | `MotorEfectosCartas` | Resuelve las cartas Jugadas (formas 1–6) |
 | `MotorFaltas` | Faltas: requisitos, bloqueos, Escudo, resolución |
 | `SorteoCartasService` | Sorteo de cartas por rareza; registra en `storage/logs/cartas.log` |
+| `TiradaCartasService` | Dar un sobre a un jugador (tiradas del admin y compensaciones) |
 | `AperturaJornadas` | Si una jornada está abierta para pronosticar (ligas con cartas) |
 | `CierreJornadaService` | Estado de la lista de cierre (solo mira, no actúa) |
 | `AuditoriaPuntosService` | Recalcula puntos en seco y compara |

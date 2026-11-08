@@ -5,6 +5,11 @@ Las más recientes, arriba.
 
 | Fecha | Decisión | Por qué |
 |---|---|---|
+| 2026-11-08 | Aviso de partido atascado a las **6 h** (antes 3 h), diciendo cuándo se sincronizó por última vez; las respuestas con error de football-data se apuntan en el registro | football-data tarda a menudo más de 3 h en dar un partido por terminado: avisaba cada fin de semana de partidos que se arreglaban solos |
+| 2026-11 | **Primer balance de cartas** aplicado a todas, también a las que ya estaban en mano | Más fácil y más justo que distinguir antiguas y nuevas |
+| 2026-11 | **Silbato y Amigo invisible retirados**; cada una en mano se compensó con una tirada normal (sobre) | No se quiso cambiarles el efecto, y cualquier Falta ya admite mensaje o audio |
+| 2026-11 | Faltas con **audio de burla** (máx. 15 s) | Más gracia que el texto, sin carta aparte |
+| 2026-11 | **Actualizaciones** editables desde el admin (borradores, vista previa, NUEVO) | Contar los cambios a los jugadores sin tocar código |
 | 2026-10-27 | **"Cerrar todo"** por liga en Cierre de jornada, solo con todo en verde; los botones sueltos siguen | Ahorrar clics sin saltarse ningún aviso: si algo no está limpio, se va paso a paso |
 | 2026-10-27 | Aviso del **resultado de cada partido** solo al móvil y **apagado** de partida | Unos 10 avisos por jornada llenarían la campana; quien lo quiera, lo activa |
 | 2026-10-27 | **Versión nueva**: `/version.json` público (solo la fecha del build) y franja con "Actualizar"; nunca se fuerza la recarga | Práctica habitual, no enseña nada aprovechable; quien está a mitad de un pronóstico termina antes |

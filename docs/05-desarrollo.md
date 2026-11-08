@@ -60,6 +60,12 @@ Sail construye su propia imagen. Para coger un PHP nuevo:
   para mandar cookies en `getJson`/`postJson`, `->withCredentials()`.
 - Avisos: `Notification::fake()`. Para los envíos diferidos con `defer()` (avisos al
   móvil): `app(DeferredCallbackCollection::class)->invoke()`.
+- **Nunca llames `post()`, `get()`… a un método auxiliar de un test**: pisa el de Laravel y
+  da un *Fatal error* que tumba la batería entera. Usa nombres como `enviarComoAdmin`.
+- `RutasFrontendTest` comprueba que cada `client.get/post('/api/…')` del frontend tiene su
+  ruta en Laravel: si añades una llamada, añade la ruta.
+- La comprobación antes de subir mira que el resumen diga `passed` **y** que no aparezca
+  `failed` ni `Fatal error`.
 
 ## Cómo se aplica un cambio
 

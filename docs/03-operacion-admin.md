@@ -18,8 +18,11 @@ botón de cada uno. Se va **de arriba abajo**: el orden importa.
 
 ### Antes de empezar
 
-- Si te ha llegado a la campana **«⏱️ Un partido no se ha actualizado»** (partido atascado: football-data no ha
-  publicado el resultado), no cierres hasta que llegue, o márcalo a mano en Admin → Calendario.
+- Si te ha llegado a la campana **«⏱️ Un partido no se ha actualizado»** (un partido que lleva
+  más de **6 h** desde su hora sin terminar), no cierres hasta que llegue, o márcalo a mano
+  en Admin → Calendario. El aviso dice si football-data lo ha revisado hace poco y aún no lo
+  da por terminado (esperar) o si la sincronización lleva rato parada (mirar Sistema →
+  Errores con «mostrar avisos», donde quedan las respuestas con error de football-data).
 - **Espera unos minutos** desde el pitido final del último partido. El scraper descarga
   solo alineaciones, goles y tarjetas de cada partido **10 minutos después** de que pase
   a "Jugado".
@@ -96,6 +99,8 @@ según sus preferencias.
 |---|---|
 | Los puntos de alguien no cuadran | **Auditar** en Cierre de jornada |
 | Una carta "no hizo nada" | **Rastro de cartas**: repartida, jugada, resuelta y por qué puntuó o no |
+| Una carta parece muerta o desequilibrada | **📊 Estadísticas de cartas** |
+| Hay que compensar a alguien | **Dar tirada** en Cartas de usuarios |
 | Se cambió la configuración de puntos | Recalcular puntos de la jornada, **liga por liga** |
 | Cambiaron los eventos de un partido (gol corregido…) | Repetir **Calcular goleadores** |
 | «Los goles no cuadran con el marcador» | Abrir el partido, mirar Avisos del scraper y Cambios de plantilla, **reimportar** la jornada y, si ya estaba calculado, repetir **Calcular goleadores** |
@@ -125,9 +130,18 @@ Agrupadas como en el menú del admin (acordeón por grupos).
   efecto en el motor.
 - **Configuración de cartas**: reparto por liga y categoría, probabilidades de rareza y
   bonus del Top 3.
-- **Cartas de usuarios**: dar o retirar cartas a mano.
+- **Cartas de usuarios**: dar o retirar cartas a mano, y **dar una tirada**: un sobre al
+  azar con las probabilidades de la liga, o de la rareza o categoría que elijas. Le llega
+  el aviso.
+- **Retirar una carta** (desde Tipos de carta): enseña antes a quién afecta, la desactiva,
+  retira las que haya en mano y, si se marca, compensa a cada dueño con un sobre y le avisa.
 - **Reparto inicial**: una sola vez por liga.
 - **Rastro de cartas**: la vida completa de una carta.
+- **📊 Estadísticas de cartas**: por liga, rarezas configuradas frente a las que han salido
+  (por origen), y carta a carta: cuántas salen, % que se juegan, % que se cumplen y puntos
+  por carta, con señales de las que casi no se juegan o rara vez se cumplen. También las
+  activas que nunca han salido y las jugadas por jornada. Para decidir balances y cartas
+  nuevas.
 - **Crear códigos / Historial de canjes**: códigos que dan una tirada aleatoria o una carta
   concreta. Un uso por persona, garantizado en la base de datos.
 
@@ -152,5 +166,7 @@ Agrupadas como en el menú del admin (acordeón por grupos).
 - **📣 Enviar aviso**: mensaje a los jugadores (campana + móvil), **ahora** o
   **programado** para más tarde. Los programados se pueden cancelar.
 - **Ver como**: la app tal como la ve otro jugador, en solo lectura.
+- **Actualizaciones**: el historial de cambios que ven los jugadores. Borradores, vista
+  previa y marca de NUEVO al publicar.
 - **Copia para local**: descarga de la base de datos (con correos falsos y contraseña
   `password` por defecto) y de las imágenes, para cargar en local con HeidiSQL.

@@ -5,6 +5,8 @@ se apunta en [Decisiones](decisiones.md).
 
 ## Pronto
 
+- [ ] **Noviembre (anunciado en Actualizaciones)**: **Cartas nuevas y retirar alguna más**,
+  decidiendo con Admin → Cartas → 📊 Estadísticas, y la **Forja** (ver abajo).
 - [ ] **Partido estrella** (automático): un derbi de la lista (editable en el admin) o, si no
   hay, el partido entre los dos mejor clasificados de LaLiga. Se fija al abrir la jornada,
   dobla los puntos base del pronóstico y lleva ⭐.
@@ -19,14 +21,15 @@ se apunta en [Decisiones](decisiones.md).
 - [ ] **Logros**: rediseño completo (25 logros, secretos, premios con carta, distintivo
   final). Diseño a medias; falta decidir si los 25 incluyen los secretos y qué candidatos
   entran.
-- [ ] **Silbato**: pasarlo a audio o quitarlo, porque cualquier Falta ya permite mensaje.
 - [ ] **Copa eliminatoria**: una ronda por jornada con los puntos normales, cruces según la
   clasificación; en Liga Familia, con pases directos si son impares.
 - [ ] **Salón de la fama** para cuando haya varias temporadas. Mirar antes qué récords ya
   salen en las estadísticas de la liga.
-- [ ] **Forja de cartas** (a proponer al grupo): 3 comunes → 1 poco común, 3 poco comunes →
-  1 rara, 4 raras → 1 legendaria; misma categoría, solo cartas en la mano, resultado al
-  azar, una por jornada. Falta decidir si la Expulsión la bloquea.
+- [ ] **Forja de cartas** (noviembre): 3 de la misma rareza y categoría → 1 de la rareza
+  siguiente, solo cartas en la mano, resultado al azar, una por jornada, nada por encima de
+  Legendaria. Falta cerrar: ¿4 raras para una legendaria?, ¿la bloquea la Expulsión?
+- [ ] **Intercambio de cartas** entre jugadores (idea): misma rareza, 1 por semana, en el
+  Rastro de cartas.
 - [ ] **Imágenes para compartir** con una librería moderna y vista previa al pegar un
   enlace (Open Graph desde el servidor). Gordo.
 - [ ] **Accesos directos** del icono de la app (manifest `shortcuts`).

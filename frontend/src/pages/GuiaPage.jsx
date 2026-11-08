@@ -44,7 +44,7 @@ function GuiaPage() {
         <TicketHeader titulo="Guía rápida" />
         <div className="px-5 py-4">
           <p className="font-body text-sm text-borde">
-            Todo lo que necesitas saber para moverte por la app, en 5 pasos rápidos.
+            Todo lo que necesitas saber para moverte por la app, en unos minutos.
           </p>
         </div>
       </div>
@@ -88,6 +88,9 @@ function GuiaPage() {
             <strong>Chute Extra</strong>: suma puntos extra en un partido que elijas. Empieza en +1 (Común) y llega hasta +5
             (Legendaria) — la misma idea, pero más fuerte cuanto más rara te toque.
           </EjemploCarta>
+          <EjemploCarta rareza="Común → Poco Común">
+            <strong>Ojo de Halcón</strong>: eliges un partido y, si aciertas su resultado exacto, sumas +3 (Común) o +5 (Poco Común).
+          </EjemploCarta>
           <EjemploCarta rareza="Común → Legendaria">
             <strong>Palomitas</strong>: puntos extra si tu pronóstico de signo (local/empate/visitante) coincide con el de la
             mayoría de tu liga en ese partido. También escala de +1 a +5 según la rareza.
@@ -99,7 +102,7 @@ function GuiaPage() {
             <strong>Pleno Garantizado</strong>: un partido a tu elección cuenta como acertado con resultado exacto, pase lo que pase.
           </EjemploCarta>
           <EjemploCarta rareza="Legendaria">
-            <strong>Crack</strong>: +4 puntos extra si aciertas el resultado exacto de 2 partidos cualquiera de la jornada — sin
+            <strong>Crack</strong>: +6 puntos extra si aciertas el resultado exacto de 2 partidos cualquiera de la jornada — sin
             tener que elegirlos antes.
           </EjemploCarta>
           <EjemploCarta rareza="Poco Común → Legendaria">
@@ -113,7 +116,8 @@ function GuiaPage() {
         <div className="flex flex-col gap-2">
           <EjemploCarta rareza="Común → Legendaria">
             <strong>Todo queda en casa</strong>: obligas al rival a meter varias victorias locales entre sus pronósticos de la
-            jornada siguiente — de 2 (Común) hasta 5 (Legendaria).
+            jornada siguiente — 3 (Común), 4 (Poco Común), 5 (Rara) o 6 (Legendaria). <strong>Visita obligada</strong> hace
+            lo mismo con victorias visitantes.
           </EjemploCarta>
           <EjemploCarta rareza="Común → Legendaria">
             <strong>Resultado Gafas</strong>: obligas al rival a meter 1 o varios empates entre sus pronósticos — el número sube
@@ -129,10 +133,10 @@ function GuiaPage() {
             <strong>Expulsión</strong>: el rival no puede jugar cartas la jornada siguiente — en Rara, solo Faltas; en Legendaria,
             ninguna carta en absoluto.
           </EjemploCarta>
-          <EjemploCarta rareza="Común">
-            <strong>Amigo Invisible</strong>: le mandas un mensaje de burla anónimo — no sabrá que fuiste tú.
-          </EjemploCarta>
         </div>
+        <p className="font-body text-sm text-texto mt-1">
+          Al jugar cualquier Falta puedes añadirle un <strong>mensaje de burla</strong> o un <strong>audio</strong> de hasta 15 segundos.
+        </p>
 
         <div className="bg-borde/5 rounded-lg px-4 py-3 mt-2 flex flex-col gap-1.5">
           <p className="font-body text-xs text-borde">
@@ -144,8 +148,9 @@ function GuiaPage() {
             <strong> siguiente</strong> a la que estás jugando ahora.
           </p>
           <p className="font-body text-xs text-borde">
-            <strong>Límites:</strong> como mucho 1 Falta y 2 Jugadas por jornada, y tu mano de cartas tiene un tope — descarta
-            las que no te interesen para dejar sitio a las nuevas.
+            <strong>Límites:</strong> como mucho 1 Falta (el Escudo cuenta como Falta) y 2 Jugadas por jornada, y tu mano de
+            cartas tiene un tope — descarta las que no te interesen para dejar sitio a las nuevas. Si te han jugado una
+            Expulsión, esa jornada no podrás jugar las cartas que bloquee.
           </p>
         </div>
       </Seccion>
@@ -165,10 +170,11 @@ function GuiaPage() {
       <Seccion icono="🔔" titulo="Avisos y notificaciones">
         <Paso numero="1">La campana 🔔 de arriba te avisa de todo dentro de la app: jornadas cerradas, recordatorios, etc.</Paso>
         <Paso numero="2">También recibes esos avisos por email. Si prefieres no recibir correos, puedes desactivarlos desde <strong>Mi perfil</strong>.</Paso>
+        <Paso numero="3">En el móvil, activa los <strong>avisos al móvil</strong> desde <strong>Mi perfil</strong> y elige qué tipos quieres. Uno de ellos, que viene apagado, te manda el resultado de cada partido con lo que pronosticaste.</Paso>
       </Seccion>
 
       <p className="font-body text-xs text-borde text-center">
-        ¿Sigues con dudas? Pregunta en el chat de tu liga — seguro que alguien te ayuda.
+        ¿Qué ha cambiado últimamente? Míralo en <strong>Actualizaciones</strong>. ¿Sigues con dudas? Pregunta en el chat de tu liga — seguro que alguien te ayuda.
       </p>
     </div>
   )

@@ -4,6 +4,7 @@ import client from '../api/client'
 import SelectTema from '../components/SelectTema'
 import CartaJuego from '../components/CartaJuego'
 import { useToast } from '../context/ToastContext'
+import DarTiradaAdmin from '../components/DarTiradaAdmin'
 
 function AdminGestionCartasUsuariosPage() {
   const toast = useToast()
@@ -115,6 +116,8 @@ function AdminGestionCartasUsuariosPage() {
               El usuario recibirá un aviso en su campana de notificaciones.
             </p>
           </div>
+
+          <DarTiradaAdmin idLiga={idLiga} idUsuario={idUsuario} tiposCarta={tiposCarta} />
 
           <p className="font-body text-sm font-semibold text-texto mb-3">Cartas activas en su mano</p>
 

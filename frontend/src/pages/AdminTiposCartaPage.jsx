@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import client from '../api/client'
 import AdminResourceTable from '../components/AdminResourceTable'
 import CartaJuego from '../components/CartaJuego'
+import RetirarCartaAdmin from '../components/RetirarCartaAdmin'
 
 const COLUMNAS = [
   { key: 'nombre', label: 'Nombre' },
@@ -102,6 +103,7 @@ function AdminTiposCartaPage() {
   return (
     <div>
       <VistaPrevia tipos={tipos} />
+      <RetirarCartaAdmin tipos={tipos} />
       <AdminResourceTable resource="tipos-carta" title="Tipos de Carta" columns={COLUMNAS} fields={campos} />
     </div>
   )

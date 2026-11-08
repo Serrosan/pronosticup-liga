@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query'
 import client from '../api/client'
 import { useAuth } from '../context/AuthContext'
@@ -284,6 +284,9 @@ function FaltaRecibida({ falta }) {
         <p className="font-body text-xs font-semibold text-red-500">⚠️ {falta.atacante} te ha jugado esta Falta</p>
         <p className="font-body text-xs text-texto mt-0.5">{falta.tipo_carta.descripcion}</p>
         <p className="font-body text-xs text-borde mt-0.5">Afecta a la jornada {falta.jornada_efecto}</p>
+        <Link to={`/jornadas/${falta.jornada_efecto}`} className="inline-block font-body text-xs font-semibold text-acento hover:underline mt-1">
+          Ver qué te pide en la jornada {falta.jornada_efecto} →
+        </Link>
         {falta.mensaje_falta && <p className="font-body text-xs italic text-borde mt-1">"{falta.mensaje_falta}"</p>}
         {falta.audio_url && <div className="mt-1.5"><ReproductorAudio src={falta.audio_url} /></div>}
       </div>

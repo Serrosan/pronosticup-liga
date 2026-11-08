@@ -9,7 +9,7 @@ class CartaRecibidaManual extends Notification
 {
     use Queueable;
 
-    public function __construct(public string $nombreCarta) {}
+    public function __construct(public string $nombreCarta, public bool $sobre = false) {}
 
     public function via($notifiable): array
     {
@@ -21,7 +21,9 @@ class CartaRecibidaManual extends Notification
         return [
             'tipo' => 'carta_manual',
             'titulo' => '🃏 Has recibido una carta',
-            'mensaje' => "El admin te ha dado la carta: {$this->nombreCarta}.",
+            'mensaje' => $this->sobre
+                ? 'El admin te ha dado un sobre con una carta al azar: ábrelo en Mis Cartas.'
+                : "El admin te ha dado la carta: {$this->nombreCarta}.",
             'importante' => false,
         ];
     }

@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import client from '../api/client'
 import { TIPOS, tipoDeMarcador } from '../utils/tiposAcierto'
+import { pendienteDeConfirmar, AYUDA_PENDIENTE } from '../utils/estadoPartido'
 
 const MAX_GOLES = 15
 
@@ -109,7 +110,8 @@ function MatchCard({ partido, jornadaBloqueada = false, motivoBloqueo = null }) 
 
   const hora = partido.horario_estimado?.slice(11, 16)
   const puedePronosticar = partido.estado === 'Programado' && !jornadaBloqueada
-  const minutoMostrado = partido.estado === 'En juego' ? minutoEstimado(partido.horario_estimado, partido.minuto_partido) : null
+  const pendiente = pendienteDeConfirmar(partido.estado, partido.horario_estimado)
+  const minutoMostrado = partido.estado === 'En juego' && !pendiente ? minutoEstimado(partido.horario_estimado, partido.minuto_partido) : null
 
   const partidoResuelto = partido.estado === 'Jugado' && partido.goles_casa !== null && partido.goles_fuera !== null
   // Color + icono + palabra del tipo de acierto (misma fuente que Mis Pronósticos).
@@ -128,8 +130,8 @@ function MatchCard({ partido, jornadaBloqueada = false, motivoBloqueo = null }) 
       className="bg-fondo border border-borde/30 rounded-lg p-4 cursor-pointer hover:border-acento/40 transition"
     >
       <div className="flex items-center justify-between mb-3">
-        <span className={`font-body text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${BADGE_ESTADO[partido.estado] ?? 'bg-borde/15 text-borde'}`}>
-          {partido.estado === 'Jugado' ? 'Finalizado' : partido.estado}
+        <span className={`font-body text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${pendiente ? 'bg-borde/15 text-texto' : (BADGE_ESTADO[partido.estado] ?? 'bg-borde/15 text-borde')}`}>
+          {pendiente ? '⏳ Pendiente de confirmar' : partido.estado === 'Jugado' ? 'Finalizado' : partido.estado}
           {minutoMostrado && ` · ${minutoMostrado}`}
         </span>
         {hora && partido.estado === 'Programado' && <span className="font-marcador text-sm text-texto tabular-nums">{hora}</span>}
@@ -146,6 +148,8 @@ function MatchCard({ partido, jornadaBloqueada = false, motivoBloqueo = null }) 
         )}
         <EquipoEnlace equipo={partido.equipo_visitante} />
       </div>
+
+      {pendiente && <p className="text-center font-body text-[11px] text-borde mt-1">{AYUDA_PENDIENTE}</p>}
 
       {partido.estado === 'Jugado' && partido.mi_pronostico && (
         <p

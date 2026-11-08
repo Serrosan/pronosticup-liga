@@ -8,6 +8,7 @@ import TicketHeader from '../components/TicketHeader'
 import SkeletonLista from '../components/SkeletonLista'
 import TickerNovedades from '../components/TickerNovedades'
 import { formatearFechaHora } from '../utils/tiempo'
+import { pendienteDeConfirmar } from '../utils/estadoPartido'
 
 function Escudo({ url, alt }) {
   if (!url) return <span className="w-6 h-6 rounded-full bg-borde/15 flex items-center justify-center text-xs shrink-0">⚽</span>
@@ -202,7 +203,7 @@ function FilaPartidoProximo({ p }) {
         </span>
       ) : (
         <span className="font-marcador text-xs text-borde tabular-nums shrink-0 ml-2">
-          {formatearFechaHora(p.horario_estimado)}
+          {pendienteDeConfirmar(p.estado, p.horario_estimado) ? '⏳ Pendiente de confirmar' : formatearFechaHora(p.horario_estimado)}
         </span>
       )}
     </div>

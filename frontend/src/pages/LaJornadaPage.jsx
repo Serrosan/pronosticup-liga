@@ -9,6 +9,7 @@ import SkeletonLista from '../components/SkeletonLista'
 import EstadoVacio from '../components/EstadoVacio'
 import useTitulo from '../hooks/useTitulo'
 import { TIPOS, fondoSuave, estaResuelto, tipoDePronostico } from '../utils/tiposAcierto'
+import { pendienteDeConfirmar } from '../utils/estadoPartido'
 import ReproductorAudio from '../components/ReproductorAudio'
 
 // "La jornada en tu liga": qué ha puesto cada uno. Regla única, la misma en
@@ -118,10 +119,12 @@ function ListaPronosticos({ partido }) {
 function TarjetaPartido({ partido, miembros }) {
   const [abierto, setAbierto] = useState(false)
   const resuelto = estaResuelto(partido.goles_casa, partido.goles_fuera, partido.estado)
-  const enJuego = partido.estado === 'En juego'
+  const pendiente = pendienteDeConfirmar(partido.estado, partido.horario)
+  const enJuego = partido.estado === 'En juego' && !pendiente
+  const conMarcador = resuelto || partido.estado === 'En juego'
 
   let centro = horaCorta(partido.horario)
-  if (resuelto || enJuego) centro = `${partido.goles_casa ?? 0}-${partido.goles_fuera ?? 0}`
+  if (conMarcador) centro = `${partido.goles_casa ?? 0}-${partido.goles_fuera ?? 0}`
   if (partido.estado === 'Aplazado') centro = 'Aplazado'
 
   return (
@@ -131,9 +134,10 @@ function TarjetaPartido({ partido, miembros }) {
           <span className="font-body text-sm text-texto truncate">{partido.local.nombre}</span>
           <Escudo url={partido.local.escudo_url} alt={partido.local.nombre} />
         </span>
-        <span className={`font-marcador text-center tabular-nums whitespace-nowrap ${resuelto || enJuego ? 'text-lg font-bold text-texto' : 'text-xs text-borde'}`}>
+        <span className={`font-marcador text-center tabular-nums whitespace-nowrap ${conMarcador ? 'text-lg font-bold text-texto' : 'text-xs text-borde'}`}>
           {centro}
           {enJuego && <span className="block font-body text-[9px] font-semibold text-red-500 uppercase tracking-widest">En juego</span>}
+          {pendiente && <span className="block font-body text-[9px] font-semibold text-borde uppercase tracking-widest" title="Ya debería haber terminado: falta que la fuente de datos publique el resultado oficial">⏳ Pendiente</span>}
         </span>
         <span className="flex items-center gap-1.5 min-w-0">
           <Escudo url={partido.visitante.escudo_url} alt={partido.visitante.nombre} />

@@ -1,4 +1,5 @@
 import { useParams, Link } from 'react-router-dom'
+import { pendienteDeConfirmar, AYUDA_PENDIENTE } from '../utils/estadoPartido'
 import { useQuery } from '@tanstack/react-query'
 import client from '../api/client'
 import { useToast } from '../context/ToastContext'
@@ -261,7 +262,8 @@ function MatchDetailPage() {
     ? Math.max(0, Math.round((Date.now() - new Date(data.actualizado_en)) / 60000))
     : null
 
-  const minutoMostrado = data.estado === 'En juego' ? minutoEstimado(data.horario_estimado, data.minuto_partido) : null
+  const pendiente = pendienteDeConfirmar(data.estado, data.horario_estimado)
+  const minutoMostrado = data.estado === 'En juego' && !pendiente ? minutoEstimado(data.horario_estimado, data.minuto_partido) : null
 
   const idVideo = obtenerIdYoutube(data.video_resumen_url)
 
@@ -298,10 +300,13 @@ function MatchDetailPage() {
               {(data.estado === 'Jugado' || data.estado === 'En juego') ? (
                 <span className="font-marcador text-5xl font-bold text-texto tabular-nums">{data.goles_casa ?? 0}-{data.goles_fuera ?? 0}</span>
               ) : (
-                <span className="font-body text-sm text-borde">{data.estado}</span>
+                <span className="font-body text-sm text-borde">{pendiente ? '⏳ Pendiente' : data.estado}</span>
               )}
             </div>
-            {data.estado === 'En juego' && (
+            {pendiente && (
+              <p className="font-body text-[11px] text-borde mt-1.5 max-w-[14rem] mx-auto">⏳ {AYUDA_PENDIENTE}</p>
+            )}
+            {data.estado === 'En juego' && !pendiente && (
               <p className="font-body text-xs text-red-400 font-semibold mt-1.5">
                 ● En juego{minutoMostrado && ` · ${minutoMostrado}`}
               </p>

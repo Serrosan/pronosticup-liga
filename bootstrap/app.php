@@ -18,6 +18,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // SPA sin ruta "login": a los invitados de la web se les manda al inicio (la app
+        // ya lleva al login), y la API responde 401 (ver withExceptions).
+        $middleware->redirectGuestsTo('/');
+
         $middleware->trustProxies(at: '*');
         $middleware->statefulApi();
         $middleware->alias(['admin' => \App\Http\Middleware\EnsureIsAdmin::class]);
@@ -25,6 +29,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trimStrings();
     })
     ->withExceptions(function (Exceptions $exceptions) {
+        // Toda la API contesta en JSON (401, 403, 404…), aunque la petición no lo pida:
+        // un <audio>/<img> a la API con la sesión caducada o un bot daban 500.
+        $exceptions->shouldRenderJsonWhen(fn (\Illuminate\Http\Request $request) => $request->is('api/*') || $request->expectsJson());
+
         $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, $request) {
             return response()->json(['message' => 'No autenticado.'], 401);
         });

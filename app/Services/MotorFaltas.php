@@ -208,7 +208,7 @@ class MotorFaltas
      */
     public function comprobarRequisitoPronostico(int $idLiga, int $idUsuario, int $jornada, int $totalPartidosJornada, int $totalPronosticosConEsteIncluido, Collection $tiposConEsteIncluido, ?Collection $tiposAntes = null): ?string
     {
-        $requisitos = $this->requisitosActivos($idLiga, $idUsuario, $jornada);
+        $requisitos = $this->requisitosActivos($idLiga, $idUsuario, $jornada, $totalPartidosJornada);
 
         if ($requisitos->isEmpty()) {
             return null;
@@ -231,7 +231,9 @@ class MotorFaltas
         }
 
         if ($faltanDespues > 0) {
-            $lista = $requisitos->map(fn ($r) => "{$r['cantidad']} pronóstico(s) de \"{$r['tipo']}\"")->implode(' y ');
+            $lista = $requisitos->filter(fn ($r) => $r['cantidad'] > 0)
+                ->map(fn ($r) => "{$r['cantidad']} pronóstico(s) de \"{$r['tipo']}\"".($r['ajustada_desde'] ? " (ajustada de {$r['ajustada_desde']}: no caben más en la jornada)" : ''))
+                ->implode(' y ');
             $quien = $requisitos->count() > 1 ? 'Faltas activas' : 'una Falta activa';
 
             return "Tienes {$quien} contra ti: debes incluir al menos {$lista} esta jornada, y guardar así ya lo haría imposible de cumplir.";
@@ -248,7 +250,7 @@ class MotorFaltas
      */
     public function estadoRequisitoPronostico(int $idLiga, int $idUsuario, int $jornada, Collection $idsPartidosJornada): ?array
     {
-        $requisitos = $this->requisitosActivos($idLiga, $idUsuario, $jornada);
+        $requisitos = $this->requisitosActivos($idLiga, $idUsuario, $jornada, $idsPartidosJornada->count());
 
         if ($requisitos->isEmpty()) {
             return null;
@@ -282,8 +284,13 @@ class MotorFaltas
             'tipo' => $r['tipo'],
             'cantidad' => $r['cantidad'],
             'cumplidos' => $misPronosticos->filter(fn ($tipo) => $tipo === $r['tipo'])->count(),
-            'faltas' => $detalle->get($r['tipo'], []),
-        ]);
+            'faltas' => $r['ajustada_desde'] === null ? $detalle->get($r['tipo'], []) : collect($detalle->get($r['tipo'], []))
+                ->map(fn ($f) => $f['manda'] ? array_merge($f, ['cantidad' => $r['cantidad'], 'ajustada_desde' => $r['ajustada_desde']]) : $f)
+                ->all(),
+        ] + ($r['ajustada_desde'] === null ? [] : [
+            // No cabía en la jornada junto a las demás: cuánto pedía la carta.
+            'ajustada_desde' => $r['ajustada_desde'],
+        ]));
 
         // Se enseña primero la que aún no está cumplida; con varias, todas van en 'requisitos'.
         $principal = $estados->first(fn ($e) => $e['cumplidos'] < $e['cantidad']) ?? $estados->first();
@@ -301,22 +308,60 @@ class MotorFaltas
     /**
      * Las Faltas de "requisito de pronóstico" activas contra este usuario en esa
      * jornada, una por tipo (si hay dos del mismo tipo, manda la más exigente).
+     * Con $partidosJornada, además, ajustadas para que quepan (ver ajustarAlHueco).
      *
-     * @return Collection<int,array{tipo:string,cantidad:int}>
+     * @return Collection<int,array{tipo:string,cantidad:int,ajustada_desde:?int}>
      */
-    private function requisitosActivos(int $idLiga, int $idUsuario, int $jornada): Collection
+    private function requisitosActivos(int $idLiga, int $idUsuario, int $jornada, ?int $partidosJornada = null): Collection
     {
-        return CartaUsuario::where('id_liga', $idLiga)
+        $requisitos = CartaUsuario::where('id_liga', $idLiga)
             ->where('id_usuario_objetivo', $idUsuario)
             ->where('jornada_efecto', $jornada)
             ->where('estado', 'jugada')
             ->whereHas('tipoCarta', fn ($q) => $q->whereIn('codigo_efecto', array_keys(self::REQUISITOS_PRONOSTICO)))
             ->with('tipoCarta')
             ->get()
-            ->map(fn ($carta) => self::REQUISITOS_PRONOSTICO[$carta->tipoCarta->codigo_efecto])
+            ->map(fn ($carta) => self::REQUISITOS_PRONOSTICO[$carta->tipoCarta->codigo_efecto] + [
+                'jugada_en' => (string) $carta->jugada_en,
+                'id' => $carta->id,
+                'ajustada_desde' => null,
+            ])
             ->groupBy('tipo')
             ->map(fn ($mismoTipo) => $mismoTipo->sortByDesc('cantidad')->first())
             ->values();
+
+        return $partidosJornada === null ? $requisitos : $this->ajustarAlHueco($requisitos, $partidosJornada);
+    }
+
+    /**
+     * Si las Faltas de requisito (Casa, Visita, Gafas) suman más pronósticos de los
+     * partidos que tiene la jornada, es imposible cumplirlas todas: se le baja el
+     * número a la jugada MÁS TARDE (y si no basta, a la anterior…) hasta que quepan.
+     * El primero que juega manda. El atacante no se entera de nada.
+     * Caso real: J14, Todo queda en casa Rara (5) + Visita obligada Legendaria (6) = 11.
+     */
+    private function ajustarAlHueco(Collection $requisitos, int $partidosJornada): Collection
+    {
+        $exceso = (int) $requisitos->sum('cantidad') - max(0, $partidosJornada);
+
+        if ($exceso <= 0) {
+            return $requisitos;
+        }
+
+        $ajustados = $requisitos->sortByDesc(fn ($r) => $r['jugada_en'].'#'.str_pad((string) $r['id'], 10, '0', STR_PAD_LEFT))
+            ->map(function ($r) use (&$exceso) {
+                if ($exceso > 0 && $r['cantidad'] > 0) {
+                    $quitar = min($exceso, $r['cantidad']);
+                    $exceso -= $quitar;
+                    $r['ajustada_desde'] = $r['cantidad'];
+                    $r['cantidad'] -= $quitar;
+                }
+
+                return $r;
+            });
+
+        // Mismo orden que antes (por tipo), solo cambian los números.
+        return $requisitos->map(fn ($r) => $ajustados->firstWhere('id', $r['id']))->values();
     }
 
     /** Cuántos pronósticos faltan, sumando todos los requisitos, para cumplirlos. */

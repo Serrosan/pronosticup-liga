@@ -159,6 +159,11 @@ function AvisoFaltaActiva({ falta }) {
               <span className="font-semibold">{ETIQUETA_TIPO_FALTA[r.tipo] ?? r.tipo}: {Math.min(r.cumplidos, r.cantidad)} de {r.cantidad}</span>
               {hecho ? <span className="text-acento font-semibold"> ✓ cumplido</span> : <span className="text-borde"> (te falta{resto > 1 ? 'n' : ''} {resto})</span>}
               {quienes && <span className="block font-body text-[11px] text-borde pl-5">De: {quienes}</span>}
+              {r.ajustada_desde != null && (
+                <span className="block font-body text-[11px] text-borde pl-5">
+                  ↘️ La carta pedía {r.ajustada_desde}, pero con tus otras Faltas no caben en los partidos de la jornada: se queda en {r.cantidad}.
+                </span>
+              )}
             </li>
           )
         })}
